@@ -1,0 +1,42 @@
+
+# Note: As per Backend_Implementation_Guide.md, versions are not frozen here 
+# to allow validation against the target Python/CUDA environment first.
+
+# --- Core Web API & Validation ---
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
+pydantic-settings
+orjson
+
+# --- Database & Migrations ---
+sqlalchemy
+asyncmy
+alembic
+# Optional helper for mysql sync operations / cryptography authentication support
+cryptography
+
+# --- PDF Processing & OCR Fallback ---
+pymupdf
+paddleocr
+# Note: For GPU support, replace with paddlepaddle-gpu if CUDA is available
+paddlepaddle
+
+# --- Machine Learning, Embeddings & LLM ---
+# Note: For CUDA-enabled environments, ensure PyTorch is installed with appropriate CUDA wheels
+torch
+transformers
+accelerate
+safetensors
+sentence-transformers
+
+# --- Vector Database ---
+qdrant-client
+
+# --- Utilities & Clients ---
+httpx
+
+# --- Testing Suite ---
+pytest
+pytest-asyncio
