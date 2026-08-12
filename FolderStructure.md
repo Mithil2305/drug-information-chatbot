@@ -313,14 +313,12 @@ labelproof/
 │   │
 │   ├── requirements.txt
 │   ├── .env
-│   └── Dockerfile
 │
 ├── data/
 │   ├── uploads/
 │   ├── processed/
 │   └── test_documents/
 │
-├── docker-compose.yml
 ├── .gitignore
 ├── README.md
 └── .env.example
