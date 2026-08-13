@@ -47,8 +47,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             <FileText className="h-5 w-5" aria-hidden="true" />
           </Link>
         </div>
-        <div className="mt-4 flex-1 overflow-y-auto">
-          <RecentChats collapsed />
+        <div className="mt-4 flex-1">
         </div>
         <UserProfile collapsed />
       </aside>

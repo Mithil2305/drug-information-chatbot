@@ -1,0 +1,42 @@
+import { useState } from 'react'
+import { Eye, EyeOff, Lock } from 'lucide-react'
+
+interface PasswordInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label: string
+  error?: string
+}
+
+export function PasswordInput({ label, error, ...props }: PasswordInputProps) {
+  const [show, setShow] = useState(false)
+
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-fg" htmlFor={props.id}>
+        {label}
+      </label>
+      <div className="relative">
+        <Lock
+          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-muted"
+          aria-hidden="true"
+        />
+        <input
+          {...props}
+          type={show ? 'text' : 'password'}
+          className={`w-full rounded-lg border bg-surface py-2.5 pl-10 pr-10 text-sm text-fg placeholder-fg-muted outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary ${
+            error ? 'border-danger' : 'border-line'
+          }`}
+        />
+        <button
+          type="button"
+          onClick={() => setShow((v) => !v)}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-fg-muted transition-colors hover:text-fg"
+          aria-label={show ? 'Hide password' : 'Show password'}
+          title={show ? 'Hide password' : 'Show password'}
+        >
+          {show ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+        </button>
+      </div>
+      {error && <p className="mt-1.5 text-xs text-danger">{error}</p>}
+    </div>
+  )
+}

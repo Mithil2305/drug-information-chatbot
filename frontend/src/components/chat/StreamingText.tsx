@@ -18,7 +18,7 @@ export function StreamingText({ content, onComplete }: StreamingTextProps) {
         clearInterval(interval)
         onComplete?.()
       }
-    }, 20)
+    }, 10)
 
     return () => clearInterval(interval)
   }, [content, onComplete])

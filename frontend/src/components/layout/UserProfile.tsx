@@ -1,4 +1,3 @@
-import { Settings } from 'lucide-react'
 
 interface UserProfileProps {
   collapsed: boolean
@@ -11,15 +10,15 @@ export function UserProfile({ collapsed }: UserProfileProps) {
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white">
           <span className="text-xs font-bold">MM</span>
         </div>
-        <button
+        {/* <button
           type="button"
           onClick={() => alert('Settings coming soon')}
           className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
           aria-label="Settings"
           title="Settings"
         >
-          <Settings className="h-4 w-4" aria-hidden="true" />
-        </button>
+          <Cog className="h-4 w-4" aria-hidden="true" />
+        </button> */}
       </div>
     )
   }
@@ -35,15 +34,15 @@ export function UserProfile({ collapsed }: UserProfileProps) {
           <div className="truncate text-xs text-fg-muted">LabelProof User</div>
         </div>
       </div>
-      <button
+      {/* <button
         type="button"
         onClick={() => alert('Settings coming soon')}
         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-fg-muted transition-colors hover:text-fg"
         aria-label="Settings"
         title="Settings"
       >
-        <Settings className="h-4 w-4" aria-hidden="true" />
-      </button>
+        <Cog className="h-4 w-4" aria-hidden="true" />
+      </button> */}
     </div>
   )
 }
