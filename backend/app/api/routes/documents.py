@@ -2,64 +2,276 @@ import os
 import uuid
 import logging
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks, status
+
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    UploadFile,
+    File,
+    BackgroundTasks,
+    status
+)
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.db.database import get_db_session
+
 from app.models.document import Document
+from app.models.document_page import DocumentPage
+
 from app.schemas.document import (
     DocumentUploadResponse,
     DocumentResponse,
     DocumentProcessResponse
 )
+
+from app.services.pdf.extractor import extract_pdf_pages
+from app.services.chunking.chunker import create_chunks
+
 from app.core.config import settings
 
+
 logger = logging.getLogger(__name__)
+
 router = APIRouter(tags=["documents"])
 
-# Ensure local upload directory exists as a fallback
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "data", "uploads")
+
+# =====================================================
+# UPLOAD DIRECTORY
+# =====================================================
+
+UPLOAD_DIR = os.path.join(
+    os.path.dirname(
+        os.path.dirname(
+            os.path.dirname(
+                os.path.dirname(__file__)
+            )
+        )
+    ),
+    "data",
+    "uploads"
+)
+
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-async def simulate_processing_task(document_id: str, db_session_factory):
+
+# =====================================================
+# BACKGROUND PROCESSING
+# =====================================================
+
+async def simulate_processing_task(
+    document_id: str,
+    db_session_factory
+):
     """
-    Simulated background task to process document extraction, quality check,
-    OCR fallback, chunking, embedding, and indexing.
+    Process document:
+
+    PDF
+      ↓
+    Extract pages
+      ↓
+    Save document_pages
+      ↓
+    Create chunks
+      ↓
+    Mark document completed
     """
-    logger.info(f"Starting background processing for document: {document_id}")
-    
-    # We open a separate session since this runs as a background task
+
+    logger.info(
+        f"Starting background processing for document: {document_id}"
+    )
+
     async for db in db_session_factory():
+
         try:
-            # 1. Update status to processing
-            result = await db.execute(select(Document).filter(Document.document_id == document_id))
+
+            # -----------------------------------------
+            # 1. Find document
+            # -----------------------------------------
+
+            result = await db.execute(
+                select(Document).filter(
+                    Document.document_id == document_id
+                )
+            )
+
             doc = result.scalar_one_or_none()
+
             if not doc:
-                logger.error(f"Document {document_id} not found in DB.")
+                logger.error(
+                    f"Document {document_id} not found in DB."
+                )
                 return
 
+
+            # -----------------------------------------
+            # 2. Update status
+            # -----------------------------------------
+
             doc.status = "processing"
+
             await db.commit()
-            
-            # TODO: Integrate PyMuPDF / PaddleOCR extraction and Qdrant indexing
-            # 2. Simulate success
+
+
+            # -----------------------------------------
+            # 3. Find uploaded PDF
+            # -----------------------------------------
+
+            file_path = os.path.join(
+                UPLOAD_DIR,
+                f"{document_id}_{doc.file_name}"
+            )
+
+            logger.info(
+                f"Reading PDF from: {file_path}"
+            )
+
+            if not os.path.exists(file_path):
+
+                raise FileNotFoundError(
+                    f"PDF file not found: {file_path}"
+                )
+
+
+            # -----------------------------------------
+            # 4. Extract PDF pages
+            # -----------------------------------------
+
+            pages = extract_pdf_pages(file_path)
+
+            if not pages:
+
+                raise ValueError(
+                    "No pages were extracted from the PDF."
+                )
+
+            logger.info(
+                f"Extracted {len(pages)} pages."
+            )
+
+
+            # -----------------------------------------
+            # 5. Remove old page records
+            # -----------------------------------------
+
+            old_pages_result = await db.execute(
+                select(DocumentPage).filter(
+                    DocumentPage.document_id == document_id
+                )
+            )
+
+            old_pages = old_pages_result.scalars().all()
+
+            for old_page in old_pages:
+
+                await db.delete(old_page)
+
+            await db.flush()
+
+
+            # -----------------------------------------
+            # 6. Save extracted pages
+            # -----------------------------------------
+
+            for page in pages:
+
+                document_page = DocumentPage(
+                    document_id=document_id,
+                    page_no=page["page_no"],
+                    extraction_method=page["extraction_method"],
+                    quality_score=page["quality_score"],
+                    text_ref=page["text"]
+                )
+
+                db.add(document_page)
+
+            await db.commit()
+
+
+            logger.info(
+                f"Saved {len(pages)} document pages "
+                f"for document {document_id}"
+            )
+
+
+            # -----------------------------------------
+            # 7. Create chunks
+            # -----------------------------------------
+
+            chunk_count = await create_chunks(
+                document_id,
+                db
+            )
+
+            logger.info(
+                f"Created {chunk_count} chunks "
+                f"for document {document_id}"
+            )
+
+
+            # -----------------------------------------
+            # 8. Mark document completed
+            # -----------------------------------------
+
             doc.status = "completed"
+
             await db.commit()
-            logger.info(f"Completed background processing for document: {document_id}")
+
+            logger.info(
+                f"Completed processing for document: "
+                f"{document_id}"
+            )
+
+
         except Exception as e:
-            logger.error(f"Error processing document {document_id}: {str(e)}")
+
+            logger.error(
+                f"Error processing document "
+                f"{document_id}: {str(e)}"
+            )
+
+
+            # -----------------------------------------
+            # Mark document as failed
+            # -----------------------------------------
+
             try:
-                result = await db.execute(select(Document).filter(Document.document_id == document_id))
+
+                await db.rollback()
+
+                result = await db.execute(
+                    select(Document).filter(
+                        Document.document_id == document_id
+                    )
+                )
+
                 doc = result.scalar_one_or_none()
+
                 if doc:
+
                     doc.status = "failed"
+
                     await db.commit()
+
             except Exception:
-                pass
+
+                await db.rollback()
+
+
         break
 
-@router.post("/upload", response_model=DocumentUploadResponse, status_code=status.HTTP_201_CREATED)
+
+# =====================================================
+# UPLOAD DOCUMENT
+# =====================================================
+
+@router.post(
+    "/upload",
+    response_model=DocumentUploadResponse,
+    status_code=status.HTTP_201_CREATED
+)
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
@@ -67,105 +279,259 @@ async def upload_document(
     version: str = "1.0",
     db: AsyncSession = Depends(get_db_session)
 ):
-    # Validate file type
+
+    # -----------------------------------------
+    # 1. Validate PDF
+    # -----------------------------------------
+
     if not file.filename.lower().endswith(".pdf"):
+
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid file format. Only PDF files are supported."
         )
 
-    # Validate size (read header content-length if present, or limit manually during read)
-    file_size_mb = 0
-    # Create unique storage key
-    doc_id = str(uuid.uuid4())
-    storage_key = f"documents/{doc_id}_{file.filename}"
-    local_path = os.path.join(UPLOAD_DIR, f"{doc_id}_{file.filename}")
 
-    # Save file content (either to local disk or simulated R2)
+    # -----------------------------------------
+    # 2. Create document ID
+    # -----------------------------------------
+
+    doc_id = str(uuid.uuid4())
+
+    storage_key = (
+        f"documents/{doc_id}_{file.filename}"
+    )
+
+    local_path = os.path.join(
+        UPLOAD_DIR,
+        f"{doc_id}_{file.filename}"
+    )
+
+
+    # -----------------------------------------
+    # 3. Save PDF
+    # -----------------------------------------
+
     try:
+
         content = await file.read()
-        file_size_mb = len(content) / (1024 * 1024)
+
+        file_size_mb = (
+            len(content) / (1024 * 1024)
+        )
+
+
         if file_size_mb > settings.MAX_UPLOAD_SIZE_MB:
+
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=f"File exceeds maximum allowed size of {settings.MAX_UPLOAD_SIZE_MB}MB."
+                detail=(
+                    f"File exceeds maximum allowed size of "
+                    f"{settings.MAX_UPLOAD_SIZE_MB}MB."
+                )
             )
-        
+
+
         with open(local_path, "wb") as f:
+
             f.write(content)
-            
-        # TODO: Upload to Cloudflare R2 if configured
+
+
+        logger.info(
+            f"Saved PDF to: {local_path}"
+        )
+
+
+        # -----------------------------------------
+        # Cloudflare R2
+        # -----------------------------------------
+
         if settings.R2_ENDPOINT_URL:
-            logger.info(f"Uploading {file.filename} to Cloudflare R2: {storage_key}")
-            
+
+            logger.info(
+                f"Uploading {file.filename} "
+                f"to Cloudflare R2: {storage_key}"
+            )
+
+
     except HTTPException:
+
         raise
+
+
     except Exception as e:
-        logger.error(f"Failed to write file: {e}")
+
+        logger.error(
+            f"Failed to write file: {e}"
+        )
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to upload file content: {str(e)}"
         )
 
-    # Save record in database
+
+    # -----------------------------------------
+    # 4. Save document record
+    # -----------------------------------------
+
     new_doc = Document(
         document_id=doc_id,
         file_name=file.filename,
         storage_key=storage_key,
-        source=source or file.filename.rsplit(".", 1)[0],
+        source=(
+            source
+            or file.filename.rsplit(".", 1)[0]
+        ),
         version=version,
         status="uploaded"
     )
+
     db.add(new_doc)
+
     await db.commit()
+
     await db.refresh(new_doc)
 
-    # Trigger background ingestion process
-    background_tasks.add_task(simulate_processing_task, doc_id, get_db_session)
+
+    # -----------------------------------------
+    # 5. Start processing
+    # -----------------------------------------
+
+    background_tasks.add_task(
+        simulate_processing_task,
+        doc_id,
+        get_db_session
+    )
+
+
+    # -----------------------------------------
+    # 6. Return response
+    # -----------------------------------------
 
     return DocumentUploadResponse(
         document=DocumentResponse.model_validate(new_doc),
-        message="Document uploaded successfully. Processing started in background."
+        message=(
+            "Document uploaded successfully. "
+            "Processing started in background."
+        )
     )
 
-@router.get("", response_model=List[DocumentResponse])
-async def list_documents(db: AsyncSession = Depends(get_db_session)):
-    result = await db.execute(select(Document))
-    documents = result.scalars().all()
-    return [DocumentResponse.model_validate(doc) for doc in documents]
 
-@router.get("/{document_id}", response_model=DocumentResponse)
-async def get_document(document_id: str, db: AsyncSession = Depends(get_db_session)):
-    result = await db.execute(select(Document).filter(Document.document_id == document_id))
+# =====================================================
+# LIST DOCUMENTS
+# =====================================================
+
+@router.get(
+    "",
+    response_model=List[DocumentResponse]
+)
+async def list_documents(
+    db: AsyncSession = Depends(get_db_session)
+):
+
+    result = await db.execute(
+        select(Document)
+    )
+
+    documents = result.scalars().all()
+
+    return [
+        DocumentResponse.model_validate(doc)
+        for doc in documents
+    ]
+
+
+# =====================================================
+# GET SINGLE DOCUMENT
+# =====================================================
+
+@router.get(
+    "/{document_id}",
+    response_model=DocumentResponse
+)
+async def get_document(
+    document_id: str,
+    db: AsyncSession = Depends(get_db_session)
+):
+
+    result = await db.execute(
+        select(Document).filter(
+            Document.document_id == document_id
+        )
+    )
+
     doc = result.scalar_one_or_none()
+
     if not doc:
+
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Document not found."
         )
+
     return DocumentResponse.model_validate(doc)
 
-@router.post("/{document_id}/process", response_model=DocumentProcessResponse)
+
+# =====================================================
+# PROCESS / REPROCESS DOCUMENT
+# =====================================================
+
+@router.post(
+    "/{document_id}/process",
+    response_model=DocumentProcessResponse
+)
 async def process_document(
     document_id: str,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db_session)
 ):
-    result = await db.execute(select(Document).filter(Document.document_id == document_id))
+
+    # -----------------------------------------
+    # 1. Find document
+    # -----------------------------------------
+
+    result = await db.execute(
+        select(Document).filter(
+            Document.document_id == document_id
+        )
+    )
+
     doc = result.scalar_one_or_none()
+
     if not doc:
+
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Document not found."
         )
 
-    # Force reset status
+
+    # -----------------------------------------
+    # 2. Reset status
+    # -----------------------------------------
+
     doc.status = "uploaded"
+
     await db.commit()
+
     await db.refresh(doc)
 
-    # Re-trigger background process
-    background_tasks.add_task(simulate_processing_task, document_id, get_db_session)
+
+    # -----------------------------------------
+    # 3. Start processing
+    # -----------------------------------------
+
+    background_tasks.add_task(
+        simulate_processing_task,
+        document_id,
+        get_db_session
+    )
+
+
+    # -----------------------------------------
+    # 4. Return response
+    # -----------------------------------------
 
     return DocumentProcessResponse(
         document_id=document_id,
