@@ -1,18 +1,24 @@
-import { ChatProvider } from './stores/chatStore'
-import { DocumentProvider } from './stores/documentStore'
-import { ViewerProvider } from './stores/viewerStore'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { ThemeProvider } from './contexts/ThemeContext'
+import { UIProvider } from './contexts/UIContext'
+import { ChatProvider } from './contexts/ChatContext'
+import ChatPage from './pages/ChatPage'
 
 function App() {
   return (
-    <ChatProvider>
-      <DocumentProvider>
-        <ViewerProvider>
-          <div className="min-h-screen bg-gray-50 text-gray-900">
-            <h1 className="text-3xl font-bold p-6">Drug Information Chatbot</h1>
-          </div>
-        </ViewerProvider>
-      </DocumentProvider>
-    </ChatProvider>
+    <BrowserRouter>
+      <ThemeProvider>
+        <UIProvider>
+          <ChatProvider>
+            <Routes>
+              <Route path="/" element={<ChatPage />} />
+              <Route path="/chat/:conversationId?" element={<ChatPage />} />
+              <Route path="*" element={<ChatPage />} />
+            </Routes>
+          </ChatProvider>
+        </UIProvider>
+      </ThemeProvider>
+    </BrowserRouter>
   )
 }
 
