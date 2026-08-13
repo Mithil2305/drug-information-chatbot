@@ -1,21 +1,41 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Toaster } from 'sonner'
+import { ChatProvider } from './contexts/ChatContext'
+import { ConversationProvider } from './contexts/ConversationContext'
+import { DocumentProvider } from './contexts/DocumentContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { UIProvider } from './contexts/UIContext'
-import { ChatProvider } from './contexts/ChatContext'
 import ChatPage from './pages/ChatPage'
+import DocumentsPage from './pages/DocumentsPage'
 
 function App() {
   return (
     <BrowserRouter>
       <ThemeProvider>
         <UIProvider>
-          <ChatProvider>
-            <Routes>
-              <Route path="/" element={<ChatPage />} />
-              <Route path="/chat/:conversationId?" element={<ChatPage />} />
-              <Route path="*" element={<ChatPage />} />
-            </Routes>
-          </ChatProvider>
+          <ConversationProvider>
+            <DocumentProvider>
+              <ChatProvider>
+                <Routes>
+                  <Route path="/" element={<ChatPage />} />
+                  <Route path="/chat/:conversationId?" element={<ChatPage />} />
+                  <Route path="/documents" element={<DocumentsPage />} />
+                  <Route path="*" element={<ChatPage />} />
+                </Routes>
+                <Toaster
+                  position="bottom-right"
+                  theme="dark"
+                  toastOptions={{
+                    style: {
+                      background: 'var(--color-surface)',
+                      border: '1px solid var(--color-border)',
+                      color: 'var(--color-foreground)',
+                    },
+                  }}
+                />
+              </ChatProvider>
+            </DocumentProvider>
+          </ConversationProvider>
         </UIProvider>
       </ThemeProvider>
     </BrowserRouter>

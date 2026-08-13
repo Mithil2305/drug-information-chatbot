@@ -32,3 +32,9 @@ export interface Conversation {
   updatedAt: string
   messages: ChatMessage[]
 }
+
+export interface ConversationSummary {
+  id: string
+  title: string
+  updatedAt: string
+}

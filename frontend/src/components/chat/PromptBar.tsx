@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Plus, Mic, Send, ChevronDown } from 'lucide-react'
+import { Plus, Send } from 'lucide-react'
 import { useChat } from '../../hooks/useChat'
 
 export function PromptBar() {
@@ -59,19 +59,19 @@ export function PromptBar() {
           aria-label="Message"
         />
 
-        <div className="hidden shrink-0 items-center gap-1 rounded-lg border border-line bg-surface-highlight px-3 py-2 text-sm font-medium text-fg sm:flex">
+        {/* <div className="hidden shrink-0 items-center gap-1 rounded-lg border border-line bg-surface-highlight px-3 py-2 text-sm font-medium text-fg sm:flex">
           <span>RAG-1</span>
           <ChevronDown className="h-4 w-4 text-fg-muted" aria-hidden="true" />
-        </div>
+        </div> */}
 
-        <button
+        {/* <button
           type="button"
           onClick={() => alert('Voice input coming soon')}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
           aria-label="Use microphone"
         >
           <Mic className="h-5 w-5" aria-hidden="true" />
-        </button>
+        </button> */}
 
         <button
           type="submit"

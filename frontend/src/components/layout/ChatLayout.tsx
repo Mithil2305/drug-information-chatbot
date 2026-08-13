@@ -1,4 +1,4 @@
-import { Activity, Menu } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { useUI } from '../../hooks/useUI'
 import { MobileSidebar } from './MobileSidebar'
 import { Sidebar } from './Sidebar'
@@ -23,9 +23,9 @@ export function ChatLayout({ children }: ChatLayoutProps) {
           <header className="flex items-center justify-between border-b border-line bg-surface px-4 py-3">
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
-                <Activity className="h-5 w-5" aria-hidden="true" />
+                <span className="text-sm font-bold">L</span>
               </div>
-              <span className="text-lg font-semibold text-fg">LabelProof</span>
+              <span className="text-base font-semibold text-fg">LabelProof</span>
             </div>
             <button
               type="button"
