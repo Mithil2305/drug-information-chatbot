@@ -1,6 +1,9 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useState, type ReactNode } from 'react'
+import { createContext, useState, useEffect, type ReactNode } from 'react'
+import { toast } from 'sonner'
 import type { ConversationSummary } from '../types/chat'
+import { useAuth } from '../hooks/useAuth'
+import { apiFetch } from '../api/client'
 
 interface ConversationContextValue {
   conversations: ConversationSummary[]
@@ -9,28 +12,42 @@ interface ConversationContextValue {
   renameConversation: (id: string, title: string) => void
   deleteConversation: (id: string) => void
   newConversation: () => void
+  setConversations: React.Dispatch<React.SetStateAction<ConversationSummary[]>>
+  setActiveConversationId: React.Dispatch<React.SetStateAction<string | null>>
 }
 
 export const ConversationContext = createContext<ConversationContextValue | null>(null)
 
-function daysAgo(days: number): string {
-  const d = new Date()
-  d.setDate(d.getDate() - days)
-  return d.toISOString()
-}
-
-const seedConversations: ConversationSummary[] = [
-  { id: 'c1', title: 'Drug dosage question', updatedAt: daysAgo(0) },
-  { id: 'c2', title: 'Drug interactions', updatedAt: daysAgo(0) },
-  { id: 'c3', title: 'Contraindications', updatedAt: daysAgo(1) },
-  { id: 'c4', title: 'Safety information', updatedAt: daysAgo(1) },
-  { id: 'c5', title: 'Drug comparison', updatedAt: daysAgo(3) },
-  { id: 'c6', title: 'Rinvoq warnings', updatedAt: daysAgo(5) },
-]
-
 export function ConversationProvider({ children }: { children: ReactNode }) {
-  const [conversations, setConversations] = useState<ConversationSummary[]>(seedConversations)
+  const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
+  const { user } = useAuth()
+
+  const mapBackendSession = (sess: any): ConversationSummary => ({
+    id: sess.session_id,
+    title: sess.summary || 'New Chat',
+    updatedAt: sess.started_at,
+  })
+
+  // Load conversations when user state changes
+  useEffect(() => {
+    if (!user) {
+      setConversations([])
+      setActiveConversationId(null)
+      return
+    }
+
+    const load = async () => {
+      try {
+        const res = await apiFetch<any[]>('/api/v1/sessions')
+        setConversations(res.map(mapBackendSession))
+      } catch (err: any) {
+        toast.error(err.message || 'Failed to load chat history')
+      }
+    }
+
+    load()
+  }, [user])
 
   const selectConversation = (id: string) => setActiveConversationId(id)
 
@@ -41,9 +58,15 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
     )
   }
 
-  const deleteConversation = (id: string) => {
-    setConversations((prev) => prev.filter((c) => c.id !== id))
-    setActiveConversationId((prev) => (prev === id ? null : prev))
+  const deleteConversation = async (id: string) => {
+    try {
+      await apiFetch<void>(`/api/v1/sessions/${id}`, { method: 'DELETE' })
+      setConversations((prev) => prev.filter((c) => c.id !== id))
+      setActiveConversationId((prev) => (prev === id ? null : prev))
+      toast.success('Chat deleted')
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete chat')
+    }
   }
 
   const newConversation = () => {
@@ -59,6 +82,8 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
         renameConversation,
         deleteConversation,
         newConversation,
+        setConversations,
+        setActiveConversationId
       }}
     >
       {children}

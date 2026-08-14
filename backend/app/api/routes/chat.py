@@ -14,6 +14,8 @@ from app.schemas.evidence import Citation
 from app.dependencies.embeddings import get_embedding_model
 from app.dependencies.qdrant import get_qdrant_client
 from app.dependencies.llm import get_llm_client
+from app.dependencies.auth import get_current_user
+from app.models.user import User
 
 try:
     from app.config import settings
@@ -366,6 +368,102 @@ session_id=str(session_id),
 
 
 # =============================================================
+# CREATE CHAT SESSION
+# =============================================================
+
+@sessions_router.post("", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)
+async def create_chat_session(
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user)
+):
+    new_session = ChatSession(
+        user_id=current_user.user_id,
+        summary="New Chat"
+    )
+    db.add(new_session)
+    await db.commit()
+    await db.refresh(new_session)
+    
+    return SessionResponse(
+        session_id=str(new_session.session_id),
+        started_at=new_session.started_at,
+        summary=new_session.summary,
+        messages=[]
+    )
+
+
+# =============================================================
+# LIST CHAT SESSIONS
+# =============================================================
+
+@sessions_router.get("", response_model=List[SessionResponse])
+async def list_chat_sessions(
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.execute(
+        select(ChatSession)
+        .filter(ChatSession.user_id == current_user.user_id)
+        .order_by(ChatSession.started_at.desc())
+    )
+    sessions = result.scalars().all()
+    
+    return [
+        SessionResponse(
+            session_id=str(session.session_id),
+            started_at=session.started_at,
+            summary=session.summary,
+            messages=[
+                MessageResponse(
+                    message_id=str(msg.message_id),
+                    session_id=str(msg.session_id),
+                    role=msg.role,
+                    content=msg.content,
+                    timestamp=msg.created_at,
+                    citations=[
+                        Citation(
+                            document_id=cit.document_id,
+                            document_name=cit.document_name or "Unknown Document",
+                            page=cit.page_no,
+                            section=cit.section,
+                            chunk_id=cit.chunk_id
+                        )
+                        for cit in msg.citations
+                    ]
+                )
+                for msg in session.messages
+            ]
+        )
+        for session in sessions
+    ]
+
+
+# =============================================================
+# DELETE CHAT SESSION
+# =============================================================
+
+@sessions_router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_chat_session(
+    session_id: int,
+    db: AsyncSession = Depends(get_db_session)
+):
+    result = await db.execute(
+        select(ChatSession).filter(
+            ChatSession.session_id == session_id
+        )
+    )
+    session = result.scalar_one_or_none()
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found."
+        )
+    await db.delete(session)
+    await db.commit()
+    return
+
+
+# =============================================================
 # GET CHAT SESSION
 # =============================================================
 
@@ -403,7 +501,17 @@ async def get_chat_session(
                 session_id=str(msg.session_id),
                 role=msg.role,
                 content=msg.content,
-                timestamp=msg.created_at
+                timestamp=msg.created_at,
+                citations=[
+                    Citation(
+                        document_id=cit.document_id,
+                        document_name=cit.document_name or "Unknown Document",
+                        page=cit.page_no,
+                        section=cit.section,
+                        chunk_id=cit.chunk_id
+                    )
+                    for cit in msg.citations
+                ]
             )
             for msg in session.messages
         ]
@@ -444,7 +552,17 @@ async def get_session_messages(
             session_id=str(msg.session_id),
             role=msg.role,
             content=msg.content,
-            timestamp=msg.created_at
+            timestamp=msg.created_at,
+            citations=[
+                Citation(
+                    document_id=cit.document_id,
+                    document_name=cit.document_name or "Unknown Document",
+                    page=cit.page_no,
+                    section=cit.section,
+                    chunk_id=cit.chunk_id
+                )
+                for cit in msg.citations
+            ]
         )
         for msg in session.messages
     ]

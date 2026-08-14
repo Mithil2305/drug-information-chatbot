@@ -13,6 +13,7 @@ from fastapi import (
     status
 )
 
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -540,3 +541,47 @@ async def process_document(
         status="uploaded",
         message="Document reprocessing pipeline triggered."
     )
+
+
+# =====================================================
+# DELETE DOCUMENT
+# =====================================================
+
+@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_document(
+    document_id: str,
+    db: AsyncSession = Depends(get_db_session)
+):
+    # 1. Find document
+    result = await db.execute(
+        select(Document).filter(
+            Document.document_id == document_id
+        )
+    )
+    doc = result.scalar_one_or_none()
+
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found."
+        )
+
+    # 2. Delete related records
+    from app.models.chunk import Chunk
+    from app.models.citation import Citation
+    from app.models.document_page import DocumentPage
+
+    await db.execute(
+        delete(Chunk).where(Chunk.document_id == document_id)
+    )
+    await db.execute(
+        delete(DocumentPage).where(DocumentPage.document_id == document_id)
+    )
+    await db.execute(
+        delete(Citation).where(Citation.document_id == document_id)
+    )
+
+    # 3. Delete document
+    await db.delete(doc)
+    await db.commit()
+    return

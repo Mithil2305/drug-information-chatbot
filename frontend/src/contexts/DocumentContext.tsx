@@ -1,6 +1,9 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useMemo, useState, useEffect, type ReactNode } from 'react'
+import { toast } from 'sonner'
 import type { Document } from '../types/document'
+import { useAuth } from '../hooks/useAuth'
+import { fetchDocuments, uploadDocument as uploadDocumentApi, deleteDocument as deleteDocumentApi } from '../api/documents'
 
 interface DocumentContextValue {
   documents: Document[]
@@ -14,49 +17,55 @@ interface DocumentContextValue {
 
 export const DocumentContext = createContext<DocumentContextValue | null>(null)
 
-function daysAgo(days: number): string {
-  const d = new Date()
-  d.setDate(d.getDate() - days)
-  return d.toISOString()
-}
-
-const seedDocuments: Document[] = [
-  {
-    id: 'd1',
-    name: 'Rinvoq Prescribing Information',
-    filename: 'rinvoq-prescribing-information.pdf',
-    status: 'ready',
-    fileSize: 2_400_000,
-    uploadedAt: daysAgo(2),
-    pageCount: 48,
-  },
-  {
-    id: 'd2',
-    name: 'Skyrizi Prescribing Information',
-    filename: 'skyrizi-prescribing-information.pdf',
-    status: 'processing',
-    fileSize: 1_800_000,
-    uploadedAt: daysAgo(0),
-    pageCount: 32,
-  },
-  {
-    id: 'd3',
-    name: 'Humira Prescribing Information',
-    filename: 'humira-prescribing-information.pdf',
-    status: 'ready',
-    fileSize: 3_100_000,
-    uploadedAt: daysAgo(7),
-    pageCount: 56,
-  },
-]
-
-function makeId() {
-  return `d-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
-}
-
 export function DocumentProvider({ children }: { children: ReactNode }) {
-  const [documents, setDocuments] = useState<Document[]>(seedDocuments)
+  const [documents, setDocuments] = useState<Document[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  const { user } = useAuth()
+
+  const mapBackendDoc = (doc: any): Document => ({
+    id: doc.document_id,
+    name: doc.source || doc.file_name.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ').trim(),
+    filename: doc.file_name,
+    status: doc.status === 'completed' ? 'ready' : doc.status === 'failed' ? 'failed' : 'processing',
+    fileSize: 0, // default since backend doesn't store size
+    uploadedAt: doc.created_at || new Date().toISOString(),
+  })
+
+  // Load documents on mount / when user changes
+  useEffect(() => {
+    if (!user) {
+      setDocuments([])
+      return
+    }
+
+    const load = async () => {
+      try {
+        const res = await fetchDocuments()
+        setDocuments(res.map(mapBackendDoc))
+      } catch (err: any) {
+        toast.error(err.message || 'Failed to load documents')
+      }
+    }
+
+    load()
+  }, [user])
+
+  // Poll while documents are processing
+  useEffect(() => {
+    const hasProcessing = documents.some((d) => d.status === 'processing')
+    if (!hasProcessing || !user) return
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetchDocuments()
+        setDocuments(res.map(mapBackendDoc))
+      } catch {
+        // ignore polling connection errors silently
+      }
+    }, 4000)
+
+    return () => clearInterval(interval)
+  }, [documents, user])
 
   const filteredDocuments = useMemo(() => {
     if (!searchQuery.trim()) return documents
@@ -67,37 +76,38 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
     )
   }, [documents, searchQuery])
 
-  const uploadDocument = (file: File) => {
-    const id = makeId()
+  const uploadDocument = async (file: File) => {
+    const tempId = `temp-${Date.now()}`
     const name = file.name.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ').trim()
-    const newDoc: Document = {
-      id,
+    const tempDoc: Document = {
+      id: tempId,
       name: name || file.name,
       filename: file.name,
       status: 'processing',
       fileSize: file.size,
       uploadedAt: new Date().toISOString(),
-      pageCount: undefined,
     }
-    setDocuments((prev) => [newDoc, ...prev])
+    setDocuments((prev) => [tempDoc, ...prev])
 
-    setTimeout(() => {
+    try {
+      const res = await uploadDocumentApi(file)
       setDocuments((prev) =>
-        prev.map((d) =>
-          d.id === id
-            ? {
-                ...d,
-                status: 'ready',
-                pageCount: Math.floor(Math.random() * 40) + 20,
-              }
-            : d,
-        ),
+        prev.map((d) => (d.id === tempId ? mapBackendDoc(res.document) : d)),
       )
-    }, 2500)
+      toast.success(`Successfully uploaded "${tempDoc.name}"`)
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to upload document')
+      setDocuments((prev) => prev.filter((d) => d.id !== tempId))
+    }
   }
 
-  const deleteDocument = (id: string) => {
-    setDocuments((prev) => prev.filter((d) => d.id !== id))
+  const deleteDocument = async (id: string) => {
+    try {
+      await deleteDocumentApi(id)
+      setDocuments((prev) => prev.filter((d) => d.id !== id))
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete document')
+    }
   }
 
   const renameDocument = (id: string, name: string) => {
