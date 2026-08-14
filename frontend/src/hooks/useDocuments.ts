@@ -1,21 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
-import { fetchDocuments } from '../api/documents'
-import type { Document } from '../types/document'
+import { useContext } from 'react'
+import { DocumentContext } from '../contexts/DocumentContext'
 
 export function useDocuments() {
-  const [documents, setDocuments] = useState<Document[]>([])
-  const [loading, setLoading] = useState(false)
-
-  const refresh = useCallback(async () => {
-    setLoading(true)
-    try {
-      setDocuments(await fetchDocuments())
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { refresh() }, [refresh])
-
-  return { documents, loading, refresh }
+  const context = useContext(DocumentContext)
+  if (!context) {
+    throw new Error('useDocuments must be used within a DocumentProvider')
+  }
+  return context
 }

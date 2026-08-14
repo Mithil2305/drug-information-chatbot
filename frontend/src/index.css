@@ -1,3 +1,54 @@
-﻿@tailwind base;
+﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --color-background: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-surface-highlight: #F1F5F9;
+  --color-foreground: #0F172A;
+  --color-foreground-muted: #475569;
+  --color-border: #E2E8F0;
+  --color-primary: #0F766E;
+  --color-primary-hover: #115E59;
+  --color-ai: #06B6D4;
+  --color-success: #16A34A;
+  --color-warning: #D97706;
+  --color-danger: #DC2626;
+  --color-white: #FFFFFF;
+}
+
+.dark {
+  --color-background: #0B1120;
+  --color-surface: #111827;
+  --color-surface-highlight: #1F2937;
+  --color-foreground: #F1F5F9;
+  --color-foreground-muted: #CBD5E1;
+  --color-border: #263449;
+  --color-primary: #0F766E;
+  --color-primary-hover: #115E59;
+  --color-ai: #06B6D4;
+  --color-success: #16A34A;
+  --color-warning: #D97706;
+  --color-danger: #DC2626;
+  --color-white: #FFFFFF;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.routes import documents, chat, compare, citations
+from app.api.routes import documents, chat, compare, citations , auth
 
 api_router = APIRouter()
 
@@ -17,3 +17,8 @@ api_router.include_router(citations.router, prefix="/citations")
 
 # Register drug comparison endpoints
 api_router.include_router(compare.router, prefix="/compare")
+
+
+
+# Register authentication endpoints
+api_router.include_router(auth.router, prefix="/auth", tags=["auth"])

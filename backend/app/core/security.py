@@ -2,8 +2,15 @@ import os
 import re
 import uuid
 import logging
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Union
+from typing import Any, Union
+
+import bcrypt
+from jose import jwt, JWTError
+
+from app.core.config import settings
+from app.schemas.user import TokenPayload
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +38,63 @@ PROMPT_INJECTION_PATTERNS = [
 
 PROMPT_INJECTION_REGEX = re.compile("|".join(PROMPT_INJECTION_PATTERNS), re.IGNORECASE)
 
+
+# ---------------------------------------------------------------------------
+# Password hashing & JWT
+# ---------------------------------------------------------------------------
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify standard plain text password matches hashed password."""
+    password_bytes = plain_password.encode("utf-8")
+    hashed_bytes = hashed_password.encode("utf-8")
+    return bcrypt.checkpw(password_bytes, hashed_bytes)
+
+
+def get_password_hash(password: str) -> str:
+    """Generate bcrypt hash for plaintext password."""
+    password_bytes = password.encode("utf-8")
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode("utf-8")
+
+
+def create_access_token(subject: Union[str, Any], role: str, expires_delta: timedelta = None) -> str:
+    """Generate JWT access token with claims sub, role, exp, and iat."""
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+
+    to_encode = {
+        "sub": str(subject),
+        "role": role,
+        "exp": expire,
+        "iat": datetime.utcnow()
+    }
+
+    encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return encoded_jwt
+
+
+def verify_access_token(token: str) -> TokenPayload:
+    """Decode and validate a JWT access token, extracting standard payload claims."""
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        token_data = TokenPayload(
+            sub=payload.get("sub"),
+            role=payload.get("role"),
+            exp=payload.get("exp"),
+            iat=payload.get("iat")
+        )
+        return token_data
+    except JWTError:
+        return None
+
+
+# ---------------------------------------------------------------------------
+# File / input validation helpers
+# ---------------------------------------------------------------------------
+
 def validate_pdf_signature(file_content: bytes) -> bool:
     """
     Validates that a file's binary content starts with the PDF magic number (%PDF-).
@@ -40,6 +104,7 @@ def validate_pdf_signature(file_content: bytes) -> bool:
     # PDF magic number is %PDF- (hex: 25 50 44 46 2d)
     return file_content.startswith(b'%PDF-')
 
+
 def sanitize_filename(filename: str) -> str:
     """
     Sanitizes a filename to prevent path traversal and shell injection.
@@ -47,22 +112,23 @@ def sanitize_filename(filename: str) -> str:
     """
     if not filename:
         return f"unnamed_{uuid.uuid4().hex}"
-        
+
     # Get only the basename to prevent directory traversal
     base_name = os.path.basename(filename)
-    
+
     # Split name and extension
     name, ext = os.path.splitext(base_name)
-    
+
     # Strip any characters that are not alphanumeric, dot, dash, or underscore
     clean_name = re.sub(r'[^a-zA-Z0-9_\-]', '', name)
     clean_ext = re.sub(r'[^a-zA-Z0-9.]', '', ext)
-    
+
     # If filename becomes empty, generate a unique one
     if not clean_name:
         clean_name = f"file_{uuid.uuid4().hex}"
-        
+
     return f"{clean_name}{clean_ext}"
+
 
 def is_safe_path(base_dir: Union[str, Path], target_path: Union[str, Path]) -> bool:
     """
@@ -77,6 +143,7 @@ def is_safe_path(base_dir: Union[str, Path], target_path: Union[str, Path]) -> b
         logger.warning(f"Path safety validation failed: {e}")
         return False
 
+
 def sanitize_input(text: str) -> str:
     """
     Sanitizes user input by stripping HTML tags and basic SQL injection patterns.
@@ -89,6 +156,7 @@ def sanitize_input(text: str) -> str:
     clean_text = clean_text.replace("'", "''")
     return clean_text.strip()
 
+
 def detect_prompt_injection(text: str) -> bool:
     """
     Checks if a user query or document text contains common prompt injection/override phrases.
@@ -97,6 +165,7 @@ def detect_prompt_injection(text: str) -> bool:
         return False
     return bool(PROMPT_INJECTION_REGEX.search(text))
 
+
 def mask_pii_phi(text: str) -> str:
     """
     Scans text for PII/PHI (emails, phone numbers, SSNs, credit cards)
@@ -104,12 +173,13 @@ def mask_pii_phi(text: str) -> str:
     """
     if not text:
         return ""
-    
+
     masked = EMAIL_REGEX.sub("[EMAIL_MASKED]", text)
     masked = CREDIT_CARD_REGEX.sub("[CARD_MASKED]", masked)
     masked = SSN_REGEX.sub("[SSN_MASKED]", masked)
     masked = PHONE_REGEX.sub("[PHONE_MASKED]", masked)
     return masked
+
 
 def is_valid_uuid(uuid_to_test: str) -> bool:
     """
