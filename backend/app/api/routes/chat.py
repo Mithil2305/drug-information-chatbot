@@ -394,13 +394,13 @@ async def get_chat_session(
         )
 
     return SessionResponse(
-        session_id=session.session_id,
+        session_id=str(session.session_id),
         started_at=session.started_at,
         summary=session.summary,
         messages=[
             MessageResponse(
-                message_id=msg.message_id,
-                session_id=msg.session_id,
+                message_id=str(msg.message_id),
+                session_id=str(msg.session_id),
                 role=msg.role,
                 content=msg.content,
                 timestamp=msg.created_at
@@ -440,8 +440,8 @@ async def get_session_messages(
 
     return [
         MessageResponse(
-            message_id=msg.message_id,
-            session_id=msg.session_id,
+            message_id=str(msg.message_id),
+            session_id=str(msg.session_id),
             role=msg.role,
             content=msg.content,
             timestamp=msg.created_at
