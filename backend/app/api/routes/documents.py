@@ -570,6 +570,13 @@ async def delete_document(
     from app.models.chunk import Chunk
     from app.models.citation import Citation
     from app.models.document_page import DocumentPage
+    from app.repositories.qdrant_repository import qdrant_repository
+
+    # Delete chunks from Qdrant vector database
+    try:
+        await qdrant_repository.delete_document_chunks(document_id)
+    except Exception as e:
+        logger.error(f"Failed to delete Qdrant chunks for document {document_id}: {e}")
 
     await db.execute(
         delete(Chunk).where(Chunk.document_id == document_id)

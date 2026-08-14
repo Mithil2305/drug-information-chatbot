@@ -1,19 +1,35 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, AsyncMock
 from app.repositories.qdrant_repository import qdrant_repository
 
-def test_qdrant_repository_init():
-    # Verify that the repository has a mocked client and get_collections/create_collection were called
-    assert isinstance(qdrant_repository.client, MagicMock)
-    qdrant_repository.client.get_collections.assert_called()
-    qdrant_repository.client.create_collection.assert_called()
-
-def test_add_chunk():
-    qdrant_repository.client.reset_mock()
+@pytest.mark.asyncio
+async def test_qdrant_repository_init():
+    # Setup mock for get_collections to return no collections
+    mock_collections = MagicMock()
+    mock_collections.collections = []
     
-    qdrant_repository.add_chunk(
+    # Configure mock client behavior
+    qdrant_repository.client.get_collections = AsyncMock(return_value=mock_collections)
+    qdrant_repository.client.create_collection = AsyncMock()
+    qdrant_repository.client.create_payload_index = AsyncMock()
+    
+    # Trigger collection check/creation
+    await qdrant_repository.ensure_collection_exists()
+    
+    qdrant_repository.client.get_collections.assert_called_once()
+    qdrant_repository.client.create_collection.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_add_chunk():
+    # Reset call history on mock client
+    qdrant_repository.client.reset_mock()
+    qdrant_repository.client.upsert = AsyncMock()
+    
+    await qdrant_repository.add_chunk(
         chunk_id=1,
         document_id="doc-123",
+        document_name="TestDoc.pdf",
         page_no=5,
         section="Dosage",
         chunk_index=0,
@@ -31,15 +47,20 @@ def test_add_chunk():
     assert point.payload["page_no"] == 5
     assert point.payload["section"] == "Dosage"
     assert point.payload["chunk_text"] == "Test chunk text"
+    assert point.payload["text"] == "Test chunk text"
     assert point.vector == [0.1] * 1024
 
-def test_add_chunks():
+
+@pytest.mark.asyncio
+async def test_add_chunks():
     qdrant_repository.client.reset_mock()
+    qdrant_repository.client.upsert = AsyncMock()
     
     chunks = [
         {
             "chunk_id": 1,
             "document_id": "doc-123",
+            "document_name": "TestDoc.pdf",
             "page_no": 5,
             "section": "Dosage",
             "chunk_index": 0,
@@ -49,6 +70,7 @@ def test_add_chunks():
         {
             "chunk_id": 2,
             "document_id": "doc-123",
+            "document_name": "TestDoc.pdf",
             "page_no": 6,
             "section": "Warnings",
             "chunk_index": 1,
@@ -57,7 +79,7 @@ def test_add_chunks():
         }
     ]
     
-    qdrant_repository.add_chunks(chunks)
+    await qdrant_repository.add_chunks(chunks)
     
     qdrant_repository.client.upsert.assert_called_once()
     args, kwargs = qdrant_repository.client.upsert.call_args
@@ -65,7 +87,9 @@ def test_add_chunks():
     assert kwargs["points"][0].payload["chunk_text"] == "Chunk 1"
     assert kwargs["points"][1].payload["chunk_text"] == "Chunk 2"
 
-def test_search():
+
+@pytest.mark.asyncio
+async def test_search():
     qdrant_repository.client.reset_mock()
     
     # Setup query_points mock response
@@ -76,14 +100,14 @@ def test_search():
     
     mock_results = MagicMock()
     mock_results.points = [mock_point]
-    qdrant_repository.client.query_points.return_value = mock_results
+    qdrant_repository.client.query_points = AsyncMock(return_value=mock_results)
     
-    results = qdrant_repository.search(query_vector=[0.1] * 1024, limit=3)
+    results = await qdrant_repository.search(query_vector=[0.1] * 1024, limit=3)
     
-    qdrant_repository.client.query_points.assert_called_once_with(
-        collection_name=qdrant_repository.collection_name,
-        query=[0.1] * 1024,
-        limit=3
-    )
+    qdrant_repository.client.query_points.assert_called_once()
+    args, kwargs = qdrant_repository.client.query_points.call_args
+    assert kwargs["collection_name"] == qdrant_repository.collection_name
+    assert kwargs["query"] == [0.1] * 1024
+    assert kwargs["limit"] == 3
     assert len(results) == 1
     assert results[0].payload["chunk_id"] == "chunk-rinvoq-dosage"
