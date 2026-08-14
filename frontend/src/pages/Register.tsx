@@ -45,8 +45,9 @@ export default function Register() {
       setTimeout(() => {
         navigate('/login')
       }, 2000)
-    } catch (err: any) {
-      setError(err.message || 'Registration failed. Try again.')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Registration failed. Try again.'
+      setError(message)
     } finally {
       setSubmitting(false)
     }

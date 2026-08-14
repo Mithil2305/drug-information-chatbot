@@ -1,5 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
-import { loginRequest, registerRequest, getMeRequest, UserProfile } from '../api/auth'
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { loginRequest, registerRequest, getMeRequest } from '../api/auth'
+import type { UserProfile } from '../api/auth'
+import { AUTH_LOGOUT_EVENT } from '../api/client'
 
 interface AuthContextType {
   user: UserProfile | null
@@ -12,11 +15,67 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+const TOKEN_KEY = 'labelproof_token'
+
+function decodeJwtExp(token: string): number | null {
+  try {
+    const payload = token.split('.')[1]
+    const decoded = JSON.parse(atob(payload))
+    return decoded?.exp ?? null
+  } catch {
+    return null
+  }
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null)
-  const [token, setToken] = useState<string | null>(localStorage.getItem('labelproof_token'))
-  const [loading, setLoading] = useState<boolean>(true)
+  const [token, setToken] = useState<string | null>(() => {
+    const stored = localStorage.getItem(TOKEN_KEY)
+    if (!stored) return null
+    // Drop already-expired tokens on init
+    const exp = decodeJwtExp(stored)
+    if (exp && exp * 1000 <= Date.now()) {
+      localStorage.removeItem(TOKEN_KEY)
+      return null
+    }
+    return stored
+  })
+  const [loading, setSubmitting] = useState<boolean>(true)
 
+  const logout = useCallback(() => {
+    localStorage.removeItem(TOKEN_KEY)
+    setToken(null)
+    setUser(null)
+  }, [])
+
+  // Auto-logout when the JWT expires (client-side timer)
+  useEffect(() => {
+    if (!token) return
+    const exp = decodeJwtExp(token)
+    if (!exp) return
+
+    const msUntilExpiry = exp * 1000 - Date.now()
+    if (msUntilExpiry <= 0) {
+      // Defer to avoid synchronous setState in effect
+      const t = setTimeout(() => logout(), 0)
+      return () => clearTimeout(t)
+    }
+
+    const timer = setTimeout(() => {
+      logout()
+    }, msUntilExpiry)
+
+    return () => clearTimeout(timer)
+  }, [token, logout])
+
+  // Auto-logout when any API call returns 401
+  useEffect(() => {
+    const handleLogout = () => logout()
+    window.addEventListener(AUTH_LOGOUT_EVENT, handleLogout)
+    return () => window.removeEventListener(AUTH_LOGOUT_EVENT, handleLogout)
+  }, [logout])
+
+  // Restore session on mount
   useEffect(() => {
     const initializeAuth = async () => {
       if (token) {
@@ -28,43 +87,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           logout()
         }
       }
-      setLoading(false)
+      setSubmitting(false)
     }
     initializeAuth()
-  }, [token])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const login = async (email: string, password: string) => {
-    setLoading(true)
+    setSubmitting(true)
     try {
       const res = await loginRequest(email, password)
-      localStorage.setItem('labelproof_token', res.access_token)
+      localStorage.setItem(TOKEN_KEY, res.access_token)
       setToken(res.access_token)
-      
+
       const profile = await getMeRequest()
       setUser(profile)
     } catch (err) {
       logout()
       throw err
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
   const register = async (email: string, password: string) => {
-    setLoading(true)
+    setSubmitting(true)
     try {
       await registerRequest(email, password)
-    } catch (err) {
-      throw err
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
-  }
-
-  const logout = () => {
-    localStorage.removeItem('labelproof_token')
-    setToken(null)
-    setUser(null)
   }
 
   return (

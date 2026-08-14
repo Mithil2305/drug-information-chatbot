@@ -30,8 +30,9 @@ export default function Login() {
     try {
       await login(email, password)
       navigate('/')
-    } catch (err: any) {
-      setError(err.message || 'Authentication failed. Please verify your credentials.')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Authentication failed. Please verify your credentials.'
+      setError(message)
     } finally {
       setSubmitting(false)
     }

@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Mail, User } from 'lucide-react'
 import { toast } from 'sonner'
 import { AuthLayout } from '../components/auth/AuthLayout'
 import { AuthInput } from '../components/auth/AuthInput'
 import { PasswordInput } from '../components/auth/PasswordInput'
 import { AuthDivider } from '../components/auth/AuthDivider'
+import { useAuth } from '../hooks/useAuth'
 
 interface FormErrors {
   name?: string
@@ -25,6 +26,8 @@ export default function SignUpPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [errors, setErrors] = useState<FormErrors>({})
   const [submitting, setSubmitting] = useState(false)
+  const { register } = useAuth()
+  const navigate = useNavigate()
 
   const validate = (): boolean => {
     const next: FormErrors = {}
@@ -40,14 +43,20 @@ export default function SignUpPage() {
     return Object.keys(next).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validate()) return
     setSubmitting(true)
-    setTimeout(() => {
+    try {
+      await register(email, password)
+      toast.success('Account created successfully. Please sign in.')
+      navigate('/signin')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Registration failed. Try again.'
+      toast.error(message)
+    } finally {
       setSubmitting(false)
-      toast.success('Account created successfully (demo)')
-    }, 800)
+    }
   }
 
   return (

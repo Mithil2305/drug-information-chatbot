@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Mail } from 'lucide-react'
 import { toast } from 'sonner'
 import { AuthLayout } from '../components/auth/AuthLayout'
 import { AuthInput } from '../components/auth/AuthInput'
 import { PasswordInput } from '../components/auth/PasswordInput'
 import { AuthDivider } from '../components/auth/AuthDivider'
+import { useAuth } from '../hooks/useAuth'
 
 interface FormErrors {
   email?: string
@@ -21,6 +22,8 @@ export default function SignInPage() {
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState<FormErrors>({})
   const [submitting, setSubmitting] = useState(false)
+  const { login } = useAuth()
+  const navigate = useNavigate()
 
   const validate = (): boolean => {
     const next: FormErrors = {}
@@ -32,14 +35,20 @@ export default function SignInPage() {
     return Object.keys(next).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validate()) return
     setSubmitting(true)
-    setTimeout(() => {
+    try {
+      await login(email, password)
+      toast.success('Signed in successfully')
+      navigate('/')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Authentication failed. Please verify your credentials.'
+      toast.error(message)
+    } finally {
       setSubmitting(false)
-      toast.success('Signed in successfully (demo)')
-    }, 800)
+    }
   }
 
   return (
