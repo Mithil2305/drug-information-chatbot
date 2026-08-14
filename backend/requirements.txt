@@ -40,3 +40,8 @@ httpx
 # --- Testing Suite ---
 pytest
 pytest-asyncio
+
+# --- Authentication & Security ---
+python-jose[cryptography]
+passlib[bcrypt]
+email-validator
