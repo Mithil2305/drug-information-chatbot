@@ -1,23 +1,28 @@
 import { useCallback, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { Bot, Check, Copy, FileText, RefreshCw, ThumbsDown, ThumbsUp } from 'lucide-react'
+import { Bot, Check, Copy, FileText, Sparkles, AlertCircle, User } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useChat } from '../../hooks/useChat'
-import type { ChatMessage } from '../../types/chat'
+import type { ChatMessage as ChatMessageType } from '../../types/chat'
 import { CitationBadge } from './CitationBadge'
 import { FollowUpList } from './FollowUpList'
 import { StreamingText } from './StreamingText'
 
 interface ChatMessageProps {
-  message: ChatMessage
+  message: ChatMessageType
   isLast: boolean
 }
 
 function UserMessage({ content }: { content: string }) {
   return (
-    <div className="flex justify-end">
-      <div className="max-w-2xl rounded-2xl bg-primary px-4 py-2.5 text-sm text-white">
-        {content}
+    <div className="flex justify-end animate-fade-in-up" style={{ animationDelay: '0ms' }}>
+      <div className="flex items-end gap-2.5 max-w-[85%] md:max-w-2xl">
+        <div className="rounded-2xl rounded-br-sm bg-primary px-5 py-3.5 text-sm text-white shadow-card">
+          <p className="whitespace-pre-wrap leading-relaxed">{content}</p>
+        </div>
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface border border-border text-fg-muted mb-0.5">
+          <User className="h-3.5 w-3.5" />
+        </div>
       </div>
     </div>
   )
@@ -37,22 +42,24 @@ function ActionButton({
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
+      title={label}
+      className="flex h-7 w-7 items-center justify-center rounded-lg text-fg-muted transition-all duration-150 hover:bg-surface-highlight hover:text-fg"
     >
-      <Icon className="h-4 w-4" aria-hidden="true" />
+      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
     </button>
   )
 }
 
-function AssistantMessage({ message, isLast }: { message: ChatMessage; isLast: boolean }) {
+function AssistantMessage({ message, isLast }: { message: ChatMessageType; isLast: boolean }) {
   const [done, setDone] = useState(!isLast)
   const [copied, setCopied] = useState(false)
-  const { sendMessage } = useChat()
+  const { sendMessage, selectedMessageId, setSelectedMessageId } = useChat()
   const onComplete = useCallback(() => setDone(true), [])
   const isStreaming = isLast && !done
 
   const citations = message.citations ?? []
   const followUps = message.followUps ?? []
+  const isSelected = selectedMessageId === message.id
 
   const handleCopy = async () => {
     try {
@@ -64,21 +71,60 @@ function AssistantMessage({ message, isLast }: { message: ChatMessage; isLast: b
     }
   }
 
+  const isAbstaining =
+    message.status === 'insufficient_evidence' ||
+    message.content.toLowerCase().includes("couldn't find sufficient information")
+
   return (
-    <div className="flex items-start gap-3">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-highlight text-fg">
-        <Bot className="h-5 w-5" aria-hidden="true" />
+    <div
+      onClick={() => setSelectedMessageId(message.id)}
+      className="flex items-start gap-3 animate-fade-in-up"
+      style={{ animationDelay: '30ms' }}
+    >
+      {/* AI Avatar */}
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-white border border-primary/20 shadow-subtle mt-0.5">
+        <Bot className="h-4.5 w-4.5 h-[18px] w-[18px]" />
       </div>
+
       <div className="min-w-0 flex-1">
-        <div className="max-w-3xl">
+        <div
+          className={`max-w-3xl rounded-2xl rounded-tl-sm border bg-surface p-5 shadow-card transition-all duration-200 ${
+            isSelected ? 'border-primary/30 ring-2 ring-primary/10' : 'border-border'
+          }`}
+        >
+          {/* Status Header */}
+          <div className="mb-3.5 flex items-center justify-between border-b border-border pb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xs font-bold text-primary">LabelProof Assistant</span>
+              {isAbstaining ? (
+                <span className="inline-flex items-center gap-1 rounded-pill bg-warning/10 px-2 py-0.5 text-[10px] font-bold text-warning">
+                  <AlertCircle className="h-2.5 w-2.5" />
+                  <span>Clinical Abstention</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-pill bg-success/10 px-2 py-0.5 text-[10px] font-bold text-success">
+                  <Sparkles className="h-2.5 w-2.5" />
+                  <span>Grounded Answer</span>
+                </span>
+              )}
+            </div>
+            {citations.length > 0 && (
+              <span className="text-[10px] text-fg-muted font-mono tabular-nums">
+                {citations.length} source{citations.length === 1 ? '' : 's'}
+              </span>
+            )}
+          </div>
+
+          {/* Answer Text */}
           {!isStreaming ? (
-            <div className="text-sm leading-relaxed text-fg">
+            <div className="prose-chat text-sm leading-relaxed text-fg">
               <ReactMarkdown
                 components={{
-                  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                  strong: ({ children }) => <strong className="font-semibold text-fg">{children}</strong>,
-                  ul: ({ children }) => <ul className="mb-2 list-disc pl-5">{children}</ul>,
-                  li: ({ children }) => <li className="mb-1">{children}</li>,
+                  p: ({ children }) => <p className="mb-2.5 last:mb-0 leading-relaxed">{children}</p>,
+                  strong: ({ children }) => <strong className="font-bold text-primary">{children}</strong>,
+                  ul: ({ children }) => <ul className="mb-2.5 list-disc pl-5 space-y-1">{children}</ul>,
+                  ol: ({ children }) => <ol className="mb-2.5 list-decimal pl-5 space-y-1">{children}</ol>,
+                  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
                 }}
               >
                 {message.content}
@@ -90,32 +136,45 @@ function AssistantMessage({ message, isLast }: { message: ChatMessage; isLast: b
             </div>
           )}
 
+          {/* Citation Badges */}
           {!isStreaming && citations.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2" role="list" aria-label="Citations">
-              {citations.map((c) => (
-                <CitationBadge key={c.citationId} citation={c} />
-              ))}
+            <div className="mt-4 pt-3.5 border-t border-border">
+              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-fg-muted mb-2.5">
+                Supporting Citations
+              </p>
+              <div className="flex flex-wrap gap-2" role="list" aria-label="Citations">
+                {citations.map((c) => (
+                  <CitationBadge key={c.citationId} citation={c} />
+                ))}
+              </div>
             </div>
           )}
 
+          {/* Action Toolbar */}
           {!isStreaming && (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-2">
-              <div className="flex items-center gap-1.5 text-xs text-fg-muted">
-                <FileText className="h-4 w-4" aria-hidden="true" />
+            <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-2.5">
+              <div className="flex items-center gap-1.5 text-[11px] text-fg-muted">
+                <FileText className="h-3 w-3 text-accent shrink-0" />
                 <span>
-                  {citations.length} source{citations.length === 1 ? '' : 's'}
+                  {citations.length > 0
+                    ? 'Click a citation to inspect the source'
+                    : 'No external sources cited'}
                 </span>
               </div>
               <div className="flex items-center gap-1">
-                <ActionButton onClick={handleCopy} icon={copied ? Check : Copy} label={copied ? 'Copied' : 'Copy answer'} />
-                <ActionButton onClick={() => alert('Regenerate coming soon')} icon={RefreshCw} label="Regenerate answer" />
-                <ActionButton onClick={() => alert('Feedback recorded')} icon={ThumbsUp} label="Thumbs up" />
-                <ActionButton onClick={() => alert('Feedback recorded')} icon={ThumbsDown} label="Thumbs down" />
+                <ActionButton
+                  onClick={handleCopy}
+                  icon={copied ? Check : Copy}
+                  label={copied ? 'Copied!' : 'Copy answer'}
+                />
               </div>
             </div>
           )}
 
-          {!isStreaming && followUps.length > 0 && <FollowUpList questions={followUps} onSelect={sendMessage} />}
+          {/* Follow-up Suggestions */}
+          {!isStreaming && followUps.length > 0 && (
+            <FollowUpList questions={followUps} onSelect={sendMessage} />
+          )}
         </div>
       </div>
     </div>
@@ -126,6 +185,7 @@ export function ChatMessage({ message, isLast }: ChatMessageProps) {
   if (message.role === 'user') {
     return <UserMessage content={message.content} />
   }
-
   return <AssistantMessage message={message} isLast={isLast} />
 }
+
+export default ChatMessage

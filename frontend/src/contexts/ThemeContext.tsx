@@ -12,13 +12,29 @@ interface ThemeContextValue {
 
 export const ThemeContext = createContext<ThemeContextValue | null>(null)
 
+function getInitialTheme(): ThemeMode {
+  try {
+    const stored = localStorage.getItem('labelproof-theme')
+    if (stored === 'dark' || stored === 'light') return stored
+  } catch {
+    // ignore
+  }
+  // Default to light
+  return 'light'
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<ThemeMode>('dark')
+  const [theme, setTheme] = useState<ThemeMode>(getInitialTheme)
 
   useEffect(() => {
     const root = document.documentElement
     root.classList.remove('light', 'dark')
     root.classList.add(theme)
+    try {
+      localStorage.setItem('labelproof-theme', theme)
+    } catch {
+      // ignore
+    }
   }, [theme])
 
   const toggleTheme = () => {

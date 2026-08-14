@@ -1,11 +1,26 @@
-import { useRef, useState } from 'react'
-import { Plus, Send } from 'lucide-react'
+import { useRef, useState, useEffect } from 'react'
+import { Send, Sparkles, FileText, Loader2 } from 'lucide-react'
 import { useChat } from '../../hooks/useChat'
+import { useDocuments } from '../../hooks/useDocuments'
+import { useSearchParams } from 'react-router-dom'
 
 export function PromptBar() {
   const [value, setValue] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const { sendMessage, isLoading } = useChat()
+  const { documents } = useDocuments()
+  const [searchParams] = useSearchParams()
+
+  const readyDocs = documents.filter((d) => d.status === 'ready')
+
+  // Pick up query param from URL if present
+  useEffect(() => {
+    const q = searchParams.get('q')
+    if (q && !value) {
+      setValue(q)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   const handleSubmit = () => {
     if (isLoading || !value.trim()) return
@@ -27,61 +42,68 @@ export function PromptBar() {
     const target = e.currentTarget
     setValue(target.value)
     target.style.height = 'auto'
-    target.style.height = `${Math.min(target.scrollHeight, 200)}px`
+    target.style.height = `${Math.min(target.scrollHeight, 180)}px`
   }
 
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault()
-        handleSubmit()
-      }}
-      className="w-full border border-line bg-surface p-3 shadow-sm rounded-2xl"
-    >
-      <div className="flex items-end gap-2">
-        <button
-          type="button"
-          onClick={() => alert('Document upload coming soon')}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
-          aria-label="Attach document"
-        >
-          <Plus className="h-5 w-5" aria-hidden="true" />
-        </button>
+  const canSubmit = !isLoading && !!value.trim()
 
+  return (
+    <div className="w-full space-y-2">
+      {/* Context status bar */}
+      <div className="flex items-center justify-between px-1 text-[11px] text-fg-muted">
+        <div className="flex items-center gap-1.5">
+          <FileText className="h-3 w-3 text-accent shrink-0" />
+          <span>
+            Grounded against{' '}
+            <span className="font-semibold text-fg">{readyDocs.length}</span>{' '}
+            approved drug label{readyDocs.length === 1 ? '' : 's'}
+          </span>
+        </div>
+        <span className="hidden sm:inline text-fg-muted/60">Enter ↵ to send • Shift+Enter for new line</span>
+      </div>
+
+      {/* Input form */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          handleSubmit()
+        }}
+        className="relative flex items-end gap-3 rounded-2xl border border-border bg-surface p-3.5 shadow-card transition-all duration-200 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10"
+      >
+        {/* Left icon */}
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-highlight text-accent">
+          <Sparkles className="h-4 w-4" />
+        </div>
+
+        {/* Textarea */}
         <textarea
           ref={textareaRef}
           rows={1}
           value={value}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
-          placeholder="Ask about this document…"
-          className="max-h-40 w-full resize-none bg-transparent px-2 py-2 text-sm text-fg placeholder-fg-muted outline-none"
-          aria-label="Message"
+          placeholder="Ask about dosage, warnings, contraindications, adverse reactions…"
+          className="max-h-36 w-full resize-none bg-transparent px-1 py-1 text-sm leading-relaxed text-fg placeholder:text-fg-muted focus:outline-none"
+          aria-label="Ask about medication"
+          disabled={isLoading}
         />
 
-        {/* <div className="hidden shrink-0 items-center gap-1 rounded-lg border border-line bg-surface-highlight px-3 py-2 text-sm font-medium text-fg sm:flex">
-          <span>RAG-1</span>
-          <ChevronDown className="h-4 w-4 text-fg-muted" aria-hidden="true" />
-        </div> */}
-
-        {/* <button
-          type="button"
-          onClick={() => alert('Voice input coming soon')}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
-          aria-label="Use microphone"
-        >
-          <Mic className="h-5 w-5" aria-hidden="true" />
-        </button> */}
-
+        {/* Send Button */}
         <button
           type="submit"
-          disabled={isLoading || !value.trim()}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
-          aria-label="Send message"
+          disabled={!canSubmit}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-subtle transition-all duration-150 hover:bg-primary-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
+          aria-label="Send clinical inquiry"
         >
-          <Send className="h-5 w-5" aria-hidden="true" />
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
         </button>
-      </div>
-    </form>
+      </form>
+    </div>
   )
 }
+
+export default PromptBar

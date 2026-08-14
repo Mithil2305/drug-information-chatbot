@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect, type ReactNode } from 'react'
 import { toast } from 'sonner'
-import type { ChatMessage, AnswerStatus } from '../types/chat'
+import type { ChatMessage, Citation, AnswerStatus } from '../types/chat'
 import { useConversations } from '../hooks/useConversations'
 import { useDocuments } from '../hooks/useDocuments'
 import { apiFetch } from '../api/client'
@@ -11,6 +11,11 @@ interface ChatContextValue {
   isLoading: boolean
   sendMessage: (content: string) => void
   clearChat: () => void
+  selectedCitation: Citation | null
+  setSelectedCitation: (c: Citation | null) => void
+  selectedMessageId: string | null
+  setSelectedMessageId: (id: string | null) => void
+  activeCitations: Citation[]
 }
 
 export const ChatContext = createContext<ChatContextValue | null>(null)
@@ -22,21 +27,23 @@ function makeId() {
 export function ChatProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null)
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null)
   
   const { activeConversationId, setConversations, setActiveConversationId } = useConversations()
   const { documents } = useDocuments()
 
   const mapBackendMessage = (m: any): ChatMessage => ({
-    id: m.message_id,
+    id: String(m.message_id),
     role: m.role as 'user' | 'assistant',
     content: m.content,
     citations: m.citations ? m.citations.map((c: any) => ({
-      citationId: c.citation_id || c.chunk_id,
-      documentId: c.document_id,
-      documentName: c.document_name || 'Unknown Document',
-      page: c.page,
-      section: c.section,
-      text: '', // backend doesn't store citation text, but it's optional
+      citationId: String(c.citation_id || c.chunk_id || makeId()),
+      documentId: c.document_id || '',
+      documentName: c.document_name || 'Approved Drug Label',
+      page: Number(c.page ?? c.page_no ?? 1),
+      section: c.section || 'General Section',
+      text: c.text || '',
     })) : [],
     status: 'grounded',
   })
@@ -45,6 +52,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!activeConversationId) {
       setMessages([])
+      setSelectedCitation(null)
+      setSelectedMessageId(null)
       return
     }
 
@@ -52,7 +61,16 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       setIsLoading(true)
       try {
         const msgs = await apiFetch<any[]>(`/api/v1/sessions/${activeConversationId}/messages`)
-        setMessages(msgs.map(mapBackendMessage))
+        const formatted = msgs.map(mapBackendMessage)
+        setMessages(formatted)
+        // Select latest assistant message citations if present
+        const lastAssistant = [...formatted].reverse().find((m) => m.role === 'assistant')
+        if (lastAssistant) {
+          setSelectedMessageId(lastAssistant.id)
+          if (lastAssistant.citations && lastAssistant.citations.length > 0) {
+            setSelectedCitation(lastAssistant.citations[0])
+          }
+        }
       } catch (err: any) {
         toast.error(err.message || 'Failed to load chat history')
       } finally {
@@ -85,12 +103,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         
         // Add to recent conversations list
         const newSummary = {
-          id: sessId!,
+          id: String(sessId!),
           title: content.trim().slice(0, 30) + (content.trim().length > 30 ? '...' : ''),
           updatedAt: newSess.started_at || new Date().toISOString(),
         }
         setConversations((prev) => [newSummary, ...prev])
-        setActiveConversationId(sessId!)
+        setActiveConversationId(String(sessId!))
       } catch (err: any) {
         toast.error(err.message || 'Failed to initialize chat session')
         setIsLoading(false)
@@ -114,21 +132,28 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       })
 
       const status: AnswerStatus = res.grounded ? 'grounded' : 'insufficient_evidence'
+      const parsedCitations: Citation[] = res.citations ? res.citations.map((c: any) => ({
+        citationId: String(c.chunk_id || c.citation_id || makeId()),
+        documentId: c.document_id || '',
+        documentName: c.document_name || 'Approved Prescribing Info',
+        page: Number(c.page ?? c.page_no ?? 1),
+        section: c.section || 'General Section',
+        text: c.text || '',
+      })) : []
+
       const assistantMessage: ChatMessage = {
-        id: res.message_id,
+        id: String(res.message_id || makeId()),
         role: 'assistant',
         content: res.answer,
-        citations: res.citations ? res.citations.map((c: any) => ({
-          citationId: c.chunk_id,
-          documentId: c.document_id,
-          documentName: c.document_name || 'Unknown Document',
-          page: c.page,
-          section: c.section,
-          text: '',
-        })) : [],
+        citations: parsedCitations,
         status,
       }
+
       setMessages((prev) => [...prev, assistantMessage])
+      setSelectedMessageId(assistantMessage.id)
+      if (parsedCitations.length > 0) {
+        setSelectedCitation(parsedCitations[0])
+      }
     } catch (err: any) {
       toast.error(err.message || 'Failed to fetch answer')
     } finally {
@@ -139,11 +164,32 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const clearChat = () => {
     setMessages([])
     setIsLoading(false)
+    setSelectedCitation(null)
+    setSelectedMessageId(null)
     setActiveConversationId(null)
   }
 
+  // Active citations computed from selected message or latest assistant message
+  const activeMessage = selectedMessageId
+    ? messages.find((m) => m.id === selectedMessageId)
+    : [...messages].reverse().find((m) => m.role === 'assistant')
+
+  const activeCitations = activeMessage?.citations || []
+
   return (
-    <ChatContext.Provider value={{ messages, isLoading, sendMessage, clearChat }}>
+    <ChatContext.Provider
+      value={{
+        messages,
+        isLoading,
+        sendMessage,
+        clearChat,
+        selectedCitation,
+        setSelectedCitation,
+        selectedMessageId,
+        setSelectedMessageId,
+        activeCitations,
+      }}
+    >
       {children}
     </ChatContext.Provider>
   )

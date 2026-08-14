@@ -1,54 +1,198 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,600&family=Manrope:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   LIGHT THEME — warm off-white, white cards, deep teal accents
+   ============================================================ */
 :root {
-  --color-background: #F8FAFC;
+  --color-background: #F7F6F2;
   --color-surface: #FFFFFF;
-  --color-surface-highlight: #F1F5F9;
-  --color-foreground: #0F172A;
-  --color-foreground-muted: #475569;
-  --color-border: #E2E8F0;
-  --color-primary: #0F766E;
-  --color-primary-hover: #115E59;
-  --color-ai: #06B6D4;
-  --color-success: #16A34A;
-  --color-warning: #D97706;
-  --color-danger: #DC2626;
+  --color-surface-warm: #F5F3E6;
+  --color-surface-highlight: #EAE9E3;
+  --color-foreground: #021D1D;
+  --color-foreground-secondary: #52605F;
+  --color-foreground-muted: #7B8583;
+  --color-border: #E4E5E1;
+  --color-primary: #0E3A3A;
+  --color-primary-light: #115150;
+  --color-primary-hover: #0C3232;
+  --color-teal: #1C5959;
+  --color-accent: #0F7772;
+  --color-success: #2F7D65;
+  --color-warning: #B87925;
+  --color-danger: #B64A4A;
+  --color-info: #347A82;
+  --color-ai: #0F7772;
   --color-white: #FFFFFF;
+
+  --shadow-card: 0 1px 4px rgba(2, 29, 29, 0.06), 0 4px 16px rgba(2, 29, 29, 0.05);
+  --shadow-hover: 0 8px 32px rgba(2, 29, 29, 0.12), 0 2px 8px rgba(2, 29, 29, 0.06);
+  --shadow-subtle: 0 1px 3px rgba(2, 29, 29, 0.04);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+
+  color-scheme: light;
 }
 
+/* ============================================================
+   DARK THEME — deep charcoal, NOT an inverted light theme
+   ============================================================ */
 .dark {
-  --color-background: #0B1120;
-  --color-surface: #111827;
-  --color-surface-highlight: #1F2937;
-  --color-foreground: #F1F5F9;
-  --color-foreground-muted: #CBD5E1;
-  --color-border: #263449;
-  --color-primary: #0F766E;
-  --color-primary-hover: #115E59;
-  --color-ai: #06B6D4;
-  --color-success: #16A34A;
-  --color-warning: #D97706;
-  --color-danger: #DC2626;
+  --color-background: #0B1515;
+  --color-surface: #102222;
+  --color-surface-warm: #132B2B;
+  --color-surface-highlight: #1A3535;
+  --color-foreground: #F4F7F5;
+  --color-foreground-secondary: #A8B7B4;
+  --color-foreground-muted: #6E8280;
+  --color-border: rgba(255, 255, 255, 0.10);
+  --color-primary: #4FA9A2;
+  --color-primary-light: #5DBBB3;
+  --color-primary-hover: #44958E;
+  --color-teal: #2A7B7B;
+  --color-accent: #4FA9A2;
+  --color-success: #3DB389;
+  --color-warning: #D4963A;
+  --color-danger: #D96060;
+  --color-info: #4EB3BE;
+  --color-ai: #4FA9A2;
   --color-white: #FFFFFF;
+
+  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.30), 0 4px 16px rgba(0, 0, 0, 0.20);
+  --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.40), 0 2px 8px rgba(0, 0, 0, 0.20);
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.20);
+
+  color-scheme: dark;
 }
 
-* {
+/* ============================================================
+   BASE RESETS
+   ============================================================ */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 html,
 body,
 #root {
-  height: 100%;
+  min-height: 100%;
 }
 
 body {
   margin: 0;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Smooth theme transitions */
+  transition: background-color 250ms ease, color 150ms ease;
 }
+
+/* ============================================================
+   TYPOGRAPHY
+   ============================================================ */
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+/* ============================================================
+   CUSTOM SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
+  transition: background 200ms;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-foreground-muted);
+}
+
+/* ============================================================
+   FOCUS RING — accessible, themed
+   ============================================================ */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ============================================================
+   TRANSITION UTILITIES
+   ============================================================ */
+.theme-transition {
+  transition: background-color 250ms ease, border-color 200ms ease, color 150ms ease, box-shadow 200ms ease;
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 300ms ease both;
+}
+
+.animate-fade-in {
+  animation: fadeIn 200ms ease both;
+}
+
+/* ============================================================
+   PROSE STYLES — for markdown content in chat
+   ============================================================ */
+.prose-chat p { margin-bottom: 0.75rem; }
+.prose-chat p:last-child { margin-bottom: 0; }
+.prose-chat ul { list-style: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
+.prose-chat ol { list-style: decimal; padding-left: 1.25rem; margin-bottom: 0.75rem; }
+.prose-chat li { margin-bottom: 0.25rem; line-height: 1.6; }
+.prose-chat strong { font-weight: 700; color: var(--color-primary); }
+.prose-chat code { font-size: 0.8em; background: var(--color-surface-highlight); padding: 0.1em 0.35em; border-radius: 4px; }
