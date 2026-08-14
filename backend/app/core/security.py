@@ -106,9 +106,9 @@ def mask_pii_phi(text: str) -> str:
         return ""
     
     masked = EMAIL_REGEX.sub("[EMAIL_MASKED]", text)
-    masked = PHONE_REGEX.sub("[PHONE_MASKED]", masked)
-    masked = SSN_REGEX.sub("[SSN_MASKED]", masked)
     masked = CREDIT_CARD_REGEX.sub("[CARD_MASKED]", masked)
+    masked = SSN_REGEX.sub("[SSN_MASKED]", masked)
+    masked = PHONE_REGEX.sub("[PHONE_MASKED]", masked)
     return masked
 
 def is_valid_uuid(uuid_to_test: str) -> bool:

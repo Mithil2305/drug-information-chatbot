@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict
+from typing import List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -51,49 +51,70 @@ async def compare_documents(
             citations = []
             
             # Simple simulation content based on typical drug label info
-            if section.upper() == "INDICATIONS":
+            sec_upper = section.upper()
+            if sec_upper == "INDICATIONS":
                 if "rinvoq" in doc.file_name.lower():
                     content_text = "Treatment of moderately to severely active rheumatoid arthritis, psoriatic arthritis, atopic dermatitis."
-                    citations.append(Citation(document_id=doc_id, document_name=doc.file_name, page=1, section="Indications and Usage"))
+                    sec_name = "Indications and Usage"
+                    page_num = 1
                 elif "skyrizi" in doc.file_name.lower():
                     content_text = "Treatment of moderate-to-severe plaque psoriasis, active psoriatic arthritis, Crohn's disease."
-                    citations.append(Citation(document_id=doc_id, document_name=doc.file_name, page=1, section="Indications and Usage"))
+                    sec_name = "Indications and Usage"
+                    page_num = 1
                 else:
                     content_text = f"Approved therapeutic indications as described in {doc.file_name}."
-                    citations.append(Citation(document_id=doc_id, document_name=doc.file_name, page=1, section="Indications"))
+                    sec_name = "Indications"
+                    page_num = 1
             
-            elif section.upper() == "DOSAGE":
+            elif sec_upper == "DOSAGE":
                 if "rinvoq" in doc.file_name.lower():
                     content_text = "15 mg once daily. Dose adjustments apply for specific conditions."
-                    citations.append(Citation(document_id=doc_id, document_name=doc.file_name, page=2, section="Dosage and Administration"))
+                    sec_name = "Dosage and Administration"
+                    page_num = 2
                 elif "skyrizi" in doc.file_name.lower():
                     content_text = "150 mg administered by subcutaneous injection at Week 0, Week 4, and every 12 weeks thereafter."
-                    citations.append(Citation(document_id=doc_id, document_name=doc.file_name, page=2, section="Dosage and Administration"))
+                    sec_name = "Dosage and Administration"
+                    page_num = 2
                 else:
                     content_text = "Recommended dosage regimens as defined in source documentation."
-                    citations.append(Citation(document_id=doc_id, document_name=doc.file_name, page=2, section="Dosage"))
+                    sec_name = "Dosage"
+                    page_num = 2
                     
-            elif section.upper() == "WARNINGS":
+            elif sec_upper == "WARNINGS":
                 if "rinvoq" in doc.file_name.lower():
                     content_text = "Boxed warnings for serious infections, malignancy, major adverse cardiovascular events (MACE), thrombosis."
-                    citations.append(Citation(document_id=doc_id, document_name=doc.file_name, page=5, section="Warnings and Precautions"))
+                    sec_name = "Warnings and Precautions"
+                    page_num = 5
                 elif "skyrizi" in doc.file_name.lower():
                     content_text = "Hypersensitivity reactions, serious infections, pre-treatment evaluation for tuberculosis."
-                    citations.append(Citation(document_id=doc_id, document_name=doc.file_name, page=4, section="Warnings and Precautions"))
+                    sec_name = "Warnings and Precautions"
+                    page_num = 4
                 else:
                     content_text = "Safety alerts, warnings, and precautions."
-                    citations.append(Citation(document_id=doc_id, document_name=doc.file_name, page=3, section="Warnings"))
+                    sec_name = "Warnings"
+                    page_num = 3
 
             else:  # INTERACTIONS / default
                 if "rinvoq" in doc.file_name.lower():
                     content_text = "Avoid strong CYP3A4 inhibitors/inducers, monitor immunosuppressants."
-                    citations.append(Citation(document_id=doc_id, document_name=doc.file_name, page=8, section="Drug Interactions"))
+                    sec_name = "Drug Interactions"
+                    page_num = 8
                 elif "skyrizi" in doc.file_name.lower():
                     content_text = "No clinically significant interactions identified; evaluate live vaccine timing."
-                    citations.append(Citation(document_id=doc_id, document_name=doc.file_name, page=7, section="Drug Interactions"))
+                    sec_name = "Drug Interactions"
+                    page_num = 7
                 else:
                     content_text = "Drug interaction profile as described in section."
-                    citations.append(Citation(document_id=doc_id, document_name=doc.file_name, page=5, section="Interactions"))
+                    sec_name = "Interactions"
+                    page_num = 5
+
+            citations.append(Citation(
+                document_id=doc_id,
+                document_name=doc.file_name,
+                page=page_num,
+                section=sec_name,
+                chunk_id=f"chunk-{doc_id}-{sec_name.lower().replace(' ', '-')}"
+            ))
 
             cells[doc_id] = ComparisonCell(
                 document_id=doc_id,

@@ -1,0 +1,209 @@
+import pytest
+from datetime import datetime
+from fastapi.testclient import TestClient
+from unittest.mock import AsyncMock, MagicMock
+from app.main import app
+from app.db.database import get_db_session
+from app.dependencies.embeddings import get_embedding_model
+from app.dependencies.qdrant import get_qdrant_client
+from app.dependencies.llm import get_llm_client
+from app.models.chat import ChatSession, ChatMessage
+
+@pytest.fixture
+def mock_db():
+    db = AsyncMock()
+    db.add = MagicMock()
+    return db
+
+@pytest.fixture
+def mock_embeddings():
+    mock = MagicMock()
+    mock.encode.return_value = [0.1] * 1024
+    return mock
+
+@pytest.fixture
+def mock_qdrant():
+    mock = AsyncMock()
+    
+    mock_point = MagicMock()
+    mock_point.id = "point-1"
+    mock_point.score = 0.95
+    mock_point.payload = {
+        "chunk_id": "chunk-123",
+        "document_id": "doc-abc",
+        "document_name": "Rinvoq.pdf",
+        "page_no": 12,
+        "section": "Dosage",
+        "text": "This is dosage text."
+    }
+    
+    mock.search.return_value = [mock_point]
+    return mock
+
+@pytest.fixture
+def mock_llm():
+    mock = MagicMock()
+    mock.return_value = {
+        "choices": [
+            {"text": "The recommended dose of Rinvoq is 15 mg."}
+        ]
+    }
+    return mock
+
+@pytest.fixture
+def client(mock_db, mock_embeddings, mock_qdrant, mock_llm):
+    async def override_db():
+        yield mock_db
+    def override_embeddings():
+        return mock_embeddings
+    def override_qdrant():
+        return mock_qdrant
+    def override_llm():
+        return mock_llm
+        
+    app.dependency_overrides[get_db_session] = override_db
+    app.dependency_overrides[get_embedding_model] = override_embeddings
+    app.dependency_overrides[get_qdrant_client] = override_qdrant
+    app.dependency_overrides[get_llm_client] = override_llm
+    
+    yield TestClient(app)
+    
+    app.dependency_overrides.pop(get_db_session, None)
+    app.dependency_overrides.pop(get_embedding_model, None)
+    app.dependency_overrides.pop(get_qdrant_client, None)
+    app.dependency_overrides.pop(get_llm_client, None)
+
+# =====================================================================
+# POST CHAT TESTS
+# =====================================================================
+
+def test_post_chat_message_missing_session_id(client):
+    payload = {
+        "message": "What is the dose?",
+        "document_ids": ["doc-123"]
+    }
+    response = client.post("/api/v1/chat", json=payload)
+    assert response.status_code == 400
+    assert "session_id is required" in response.json()["detail"]
+
+def test_post_chat_message_invalid_session_id(client):
+    payload = {
+        "session_id": "abc",
+        "message": "What is the dose?",
+        "document_ids": ["doc-123"]
+    }
+    response = client.post("/api/v1/chat", json=payload)
+    assert response.status_code == 400
+    assert "session_id must be a valid number" in response.json()["detail"]
+
+def test_post_chat_message_session_not_found(client, mock_db):
+    payload = {
+        "session_id": "999",
+        "message": "What is the dose?",
+        "document_ids": ["doc-123"]
+    }
+    
+    # Mocking select(ChatSession) returning None
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_db.execute.return_value = mock_result
+    
+    response = client.post("/api/v1/chat", json=payload)
+    assert response.status_code == 404
+    assert "Session not found" in response.json()["detail"]
+
+def test_post_chat_message_success(client, mock_db, mock_llm):
+    payload = {
+        "session_id": "1",
+        "message": "What is the dose of Rinvoq?",
+        "document_ids": ["doc-abc"]
+    }
+    
+    session = ChatSession(session_id=1, user_id=10, started_at=datetime.utcnow(), summary="")
+    
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = session
+    mock_db.execute.return_value = mock_result
+    
+    response = client.post("/api/v1/chat", json=payload)
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["session_id"] == "1"
+    assert data["answer"] == "The recommended dose of Rinvoq is 15 mg."
+    assert data["grounded"] is True
+    assert len(data["citations"]) == 1
+    assert data["citations"][0]["chunk_id"] == "chunk-123"
+
+def test_post_chat_message_abstain(client, mock_db, mock_qdrant):
+    # Mock empty search results
+    mock_qdrant.search.return_value = []
+    
+    payload = {
+        "session_id": "1",
+        "message": "Completely unrelated query?",
+        "document_ids": ["doc-abc"]
+    }
+    
+    session = ChatSession(session_id=1, user_id=10, started_at=datetime.utcnow(), summary="")
+    
+    mock_result = MagicMock()
+    # First query for ChatSession, second query for Document (in fallback mock_evidence_retrieval which returns empty docs)
+    mock_result.scalar_one_or_none.return_value = session
+    mock_result.scalars.return_value.all.return_value = []
+    mock_db.execute.return_value = mock_result
+    
+    response = client.post("/api/v1/chat", json=payload)
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["grounded"] is False
+    assert "I couldn't find sufficient information" in data["answer"]
+    assert len(data["citations"]) == 0
+
+# =====================================================================
+# GET SESSION TESTS
+# =====================================================================
+
+def test_get_chat_session_not_found(client, mock_db):
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_db.execute.return_value = mock_result
+    
+    response = client.get("/api/v1/sessions/999")
+    assert response.status_code == 404
+    assert "Session not found" in response.json()["detail"]
+
+def test_get_chat_session_success(client, mock_db):
+    session = ChatSession(session_id=1, user_id=10, started_at=datetime.utcnow(), summary="Mock Summary")
+    msg1 = ChatMessage(message_id=101, session_id=1, role="user", content="Hello", created_at=datetime.utcnow())
+    msg2 = ChatMessage(message_id=102, session_id=1, role="assistant", content="Hi", created_at=datetime.utcnow())
+    session.messages = [msg1, msg2]
+    
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = session
+    mock_db.execute.return_value = mock_result
+    
+    response = client.get("/api/v1/sessions/1")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["session_id"] == "1"
+    assert data["summary"] == "Mock Summary"
+    assert len(data["messages"]) == 2
+    assert data["messages"][0]["content"] == "Hello"
+    assert data["messages"][1]["content"] == "Hi"
+
+def test_get_session_messages_success(client, mock_db):
+    session = ChatSession(session_id=1, user_id=10, started_at=datetime.utcnow(), summary="")
+    msg1 = ChatMessage(message_id=101, session_id=1, role="user", content="Hello", created_at=datetime.utcnow())
+    session.messages = [msg1]
+    
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = session
+    mock_db.execute.return_value = mock_result
+    
+    response = client.get("/api/v1/sessions/1/messages")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["content"] == "Hello"

@@ -34,9 +34,9 @@ class Settings(BaseSettings):
 
     # Pydantic Settings Config
     model_config = SettingsConfigDict(
-        env_file="backend/.env" if hasattr(SettingsConfigDict, "env_file") else ".env",
-        env_file_encoding="utf-8",
-        extra="ignore"
+    env_file="../.env",
+    env_file_encoding="utf-8",
+    extra="ignore"
     )
 
 settings = Settings()

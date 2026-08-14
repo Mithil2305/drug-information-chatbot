@@ -1,28 +1,24 @@
-from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional, List
+from pydantic import BaseModel, ConfigDict
 
-class DocumentBase(BaseModel):
-    file_name: str = Field(..., description="Original name of the uploaded PDF file")
-    source: Optional[str] = Field(None, description="Metadata source or brand name of the drug")
-    version: Optional[str] = Field("1.0", description="Version identifier of the drug label")
 
-class DocumentCreate(DocumentBase):
-    pass
+class DocumentResponse(BaseModel):
+    document_id: str
+    file_name: str
+    storage_key: str
+    source: str | None = None
+    version: str | None = None
+    status: str | None = None
+    created_at: datetime | None = None
+    is_active: bool = True
 
-class DocumentResponse(DocumentBase):
-    document_id: str = Field(..., description="Unique ID of the document")
-    storage_key: str = Field(..., description="S3/R2 storage key path")
-    status: str = Field(..., description="Ingestion status: uploaded, processing, completed, failed, inactive")
-    created_at: datetime
-    updated_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
 
 class DocumentUploadResponse(BaseModel):
     document: DocumentResponse
-    message: str = Field("Document uploaded successfully. Processing started.", description="Status message")
+    message: str
+
 
 class DocumentProcessResponse(BaseModel):
     document_id: str
