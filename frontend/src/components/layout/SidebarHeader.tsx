@@ -1,5 +1,7 @@
 import { PanelLeftClose, PanelLeftOpen, Search, X } from 'lucide-react'
 import { useUI } from '../../hooks/useUI'
+import { Tooltip } from '../common/Tooltip'
+import { GlobalSearchPanel } from './GlobalSearchPanel'
 
 interface SidebarHeaderProps {
   onClose?: () => void
@@ -7,23 +9,25 @@ interface SidebarHeaderProps {
 }
 
 export function SidebarHeader({ onClose, collapsed }: SidebarHeaderProps) {
-  const { toggleCollapse, toggleSearch } = useUI()
+  const { toggleCollapse, toggleSearch, searchOpen } = useUI()
 
   if (collapsed) {
     return (
       <div className="flex flex-col items-center gap-2 py-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
+        <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-primary text-white shadow-subtle">
           <span className="text-sm font-bold">L</span>
         </div>
-        <button
-          type="button"
-          onClick={toggleCollapse}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
-          aria-label="Expand sidebar"
-          title="Expand sidebar"
-        >
-          <PanelLeftOpen className="h-5 w-5" aria-hidden="true" />
-        </button>
+
+        <Tooltip content="Expand sidebar" side="right">
+          <button
+            type="button"
+            onClick={toggleCollapse}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
+            aria-label="Expand sidebar"
+          >
+            <PanelLeftOpen className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </Tooltip>
       </div>
     )
   }
@@ -31,21 +35,28 @@ export function SidebarHeader({ onClose, collapsed }: SidebarHeaderProps) {
   return (
     <div className="flex items-center justify-between px-3 py-3">
       <div className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
+        <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-primary text-white shadow-subtle">
           <span className="text-sm font-bold">L</span>
         </div>
-        <span className="text-base font-semibold text-fg">LabelProof</span>
+        <div className="leading-none">
+          <div className="text-base font-semibold text-fg">LabelProof</div>
+          <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-accent">Clinical AI</div>
+        </div>
       </div>
-      <div className="flex items-center gap-1">
+
+      {/* Actions */}
+      <div className="flex items-center gap-0.5">
+
         <button
           type="button"
           onClick={toggleSearch}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
-          aria-label="Search"
+          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${searchOpen ? 'bg-surface-highlight text-primary' : 'text-fg-muted hover:bg-surface-highlight hover:text-fg'}`}
+          aria-label="Search conversations and documents"
           title="Search"
         >
           <Search className="h-4 w-4" aria-hidden="true" />
         </button>
+
         <button
           type="button"
           onClick={toggleCollapse}
@@ -55,18 +66,20 @@ export function SidebarHeader({ onClose, collapsed }: SidebarHeaderProps) {
         >
           <PanelLeftClose className="h-4 w-4" aria-hidden="true" />
         </button>
+
         {onClose && (
           <button
             type="button"
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg lg:hidden"
             aria-label="Close sidebar"
-            title="Close"
           >
-            <X className="h-5 w-5" aria-hidden="true" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </button>
         )}
       </div>
+
+      <GlobalSearchPanel />
     </div>
   )
 }

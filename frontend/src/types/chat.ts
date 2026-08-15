@@ -6,7 +6,8 @@ export interface Citation {
   documentName: string
   page: number
   section?: string
-  text: string
+  text?: string
+  score?: number
 }
 
 export interface ChatMessage {
@@ -19,9 +20,12 @@ export interface ChatMessage {
 }
 
 export interface ChatResponse {
-  conversationId: string
+  conversationId?: string
+  message_id: string
+  session_id: string
   answer: string
-  status: AnswerStatus
+  grounded: boolean
+  evidence_count?: number
   citations: Citation[]
   followUps?: string[]
 }

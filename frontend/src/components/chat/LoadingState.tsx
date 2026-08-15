@@ -1,13 +1,36 @@
-import { Loader2 } from 'lucide-react'
+import { Bot } from 'lucide-react'
 
 export function LoadingState() {
   return (
-    <div className="flex items-start gap-3 py-4" role="status" aria-live="polite">
-      <Loader2 className="h-5 w-5 animate-spin text-ai" aria-hidden="true" />
-      <div className="flex flex-col gap-1">
-        <span className="text-sm font-medium text-fg">Searching the document</span>
-        <span className="text-xs text-fg-muted">Finding relevant evidence and preparing an answer…</span>
+    <div className="flex items-start gap-3 animate-fade-in">
+
+      <div className="rounded-3xl ">
+        <div className="flex items-center gap-3">
+          {/* Animated dots */}
+          <div className="flex items-center gap-1.5">
+            <span
+              className="h-2 w-2 rounded-full bg-accent"
+              style={{ animation: 'pulse-dot 1.2s ease-in-out infinite', animationDelay: '0ms' }}
+            />
+            <span
+              className="h-2 w-2 rounded-full bg-accent"
+              style={{ animation: 'pulse-dot 1.2s ease-in-out infinite', animationDelay: '200ms' }}
+            />
+            <span
+              className="h-2 w-2 rounded-full bg-accent"
+              style={{ animation: 'pulse-dot 1.2s ease-in-out infinite', animationDelay: '400ms' }}
+            />
+          </div>
+          <span className="text-xs font-semibold text-primary">
+            Searching trusted documentation…
+          </span>
+        </div>
+        <p className="mt-2 text-[11px] text-fg-muted">
+          Matching your query against approved prescribing labels.
+        </p>
       </div>
     </div>
   )
 }
+
+export default LoadingState
