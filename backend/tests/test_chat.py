@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from app.main import app
 from app.db.database import get_db_session
 from app.dependencies.embeddings import get_embedding_model
@@ -112,7 +112,19 @@ def test_post_chat_message_session_not_found(client, mock_db):
     assert response.status_code == 404
     assert "Session not found" in response.json()["detail"]
 
-def test_post_chat_message_success(client, mock_db, mock_llm):
+@patch("app.services.chat.conversation.hybrid_search")
+def test_post_chat_message_success(mock_hybrid_search, client, mock_db, mock_llm):
+    mock_hybrid_search.return_value = [
+        {
+            "chunk_id": "chunk-123",
+            "document_id": "doc-abc",
+            "document_name": "Rinvoq.pdf",
+            "page_no": 12,
+            "section": "Dosage",
+            "text": "The recommended dose of Rinvoq is 15 mg.",
+            "score": 0.95
+        }
+    ]
     payload = {
         "session_id": "1",
         "message": "What is the dose of Rinvoq?",
@@ -130,14 +142,15 @@ def test_post_chat_message_success(client, mock_db, mock_llm):
     assert response.status_code == 200
     data = response.json()
     assert data["session_id"] == "1"
-    assert data["answer"] == "The recommended dose of Rinvoq is 15 mg."
+    assert data["answer"] == "The recommended dose of Rinvoq is 15 mg. [1]"
     assert data["grounded"] is True
     assert len(data["citations"]) == 1
     assert data["citations"][0]["chunk_id"] == "chunk-123"
 
-def test_post_chat_message_abstain(client, mock_db, mock_qdrant):
+@patch("app.services.chat.conversation.hybrid_search")
+def test_post_chat_message_abstain(mock_hybrid_search, client, mock_db, mock_qdrant):
     # Mock empty search results
-    mock_qdrant.search.return_value = []
+    mock_hybrid_search.return_value = []
     
     payload = {
         "session_id": "1",
