@@ -66,6 +66,23 @@ function App() {
                         </ProtectedRoute>
                       }
                     />
+                    {/* Protected AI Chat Assistant */}
+                    <Route
+                      path="/chat"
+                      element={
+                        <ProtectedRoute>
+                          <ChatPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/chat/:conversationId?"
+                      element={
+                        <ProtectedRoute>
+                          <ChatPage />
+                        </ProtectedRoute>
+                      }
+                    />
 
                     {/* Protected Document Label Management */}
                     <Route

@@ -38,8 +38,9 @@ A practical, beginner-friendly reference covering everything implemented in the 
 | **Tailwind CSS 3** | Utility-first CSS framework | Lets us style directly in JSX, keeps design consistent via theme tokens, no separate CSS files to maintain |
 | **Lucide React** | Icon library | Clean, consistent, tree-shakeable SVG icons. Used everywhere (sidebar, buttons, status badges) |
 | **React Markdown** | Renders markdown in chat answers | Assistant answers include **bold**, lists, paragraphs — rendered safely as HTML |
-| **React Router DOM** | Client-side routing | Powers `/`, `/signin`, `/signup`, `/documents` routes without page reloads |
+| **React Router DOM** | Client-side routing | Powers `/`, `/chat`, `/signin`, `/signup`, `/documents`, `/compare` routes without page reloads |
 | **Sonner** | Toast notifications | Lightweight, polished toasts for upload/delete/sign-in feedback |
+| **Web Speech API** | Voice input & text-to-speech | `SpeechRecognition` for dictation in prompt bar; `SpeechSynthesis` for reading AI responses aloud |
 
 > **Note:** We deliberately avoided heavy UI libraries (Material UI, Ant Design) and state libraries (Zustand, Redux). The design stays custom and lightweight.
 
@@ -54,14 +55,17 @@ index.html
   └── src/main.tsx          → mounts <App /> into #root
         └── src/App.tsx     → sets up Router + all Context Providers
               └── Routes
-                    ├── /            → ChatPage
-                    ├── /chat/:id    → ChatPage
-                    ├── /documents   → DocumentsPage
-                    ├── /compare     → ComparePage
-                    ├── /signin      → SignInPage
-                    ├── /signup      → SignUpPage
-                    └── *            → ChatPage (fallback)
+                    ├── /                  → ChatPage (ProtectedRoute)
+                    ├── /chat              → ChatPage (ProtectedRoute)
+                    ├── /chat/:conversationId? → ChatPage (ProtectedRoute)
+                    ├── /documents         → DocumentsPage (ProtectedRoute)
+                    ├── /compare           → ComparePage (ProtectedRoute)
+                    ├── /signin            → SignInPage
+                    ├── /signup            → SignUpPage
+                    └── *                  → ChatPage (fallback)
 ```
+
+> **Note:** Chat, Documents, and Compare routes are wrapped in `<ProtectedRoute>` which checks authentication state before rendering. Sign-in and sign-up pages are public.
 
 ### Provider nesting (in `App.tsx`)
 
@@ -176,8 +180,9 @@ src/
 │   │   └── AuthDivider.tsx         # "OR" divider
 │   ├── chat/               # Chat experience
 │   │   ├── ChatWindow.tsx          # Message list + empty state
-│   │   ├── ChatMessage.tsx         # User vs assistant bubble
-│   │   ├── PromptBar.tsx           # Bottom input bar
+│   │   ├── ChatMessage.tsx         # User vs assistant bubble + TTS
+│   │   ├── PromptBar.tsx           # Composer-style input bar with voice & doc selector
+│   │   ├── DocumentSelectorModal.tsx # Modal for selecting saved documents
 │   │   ├── StreamingText.tsx       # Typewriter effect
 │   │   ├── LoadingState.tsx        # "Searching the document…" spinner
 │   │   ├── CitationBadge.tsx       # Clickable page citation chip
@@ -201,9 +206,10 @@ src/
 │   └── layout/             # App shell
 │       ├── ChatLayout.tsx          # Sidebar + main area wrapper
 │       ├── Sidebar.tsx             # Composes header, nav, recent chats, profile
-│       ├── SidebarHeader.tsx       # Logo, search, collapse buttons
-│       ├── RecentChats.tsx         # Flat recent-chats list with rename/delete
-│       ├── UserProfile.tsx         # Bottom user profile section
+│       ├── SidebarHeader.tsx       # Logo, search, collapse buttons + GlobalSearchPanel
+│       ├── GlobalSearchPanel.tsx   # Portal-based modal search for chats & documents
+│       ├── RecentChats.tsx         # Flat recent-chats list with 3-dot menu & delete confirmation
+│       ├── UserProfile.tsx         # Bottom user profile + logout confirmation modal
 │       └── MobileSidebar.tsx       # Slide-in drawer for mobile
 ├── contexts/               # All React Context providers
 ├── hooks/                  # useChat, useUI, useTheme, useDocuments, useConversations
@@ -239,8 +245,9 @@ A fixed left sidebar on desktop (`w-64`) with two modes:
 
 Sub-components:
 - **`SidebarHeader`** — LabelProof logo, search button, collapse/expand button, close button (mobile only).
-- **`RecentChats`** — flat list of recent conversations (sorted by most recent). Each row shows the title; hovering reveals rename (pencil) and delete (trash) icons. Active conversation is highlighted with `bg-surface-highlight`. Inline rename uses a controlled input with Enter to save / Escape to cancel.
-- **`UserProfile`** — avatar circle ("MM"), name "Mohanapriyan M", label "LabelProof User", settings icon.
+- **`RecentChats`** — flat list of recent conversations (sorted by most recent). Each row shows the title; hovering reveals a **three-dot menu** (⋮). Clicking opens a dropdown with **Rename** and **Delete** options. Delete triggers a **custom confirmation modal** (portal-based) showing the conversation title with Cancel/Delete buttons. Active conversation is highlighted with `bg-surface-highlight`. Inline rename uses a controlled input with Enter to save / Escape to cancel.
+- **`UserProfile`** — avatar circle ("MM"), name "Mohanapriyan M", label "LabelProof User", settings icon. Includes a **logout confirmation modal** rendered via React portal with backdrop blur.
+- **`GlobalSearchPanel`** — portal-based centered modal with live search across recent chats and documents. Triggered from the search button in `SidebarHeader`. Renders to `document.body` with `z-50`.
 
 ### Mobile sidebar (`MobileSidebar.tsx`)
 
@@ -275,16 +282,28 @@ The assistant message has a **streaming phase**: when it's the last message and 
 
 **Action bar** (after streaming completes):
 - Source count ("1 source" / "2 sources")
+- **Speaker icon** (`Volume2` / `Square`) — uses the Web Speech Synthesis API (`window.speechSynthesis`) to read the AI response aloud. Markdown formatting is stripped before passing to the utterance. Clicking again stops the speech. The icon toggles between `Volume2` (not speaking) and `Square` (actively reading).
 - Copy button (uses `navigator.clipboard.writeText`, shows a check icon for 2 seconds)
-- Regenerate button (placeholder alert)
-- Thumbs up / Thumbs down (placeholder alerts)
 
 ### PromptBar (`components/chat/PromptBar.tsx`)
 
-- Rounded card with a `+` attach button, an auto-growing `<textarea>`, and a send button.
-- **Enter** sends the message; **Shift+Enter** inserts a newline.
-- Send button is disabled when input is empty or the assistant is loading.
-- Auto-resizes up to a max height of 200px.
+A composer-style input bar with a grid layout that adapts to content:
+
+- **`+` button** (left) — opens a native file picker for uploading documents. Accepts `.pdf`, `.docx`, and `.doc` files only. Selected files appear as removable chips inside the composer.
+- **Auto-growing `<textarea>`** — uses a hidden measuring `<span>` and `useLayoutEffect` to auto-resize. Min height 28px, max height 120px. **Enter** sends the message; **Shift+Enter** inserts a newline.
+- **`FolderOpen` button** — opens a `DocumentSelectorModal` to pick from saved (ready) documents. Selected documents appear as chips **above** the prompt bar. When all documents are selected, a single "All documents" chip with primary styling is shown.
+- **Mic button** — toggles voice dictation using the Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`). Shows animated equalizer bars while listening. Uses `continuous: true` and `interimResults: true` for real-time transcription. Auto-restarts on `onend` if the user hasn't stopped. Interim results are shown live; finalized segments accumulate in a ref.
+- **Send button** — disabled when input is empty or the assistant is loading. Shows a spinner (`Loader2`) during loading.
+- The container switches from `rounded-full` to `rounded-2xl` when attachments are present or the textarea is expanded.
+
+### DocumentSelectorModal (`components/chat/DocumentSelectorModal.tsx`)
+
+- Portal-based modal (`createPortal` to `document.body`, `z-50`) for selecting saved documents.
+- **Search bar** at the top — filters documents by name or filename in real-time.
+- **"Select all" row** — toggles between selecting all ready documents and none.
+- **Document list** — scrollable, each row has a checkbox, `FileText` icon, document name, filename, and page count. Only shows documents with `status: 'ready'`.
+- **Footer** — shows selection count with Cancel and Confirm buttons. Confirm is disabled when nothing is selected.
+- Empty state when no documents match the search.
 
 ### StreamingText (`components/chat/StreamingText.tsx`)
 
@@ -299,13 +318,15 @@ The assistant message has a **streaming phase**: when it's the last message and 
 
 ### Simulated streaming (in `ChatContext.tsx`)
 
-Currently mock-only:
+Currently mock-only with hardcoded demo responses:
 1. User message added immediately.
 2. `isLoading` set to `true`.
 3. After ~1.5s, a grounded assistant message is added with demo citations and follow-ups.
 4. `isLoading` set to `false`.
 
-> When the backend is ready, this `setTimeout` block becomes a real API call (see Section 13).
+The mock responses include realistic drug information content (dosage, warnings, contraindications) with citations pointing to specific pages and follow-up questions for a natural chat experience.
+
+> When the backend is ready, this `setTimeout` block becomes a real API call (see Section 14).
 
 ---
 
@@ -532,10 +553,11 @@ No external images — everything is Tailwind/CSS.
 | Concept | Where it's used |
 |---|---|
 | **Components & Props** | Every UI piece is a reusable component with typed props |
-| **`useState`** | Form fields, sidebar open/closed, menu open, editing state, password visibility |
-| **`useEffect`** | Window resize listener (UIContext), theme class on `<html>` (ThemeContext), streaming interval (StreamingText), Escape key handler (MobileSidebar, DeleteDocumentDialog), auto-scroll (ChatWindow) |
-| **`useRef`** | Textarea auto-resize (PromptBar), hidden file input click (DocumentUpload), scroll target (ChatWindow) |
-| **`useCallback`** | Stable `onComplete` callback in ChatMessage |
+| **`useState`** | Form fields, sidebar open/closed, menu open, editing state, password visibility, voice listening, speaking state, doc modal open, selected doc IDs |
+| **`useEffect`** | Window resize listener (UIContext), theme class on `<html>` (ThemeContext), streaming interval (StreamingText), Escape key handler (MobileSidebar, DeleteDocumentDialog), auto-scroll (ChatWindow), click-outside for dropdown menus (RecentChats), speech recognition cleanup (PromptBar) |
+| **`useRef`** | Textarea auto-resize (PromptBar), hidden file input click (DocumentUpload), scroll target (ChatWindow), speech recognition instance (PromptBar), speech synthesis utterance (ChatMessage), measuring span for auto-expand |
+| **`useCallback`** | Stable `onComplete` callback in ChatMessage, `startListening`/`stopListening` in PromptBar |
+| **`useLayoutEffect`** | Textarea auto-resize measurement (PromptBar) — runs before paint to avoid flicker |
 | **`useMemo`** | Filtered documents in DocumentContext (avoids re-filtering on every render) |
 | **Context API** | All 5 contexts described in Section 4 |
 | **Custom hooks** | `useChat`, `useUI`, `useTheme`, `useDocuments`, `useConversations` — each wraps `useContext` with a guard |
@@ -626,21 +648,28 @@ Here's the full journey a user takes through the frontend:
 
 6. CLICK "New Chat" → back to / (empty chat)
    └── Type a question in the prompt bar → Enter
+   └── Or click the mic icon to dictate using voice (Web Speech API)
+   └── Or click the folder icon to select saved documents as context
+   └── Or click the + icon to upload PDF/DOCX/DOC files
    └── User bubble appears immediately
    └── "Searching the document…" loading state
    └── Assistant answer streams in character-by-character
    └── Markdown renders (bold, lists)
    └── Citation badges appear ("Page 12")
    └── Source count shown
-   └── Copy / Regenerate / Thumbs up / Thumbs down actions
+   └── Click speaker icon to hear the answer read aloud (text-to-speech)
+   └── Copy answer to clipboard
    └── Follow-up question buttons → click to ask next
 
 7. CLICK A CITATION (future)
    └── Opens PDF viewer at the cited page (not yet implemented)
 
 8. SIDEBAR → recent chat appears in the list
-   └── Hover to rename or delete
+   └── Hover to reveal three-dot menu (⋮)
+   └── Click → Rename or Delete options in dropdown
+   └── Delete → custom confirmation modal → confirm to delete
    └── Click to (future) reload that conversation
+   └── Search button in header opens GlobalSearchPanel (search chats & documents)
 ```
 
 **Ask → Answer → Cite → Verify** — the first three steps are implemented; "Verify" (PDF page navigation) is the next phase.
@@ -669,6 +698,18 @@ Here's the full journey a user takes through the frontend:
 
 ### Q: How is the chat answer streamed?
 **A:** Currently simulated. `StreamingText` uses `setInterval` to reveal one character every 20ms with a blinking cursor. When the backend is ready, this will be replaced with a real streaming response (e.g., Server-Sent Events).
+
+### Q: How does voice input work in the prompt bar?
+**A:** We use the Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`) with `continuous: true` and `interimResults: true`. When the user clicks the mic button, recognition starts and transcribed text appears in the textarea in real-time. The browser may stop recognition periodically, so we auto-restart it via the `onend` handler using a `shouldListenRef`. Clicking the mic again stops recognition. The button shows animated equalizer bars while listening.
+
+### Q: How does the text-to-speech feature work?
+**A:** We use `window.speechSynthesis` with `SpeechSynthesisUtterance`. When the user clicks the speaker icon next to an AI response, we strip markdown formatting and pass the plain text to the utterance. The icon toggles to a `Square` (stop) icon while speaking. Clicking again cancels the speech. The `onend` and `onerror` handlers reset the state automatically.
+
+### Q: What is the Document Selector Modal?
+**A:** A portal-based modal that lets users pick from their saved (ready) documents before asking a question. It has a search bar, a "Select all" toggle, and a scrollable list with checkboxes. Selected documents appear as chips above the prompt bar. When all are selected, a single "All documents" chip is shown. This lets users scope their question to specific drug-label documents.
+
+### Q: How does the three-dot menu in recent chats work?
+**A:** Each conversation row in the sidebar has a `MoreVertical` (⋮) icon that appears on hover. Clicking opens a small dropdown with Rename and Delete options. The dropdown closes on outside click (via a `mousedown` listener). Delete triggers a custom confirmation modal rendered via React portal, showing the conversation title with Cancel and Delete buttons.
 
 ### Q: What is a citation badge?
 **A:** A small clickable pill that shows "Page 12" with a document icon. It tells the user exactly where in the source PDF the answer came from. Clicking it will eventually open the PDF viewer at that page.
@@ -719,11 +760,13 @@ The app has five main screens. First, a **Sign In and Sign Up** flow with a prem
 
 After login, you land on the **Chat page**. On the left is a responsive sidebar with the LabelProof logo, a New Chat button, a Manage Documents link, a Compare Drugs link, a flat recent-chats list with inline rename and delete, and a user profile at the bottom. On mobile, this sidebar becomes a slide-in drawer.
 
-The chat itself supports markdown answers, a typewriter streaming effect, a loading state that says 'Searching the document,' citation badges showing the source page, copy and feedback actions, and follow-up question chips. The prompt bar auto-resizes and sends on Enter.
+The chat itself supports markdown answers, a typewriter streaming effect, a loading state that says 'Searching the document,' citation badges showing the source page, a **speaker icon for text-to-speech** that reads answers aloud, a copy button, and follow-up question chips. The **prompt bar** is a composer-style input with a **+ button for file upload** (PDF/DOCX/DOC), a **folder icon to select saved documents** via a modal with search and select-all, a **mic button for voice dictation** using the Web Speech API with animated equalizer bars, and an auto-resizing textarea that sends on Enter. Selected documents appear as chips above the bar.
 
 The **Manage Documents** page lets users upload drug-label PDFs via drag-and-drop, search and filter documents, see processing status badges, rename inline, and delete with a confirmation dialog and toast notifications. It's fully responsive — one column on mobile, three on desktop.
 
 The **Compare Drugs** page lets users pick two approved drug documents and compare attributes like indications, dosage, warnings, contraindications, pregnancy guidance, and storage side-by-side, with clickable page citations for verification.
+
+The **sidebar** features a three-dot menu on each recent chat for rename and delete, with a custom confirmation modal for deletion. A global search panel lets users search across chats and documents from the sidebar header.
 
 For state management, we use **React Context** — five contexts for theme, UI, conversations, documents, and chat. No Zustand or Redux, keeping the app lightweight and easy to reason about.
 

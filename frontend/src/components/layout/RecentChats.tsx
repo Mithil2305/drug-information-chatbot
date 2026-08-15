@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { Check, Pencil, Trash2, X } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
+import { Check, MoreVertical, Pencil, Trash2, X, AlertTriangle } from 'lucide-react'
 import { useConversations } from '../../hooks/useConversations'
 import { Tooltip } from '../common/Tooltip'
 interface RecentChatsProps {
@@ -16,6 +17,9 @@ export function RecentChats({ collapsed }: RecentChatsProps) {
   } = useConversations()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   const sorted = [...conversations].sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
@@ -29,6 +33,24 @@ export function RecentChats({ collapsed }: RecentChatsProps) {
   const cancelEdit = () => {
     setEditingId(null)
     setEditValue('')
+  }
+
+  useEffect(() => {
+    if (!menuOpenId) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpenId(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [menuOpenId])
+
+  const confirmDelete = () => {
+    if (deleteTarget) {
+      deleteConversation(deleteTarget.id)
+      setDeleteTarget(null)
+    }
   }
 
   /* ── Collapsed view ─────────────────────────────────────── */
@@ -121,32 +143,52 @@ export function RecentChats({ collapsed }: RecentChatsProps) {
                 </button>
 
                 {/* Three-dot menu */}
-                <div className="relative shrink-0 pr-1">
+                <div className="relative shrink-0 pr-1" ref={menuOpenId === c.id ? menuRef : undefined}>
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation()
-                      setEditingId(c.id)
-                      setEditValue(c.title)
+                      setMenuOpenId(menuOpenId === c.id ? null : c.id)
                     }}
-                    className="flex h-6 w-6 items-center justify-center rounded-full text-fg-muted hover:bg-surface hover:text-fg"
-                    aria-label="Rename conversation"
-                    title="Rename"
+                    className={`flex h-6 w-6 items-center justify-center rounded-full text-fg-muted transition-colors hover:bg-surface hover:text-fg ${
+                      menuOpenId === c.id ? 'bg-surface text-fg' : 'opacity-0 group-hover:opacity-100'
+                    }`}
+                    aria-label="More options"
+                    aria-expanded={menuOpenId === c.id}
                   >
-                    <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                    <MoreVertical className="h-3.5 w-3.5" aria-hidden="true" />
                   </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      deleteConversation(c.id)
-                    }}
-                    className="flex h-6 w-6 items-center justify-center rounded-full text-fg-muted hover:bg-surface hover:text-danger"
-                    aria-label="Delete conversation"
-                    title="Delete"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                  </button>
+
+                  {menuOpenId === c.id && (
+                    <div
+                      className="absolute right-0 top-full z-20 mt-1 w-32 overflow-hidden rounded-xl border border-border bg-surface shadow-card animate-fade-in"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingId(c.id)
+                          setEditValue(c.title)
+                          setMenuOpenId(null)
+                        }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-fg transition-colors hover:bg-surface-highlight"
+                      >
+                        <Pencil className="h-3.5 w-3.5 shrink-0 text-fg-muted" />
+                        <span>Rename</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeleteTarget({ id: c.id, title: c.title })
+                          setMenuOpenId(null)
+                        }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-danger transition-colors hover:bg-surface-highlight"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -158,6 +200,58 @@ export function RecentChats({ collapsed }: RecentChatsProps) {
         <p className="px-4 py-3 text-xs text-fg-subtle">
           No conversations yet. Start by asking a question.
         </p>
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleteTarget && createPortal(
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in p-4"
+          onClick={() => setDeleteTarget(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirm delete"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-2xl border border-border bg-surface p-5 shadow-hover animate-fade-in"
+          >
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-danger/10 text-danger">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-fg">Delete conversation?</h3>
+                <p className="mt-0.5 text-xs text-fg-muted">
+                  This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-4 rounded-lg bg-surface-highlight px-3 py-2">
+              <p className="truncate text-xs text-fg-muted">
+                <span className="font-medium text-fg">{deleteTarget.title}</span>
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className="rounded-pill border border-border bg-surface px-4 py-2 text-xs font-semibold text-fg transition-colors hover:bg-surface-highlight"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                className="rounded-pill bg-danger px-4 py-2 text-xs font-bold text-white shadow-subtle transition-all hover:brightness-110 active:scale-95"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
       )}
     </nav>
   )

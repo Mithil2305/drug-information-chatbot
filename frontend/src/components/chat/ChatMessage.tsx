@@ -1,6 +1,6 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { Bot, Check, Copy, FileText, Sparkles, AlertCircle, User } from 'lucide-react'
+import { Bot, Check, Copy, FileText, Sparkles, AlertCircle, User, Volume2, Square } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useChat } from '../../hooks/useChat'
 import type { ChatMessage as ChatMessageType } from '../../types/chat'
@@ -52,6 +52,8 @@ function ActionButton({
 function AssistantMessage({ message, isLast }: { message: ChatMessageType; isLast: boolean }) {
   const [done, setDone] = useState(!isLast)
   const [copied, setCopied] = useState(false)
+  const [speaking, setSpeaking] = useState(false)
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const { sendMessage, selectedMessageId, setSelectedMessageId } = useChat()
   const onComplete = useCallback(() => setDone(true), [])
   const isStreaming = isLast && !done
@@ -68,6 +70,32 @@ function AssistantMessage({ message, isLast }: { message: ChatMessageType; isLas
     } catch {
       // ignore
     }
+  }
+
+  const stripMarkdown = (text: string) =>
+    text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/__/g, '').replace(/`/g, '').replace(/#{1,6}\s/g, '').replace(/\[(.*?)\]\(.*?\)/g, '$1')
+
+  const handleSpeak = () => {
+    if (speaking) {
+      window.speechSynthesis.cancel()
+      setSpeaking(false)
+      return
+    }
+    const utterance = new SpeechSynthesisUtterance(stripMarkdown(message.content))
+    utterance.rate = 1
+    utterance.pitch = 1
+    utterance.onend = () => {
+      setSpeaking(false)
+      utteranceRef.current = null
+    }
+    utterance.onerror = () => {
+      setSpeaking(false)
+      utteranceRef.current = null
+    }
+    utteranceRef.current = utterance
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(utterance)
+    setSpeaking(true)
   }
 
   const isAbstaining =
@@ -154,6 +182,11 @@ function AssistantMessage({ message, isLast }: { message: ChatMessageType; isLas
                 </span>
               </div>
               <div className="flex items-center gap-1">
+                <ActionButton
+                  onClick={handleSpeak}
+                  icon={speaking ? Square : Volume2}
+                  label={speaking ? 'Stop reading' : 'Read aloud'}
+                />
                 <ActionButton
                   onClick={handleCopy}
                   icon={copied ? Check : Copy}

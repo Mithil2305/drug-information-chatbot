@@ -1,9 +1,21 @@
-import { useRef, useState, useEffect, useLayoutEffect } from 'react'
+import { useRef, useState, useEffect, useLayoutEffect, useCallback } from 'react'
 import { Plus, Send, Mic, FileText, X, Loader2, FolderOpen } from 'lucide-react'
 import { useChat } from '../../hooks/useChat'
 import { useDocuments } from '../../hooks/useDocuments'
 import { useSearchParams } from 'react-router-dom'
 import { DocumentSelectorModal } from './DocumentSelectorModal'
+
+declare global {
+  interface Window {
+    SpeechRecognition?: any
+    webkitSpeechRecognition?: any
+  }
+}
+
+interface SpeechRecognitionResult {
+  transcript: string
+  confidence: number
+}
 
 export function PromptBar() {
   const [value, setValue] = useState('')
@@ -85,15 +97,98 @@ export function PromptBar() {
     setAttachments((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const toggleListening = () => {
-    setListening((prev) => !prev)
-    if (!listening) {
-      setTimeout(() => {
+  const recognitionRef = useRef<any>(null)
+  const finalTranscriptRef = useRef('')
+  const shouldListenRef = useRef(false)
+  const valueRef = useRef('')
+
+  useEffect(() => {
+    valueRef.current = value
+  }, [value])
+
+  const stopListening = useCallback(() => {
+    shouldListenRef.current = false
+    setListening(false)
+    if (recognitionRef.current) {
+      recognitionRef.current.stop()
+      recognitionRef.current = null
+    }
+    finalTranscriptRef.current = ''
+    textareaRef.current?.focus()
+  }, [])
+
+  const startListening = useCallback(() => {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      console.warn('Speech recognition is not supported in this browser')
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognition.continuous = true
+    recognition.interimResults = true
+    recognition.lang = 'en-US'
+
+    finalTranscriptRef.current = valueRef.current ? valueRef.current + ' ' : ''
+    shouldListenRef.current = true
+
+    recognition.onresult = (event: any) => {
+      let interim = ''
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result: SpeechRecognitionResult = event.results[i][0]
+        if (event.results[i].isFinal) {
+          finalTranscriptRef.current += result.transcript + ' '
+        } else {
+          interim += result.transcript
+        }
+      }
+      setValue(finalTranscriptRef.current + interim)
+    }
+
+    recognition.onerror = (event: any) => {
+      if (event.error === 'no-speech' || event.error === 'aborted') return
+      console.error('Speech recognition error:', event.error)
+      shouldListenRef.current = false
+      setListening(false)
+      recognitionRef.current = null
+    }
+
+    recognition.onend = () => {
+      if (shouldListenRef.current && recognitionRef.current === recognition) {
+        try {
+          recognition.start()
+        } catch {
+          shouldListenRef.current = false
+          setListening(false)
+          recognitionRef.current = null
+        }
+      } else if (recognitionRef.current === recognition) {
         setListening(false)
-        textareaRef.current?.focus()
-      }, 2500)
+        recognitionRef.current = null
+      }
+    }
+
+    recognitionRef.current = recognition
+    setListening(true)
+    recognition.start()
+  }, [])
+
+  const toggleListening = () => {
+    if (listening) {
+      stopListening()
+    } else {
+      startListening()
     }
   }
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop()
+      }
+    }
+  }, [])
 
   return (
     <div className="w-full">
