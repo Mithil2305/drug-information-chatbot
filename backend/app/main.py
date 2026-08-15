@@ -1,8 +1,22 @@
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.router import api_router
 from app.core.config import settings
+from app.db.database import Base, engine
+
+# Import all models so Base.metadata knows about every table
+from app.models import user, document, chat, chunk, citation, document_page
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if settings.ENVIRONMENT != "test":
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    yield
+
 
 # Configure logging
 logging.basicConfig(
@@ -14,7 +28,8 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title=settings.APP_NAME,
     description="LabelProof: Evidence-First Drug Information Q&A Chatbot Backend",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Set CORS origins (explicit origins required for credentialed requests)

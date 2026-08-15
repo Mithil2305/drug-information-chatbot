@@ -9,7 +9,7 @@ from app.db.database import get_db_session
 from app.models.chat import ChatSession, ChatMessage
 from app.models.citation import Citation as CitationModel
 from app.models.document import Document
-from app.schemas.chat import ChatRequest, ChatResponse, SessionResponse, MessageResponse
+from app.schemas.chat import ChatRequest, ChatResponse, SessionResponse, MessageResponse, SessionUpdate
 from app.schemas.evidence import Citation
 from app.services.chat.rag_service import RAGService
 from app.dependencies.embeddings import get_embedding_model
@@ -270,16 +270,7 @@ session_id=str(session_id),
     # 6. Build citations
     # ---------------------------------------------------------
 
-    citations = [
-        Citation(
-            document_id=c["document_id"],
-            document_name=c.get("document_name"),
-            page=c.get("page_no"),
-            section=c.get("section_title"),
-            chunk_id=c["chunk_id"],
-        )
-        for c in rag_result["citations"]
-    ]
+    citations = rag_result["citations"]
 
     # ---------------------------------------------------------
     # 7. Save user message
@@ -314,13 +305,13 @@ session_id=str(session_id),
 
         db.add(
             CitationModel(
-                citation_id=str(cit.chunk_id),
+                citation_id=str(cit["chunk_id"]),
                 message_id=assistant_msg.message_id,
-                document_id=cit.document_id,
-                document_name=cit.document_name,
-                page_no=cit.page,
-                chunk_id=cit.chunk_id,
-                section=cit.section
+                document_id=cit["document_id"],
+                document_name=cit.get("document_name"),
+                page_no=cit.get("page_no"),
+                chunk_id=cit["chunk_id"],
+                section=cit.get("section_title") or cit.get("section")
             )
         )
 
@@ -541,3 +532,62 @@ async def get_session_messages(
         )
         for msg in session.messages
     ]
+
+
+# =============================================================
+# UPDATE CHAT SESSION
+# =============================================================
+
+@sessions_router.patch(
+    "/{session_id}",
+    response_model=SessionResponse
+)
+async def update_chat_session(
+    session_id: int,
+    update: SessionUpdate,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.execute(
+        select(ChatSession).filter(
+            ChatSession.session_id == session_id,
+            ChatSession.user_id == current_user.user_id
+        )
+    )
+    session = result.scalar_one_or_none()
+
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found."
+        )
+
+    session.summary = update.summary
+    await db.commit()
+    await db.refresh(session)
+
+    return SessionResponse(
+        session_id=str(session.session_id),
+        started_at=session.started_at,
+        summary=session.summary,
+        messages=[
+            MessageResponse(
+                message_id=str(msg.message_id),
+                session_id=str(msg.session_id),
+                role=msg.role,
+                content=msg.content,
+                timestamp=msg.created_at,
+                citations=[
+                    Citation(
+                        document_id=cit.document_id,
+                        document_name=cit.document_name or "Unknown Document",
+                        page=cit.page_no,
+                        section=cit.section,
+                        chunk_id=cit.chunk_id
+                    )
+                    for cit in msg.citations
+                ]
+            )
+            for msg in session.messages
+        ]
+    )

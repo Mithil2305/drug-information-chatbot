@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import List
 from pydantic import BaseModel
+from app.schemas.evidence import Citation
 
 
 class ChatRequest(BaseModel):
@@ -23,11 +24,16 @@ class MessageResponse(BaseModel):
     session_id: str
     role: str
     content: str
-    timestamp: datetime
+    timestamp: datetime | None = None
+    citations: List[Citation] = []
 
 
 class SessionResponse(BaseModel):
     session_id: str
-    started_at: datetime
+    started_at: datetime | None = None
     summary: str | None = None
     messages: List[MessageResponse] = []
+
+
+class SessionUpdate(BaseModel):
+    summary: str

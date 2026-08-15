@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { ChatMessage, ChatResponse } from '../types/chat'
+import type { ChatRequest, ChatResponse } from '../types/chat'
 
-export const sendMessage = (message: ChatMessage) =>
-  apiFetch<ChatResponse>('/api/v1/chat', { method: 'POST', body: JSON.stringify(message) })
+export const sendMessage = (request: ChatRequest) =>
+  apiFetch<ChatResponse>('/api/v1/chat', { method: 'POST', body: JSON.stringify(request) })

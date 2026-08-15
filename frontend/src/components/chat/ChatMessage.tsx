@@ -1,6 +1,6 @@
 import { useCallback, useState, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { Bot, Check, Copy, FileText, Sparkles, AlertCircle, User, Volume2, Square } from 'lucide-react'
+import { Check, Copy, FileText, Sparkles, AlertCircle, Volume2, Square } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useChat } from '../../hooks/useChat'
 import type { ChatMessage as ChatMessageType } from '../../types/chat'
@@ -54,13 +54,12 @@ function AssistantMessage({ message, isLast }: { message: ChatMessageType; isLas
   const [copied, setCopied] = useState(false)
   const [speaking, setSpeaking] = useState(false)
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
-  const { sendMessage, selectedMessageId, setSelectedMessageId } = useChat()
+  const { sendMessage, setSelectedMessageId } = useChat()
   const onComplete = useCallback(() => setDone(true), [])
   const isStreaming = isLast && !done
 
   const citations = message.citations ?? []
   const followUps = message.followUps ?? []
-  const isSelected = selectedMessageId === message.id
 
   const handleCopy = async () => {
     try {

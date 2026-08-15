@@ -1,6 +1,9 @@
 import sys
 import numpy as np
 from unittest.mock import MagicMock, AsyncMock
+from app.core.config import settings
+
+settings.ENVIRONMENT = "test"
 
 # 1. Mock SentenceTransformer
 class MockSentenceTransformer:

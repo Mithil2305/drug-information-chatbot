@@ -19,15 +19,14 @@ export function Sidebar({ onClose }: SidebarProps) {
   const { clearChat } = useChat()
   const { newConversation } = useConversations()
   const navigate = useNavigate();
-  const { documents } = useDocuments()
+  useDocuments()
   const location = useLocation()
-  const readyDocs = documents.filter((d) => d.status === 'ready')
   const collapsed = sidebarCollapsed
   const isCompareActive = location.pathname === '/compare'
 
-  const handleNewChat = () => {
+  const handleNewChat = async () => {
     clearChat();
-    newConversation();
+    await newConversation();
     navigate('/');
     onClose?.();
   }

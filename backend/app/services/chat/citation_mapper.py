@@ -44,6 +44,7 @@ class CitationMapper:
                     "section_title": meta.get("section_title") or meta.get("section"),
                     "version": meta.get("version"),
                     "score": meta.get("score"),
+                    "text": meta.get("text") or meta.get("chunk_text"),
                 })
             else:
                 invalid.append(cid)

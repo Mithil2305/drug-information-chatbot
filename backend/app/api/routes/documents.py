@@ -12,6 +12,7 @@ from fastapi import (
     BackgroundTasks,
     status
 )
+from fastapi.responses import FileResponse
 
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,7 +26,9 @@ from app.models.document_page import DocumentPage
 from app.schemas.document import (
     DocumentUploadResponse,
     DocumentResponse,
-    DocumentProcessResponse
+    DocumentProcessResponse,
+    DocumentUpdate,
+    DocumentStatusResponse,
 )
 
 from app.services.pdf.extractor import extract_pdf_pages
@@ -592,3 +595,108 @@ async def delete_document(
     await db.delete(doc)
     await db.commit()
     return
+
+
+# =====================================================
+# UPDATE DOCUMENT METADATA
+# =====================================================
+
+@router.patch(
+    "/{document_id}",
+    response_model=DocumentResponse
+)
+async def update_document(
+    document_id: str,
+    update: DocumentUpdate,
+    db: AsyncSession = Depends(get_db_session)
+):
+    result = await db.execute(
+        select(Document).filter(Document.document_id == document_id)
+    )
+    doc = result.scalar_one_or_none()
+
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found."
+        )
+
+    if update.source is not None:
+        doc.source = update.source
+    if update.version is not None:
+        doc.version = update.version
+    if update.file_name is not None:
+        doc.file_name = update.file_name
+
+    await db.commit()
+    await db.refresh(doc)
+    return DocumentResponse.model_validate(doc)
+
+
+# =====================================================
+# GET DOCUMENT STATUS
+# =====================================================
+
+@router.get(
+    "/{document_id}/status",
+    response_model=DocumentStatusResponse
+)
+async def get_document_status(
+    document_id: str,
+    db: AsyncSession = Depends(get_db_session)
+):
+    result = await db.execute(
+        select(Document).filter(Document.document_id == document_id)
+    )
+    doc = result.scalar_one_or_none()
+
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found."
+        )
+
+    return DocumentStatusResponse(
+        document_id=doc.document_id,
+        status=doc.status,
+        stage=doc.status,
+        message=f"Document is currently {doc.status}."
+    )
+
+
+# =====================================================
+# VIEW / DOWNLOAD PDF
+# =====================================================
+
+@router.get("/{document_id}/view")
+async def view_document(
+    document_id: str,
+    db: AsyncSession = Depends(get_db_session)
+):
+    result = await db.execute(
+        select(Document).filter(Document.document_id == document_id)
+    )
+    doc = result.scalar_one_or_none()
+
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found."
+        )
+
+    file_path = os.path.join(
+        UPLOAD_DIR,
+        f"{document_id}_{doc.file_name}"
+    )
+
+    if not os.path.exists(file_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="PDF file not found on disk."
+        )
+
+    return FileResponse(
+        file_path,
+        media_type="application/pdf",
+        filename=doc.file_name
+    )
