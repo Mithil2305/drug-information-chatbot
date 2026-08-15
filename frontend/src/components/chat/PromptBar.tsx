@@ -49,18 +49,6 @@ export function PromptBar() {
 
   return (
     <div className="w-full space-y-2">
-      {/* Context status bar */}
-      <div className="flex items-center justify-between px-1 text-[11px] text-fg-muted">
-        <div className="flex items-center gap-1.5">
-          <FileText className="h-3 w-3 text-accent shrink-0" />
-          <span>
-            Grounded against{' '}
-            <span className="font-semibold text-fg">{readyDocs.length}</span>{' '}
-            approved drug label{readyDocs.length === 1 ? '' : 's'}
-          </span>
-        </div>
-        <span className="hidden sm:inline text-fg-muted/60">Enter ↵ to send • Shift+Enter for new line</span>
-      </div>
 
       {/* Input form */}
       <form

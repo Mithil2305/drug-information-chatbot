@@ -17,7 +17,7 @@ export default function ChatPage() {
           <ChatWindow />
 
           {/* Sticky Bottom Prompt Input */}
-          <div className="border-t border-border bg-background/95 p-4 backdrop-blur-xs">
+          <div className="bg-transparent p-4 backdrop-blur-xs">
             <div className="mx-auto max-w-3xl">
               <PromptBar />
             </div>

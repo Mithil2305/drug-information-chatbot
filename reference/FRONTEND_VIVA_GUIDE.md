@@ -17,13 +17,14 @@ A practical, beginner-friendly reference covering everything implemented in the 
 7. [Chat Interface Deep Dive](#7-chat-interface-deep-dive)
 8. [Citations / Source UI](#8-citations--source-ui)
 9. [Manage Documents Page](#9-manage-documents-page)
-10. [Sign In / Sign Up UI](#10-sign-in--sign-up-ui)
-11. [Responsive / Mobile Design](#11-responsive--mobile-design)
-12. [Important React Concepts Used](#12-important-react-concepts-used)
-13. [How the Frontend Talks to the Future FastAPI Backend](#13-how-the-frontend-talks-to-the-future-fastapi-backend)
-14. [Complete User Flow](#14-complete-user-flow)
-15. [Viva Questions with Short Answers](#15-viva-questions-with-short-answers)
-16. [2–3 Minute Presentation Script](#16-23-minute-presentation-script)
+10. [Compare Drugs Page](#10-compare-drugs-page)
+11. [Sign In / Sign Up UI](#11-sign-in--sign-up-ui)
+12. [Responsive / Mobile Design](#12-responsive--mobile-design)
+13. [Important React Concepts Used](#13-important-react-concepts-used)
+14. [How the Frontend Talks to the FastAPI Backend](#14-how-the-frontend-talks-to-the-fastapi-backend)
+15. [Complete User Flow](#15-complete-user-flow)
+16. [Viva Questions with Short Answers](#16-viva-questions-with-short-answers)
+17. [2–3 Minute Presentation Script](#17-23-minute-presentation-script)
 
 ---
 
@@ -56,6 +57,7 @@ index.html
                     ├── /            → ChatPage
                     ├── /chat/:id    → ChatPage
                     ├── /documents   → DocumentsPage
+                    ├── /compare     → ComparePage
                     ├── /signin      → SignInPage
                     ├── /signup      → SignUpPage
                     └── *            → ChatPage (fallback)
@@ -162,7 +164,7 @@ Each context has a matching hook in `src/hooks/` (`useTheme`, `useUI`, `useConve
 
 ```
 src/
-├── api/                    # Future API client functions (currently unused by UI)
+├── api/                    # API client wrappers used by contexts and services
 │   ├── client.ts           # apiFetch() wrapper around fetch()
 │   ├── chat.ts, documents.ts, citations.ts, compare.ts
 ├── components/
@@ -180,6 +182,15 @@ src/
 │   │   ├── LoadingState.tsx        # "Searching the document…" spinner
 │   │   ├── CitationBadge.tsx       # Clickable page citation chip
 │   │   └── FollowUpList.tsx        # Suggested follow-up questions
+│   ├── compare/            # Drug comparison interface
+│   │   ├── DrugSelector.tsx        # Drug 1 / Drug 2 selection panel
+│   │   ├── DrugSelect.tsx          # Accessible custom dropdown
+│   │   ├── SwapDrugsButton.tsx     # Swap drugs icon button
+│   │   ├── CompareButton.tsx       # Primary compare CTA
+│   │   ├── ComparisonTable.tsx     # Side-by-side comparison table
+│   │   ├── ComparisonCell.tsx      # Single table cell with citations
+│   │   ├── ComparisonSkeleton.tsx  # Loading skeleton
+│   │   └── ComparisonError.tsx     # Error / retry state
 │   ├── documents/          # Manage Documents page
 │   │   ├── DocumentUpload.tsx      # Dropzone + upload button
 │   │   ├── DocumentSearch.tsx      # Search input
@@ -197,9 +208,11 @@ src/
 ├── contexts/               # All React Context providers
 ├── hooks/                  # useChat, useUI, useTheme, useDocuments, useConversations
 ├── pages/                  # Route-level pages
-│   ├── ChatPage.tsx, DocumentsPage.tsx, SignInPage.tsx, SignUpPage.tsx
+│   ├── ChatPage.tsx, ComparePage.tsx, DocumentsPage.tsx, SignInPage.tsx, SignUpPage.tsx
 ├── theme/                  # Color tokens, light/dark themes, typography
-├── types/                  # TypeScript interfaces (chat.ts, document.ts)
+├── types/                  # TypeScript interfaces (chat.ts, document.ts, comparison.ts)
+├── services/               # Business-logic service abstractions
+│   └── comparisonService.ts      # Wraps /api/v1/compare, supports mock flag
 ├── utils/                  # formatters.ts (date/file size), validators.ts
 ├── App.tsx                 # Router + providers
 ├── main.tsx                # Entry point
@@ -364,7 +377,67 @@ Wrapped in `ChatLayout` so the sidebar stays consistent.
 
 ---
 
-## 10. Sign In / Sign Up UI
+## 10. Compare Drugs Page
+
+### Route: `/compare` → `ComparePage.tsx`
+
+This is a dedicated side-by-side drug-label comparison page. It lets a user pick two approved drug documents and compare clinically relevant attributes.
+
+### Why we added it
+
+Clinicians and pharmacists often compare two drugs on dosage, warnings, interactions, pregnancy guidance, and more. This page surfaces those sections side-by-side with clickable page citations, so users can verify differences against the source PDFs instead of opening two documents manually.
+
+### User flow
+
+1. Select **Drug 1** and **Drug 2** from the dropdown of ready documents.
+2. Optionally click the **swap** button to exchange them.
+3. Click **Compare**.
+4. The UI shows a loading skeleton.
+5. A three-column comparison table appears:
+   - **Attribute** (e.g., Indications, Warnings, Storage)
+   - **Drug 1**
+   - **Drug 2**
+6. Each cell shows the value and one or more "Page X" citation badges.
+7. Clicking a citation badge sets `selectedCitation` in `ChatContext`, reusing the existing source-verification flow.
+8. On mobile, the table stacks into sections so it stays readable.
+
+### Components added (`src/components/compare/`)
+
+- `ComparePage.tsx` — route-level page; wraps `ChatLayout` and handles the comparison lifecycle.
+- `DrugSelector.tsx` / `DrugSelect.tsx` — accessible custom dropdowns with search, keyboard navigation, and validation state.
+- `SwapDrugsButton.tsx` — small icon button with a tooltip to swap the two selected drugs.
+- `CompareButton.tsx` — primary call-to-action with loading spinner.
+- `ComparisonTable.tsx` — semantic `<table>` on desktop; stacked attribute cards on mobile.
+- `ComparisonHeader.tsx` — drug name, generic name, drug class badge, and document info.
+- `ComparisonRow.tsx` / `ComparisonCell.tsx` — renders each attribute row, with warning/highlight/unavailable styling.
+- `ComparisonCitationBadge.tsx` — clickable page badges wired to `setSelectedCitation`.
+- `ComparisonEmptyState.tsx`, `ComparisonSkeleton.tsx`, `ComparisonError.tsx` — empty, loading, and error states.
+
+### Service layer (`src/services/`)
+
+- `comparisonService.ts` — wraps `compareDrugsApi` from `src/api/compare.ts`. If `VITE_USE_MOCK_COMPARE=true` it returns clearly-isolated mock data; otherwise it calls the FastAPI backend. This keeps the API call out of the UI components.
+
+### TypeScript data model (`src/types/comparison.ts`)
+
+```ts
+interface ComparisonResult {
+  drug1: DrugInfo
+  drug2: DrugInfo
+  attributes: ComparisonAttribute[]
+}
+```
+
+Cells support `content`, `citations[]`, and a `status` (`normal`, `warning`, `highlight`, `unavailable`). This lets the table subtly warn about serious safety information and highlight dosage differences without inventing missing data.
+
+### Validation & states
+
+- Empty state shown before any comparison is run.
+- Validation messages if Drug 1 or Drug 2 is missing, or if both are the same drug.
+- Loading state with shimmer skeleton rows.
+- Error state with a "Try again" button.
+- "Not available in source document" for any missing attribute.
+
+## 11. Sign In / Sign Up UI
 
 ### Routes: `/signin` and `/signup`
 
@@ -425,7 +498,7 @@ No external images — everything is Tailwind/CSS.
 
 ---
 
-## 11. Responsive / Mobile Design
+## 12. Responsive / Mobile Design
 
 ### Breakpoint strategy
 
@@ -454,7 +527,7 @@ No external images — everything is Tailwind/CSS.
 
 ---
 
-## 12. Important React Concepts Used
+## 13. Important React Concepts Used
 
 | Concept | Where it's used |
 |---|---|
@@ -476,11 +549,11 @@ No external images — everything is Tailwind/CSS.
 
 ---
 
-## 13. How the Frontend Talks to the Future FastAPI Backend
+## 14. How the Frontend Talks to the FastAPI Backend
 
 ### Current state
 
-The UI uses **mock data only** — contexts hold hardcoded seed arrays and `setTimeout` to simulate latency. No real network calls happen yet.
+The **documents** and **drug comparison** flows already call the FastAPI backend through `src/api/`. The **chat** flow is currently simulated with `setTimeout` until the RAG pipeline is fully integrated, but it uses the same context shape the real API will return. This keeps the component layer stable while the backend catches up.
 
 ### Prepared API layer (`src/api/`)
 
@@ -490,7 +563,7 @@ The UI uses **mock data only** — contexts hold hardcoded seed arrays and `setT
   ```
   It wraps `fetch()`, sets JSON headers, throws on non-OK responses, and returns parsed JSON.
 - **`documents.ts`** already declares `fetchDocuments()`, `uploadDocument(file)`, `deleteDocument(id)`.
-- **`chat.ts`, `citations.ts`, `compare.ts`** are stubs for future endpoints.
+- **`chat.ts` and `citations.ts`** are stubs for future endpoints; **`compare.ts`** is already used by `comparisonService.ts`.
 
 ### How the switch will work
 
@@ -517,12 +590,13 @@ The components **don't change** because they only consume the context — they d
 | `GET` | `/api/documents` | List user's documents |
 | `POST` | `/api/documents` | Upload PDF (multipart) |
 | `DELETE` | `/api/documents/:id` | Delete document |
+| `POST` | `/api/v1/compare` | Compare two drug documents side-by-side |
 | `POST` | `/api/chat` | Send question, get grounded answer + citations |
 | `GET` | `/api/documents/:id/page/:page` | Fetch a specific PDF page (for the viewer) |
 
 ---
 
-## 14. Complete User Flow
+## 15. Complete User Flow
 
 Here's the full journey a user takes through the frontend:
 
@@ -544,7 +618,13 @@ Here's the full journey a user takes through the frontend:
    └── Rename a document inline
    └── Delete a document → confirmation dialog → toast
 
-5. CLICK "New Chat" → back to / (empty chat)
+5. CLICK "Compare Drugs" → /compare
+   └── Select Drug 1 and Drug 2 from the dropdown of ready documents
+   └── Swap them if needed
+   └── Click Compare and wait for the skeleton to fill
+   └── View side-by-side attributes, warnings, dosage, and page citations
+
+6. CLICK "New Chat" → back to / (empty chat)
    └── Type a question in the prompt bar → Enter
    └── User bubble appears immediately
    └── "Searching the document…" loading state
@@ -555,10 +635,10 @@ Here's the full journey a user takes through the frontend:
    └── Copy / Regenerate / Thumbs up / Thumbs down actions
    └── Follow-up question buttons → click to ask next
 
-6. CLICK A CITATION (future)
+7. CLICK A CITATION (future)
    └── Opens PDF viewer at the cited page (not yet implemented)
 
-7. SIDEBAR → recent chat appears in the list
+8. SIDEBAR → recent chat appears in the list
    └── Hover to rename or delete
    └── Click to (future) reload that conversation
 ```
@@ -567,7 +647,7 @@ Here's the full journey a user takes through the frontend:
 
 ---
 
-## 15. Viva Questions with Short Answers
+## 16. Viva Questions with Short Answers
 
 ### Q: What is LabelProof?
 **A:** An evidence-first drug-information chatbot. Users ask questions about approved drugs, and the AI answers with citations pointing to exact pages of official drug-label PDFs.
@@ -617,12 +697,15 @@ Here's the full journey a user takes through the frontend:
 ### Q: Is the app accessible?
 **A:** Yes — semantic HTML, `aria-label` on icon-only buttons, `aria-hidden` on decorative icons, keyboard support (Enter to send, Escape to close dialogs/drawers), focus styles on inputs, and `role="status"` on the loading indicator.
 
+### Q: How does the Compare Drugs page work?
+**A:** The user selects two ready drug documents from custom dropdowns, optionally swaps them, and clicks Compare. The frontend calls `/api/v1/compare` (with a clearly isolated mock fallback when `VITE_USE_MOCK_COMPARE=true`), then renders a side-by-side table of clinical attributes. Each cell shows the value and clickable page citations. Missing data is shown as "Not available in source document." On mobile, the table stacks into readable sections.
+
 ### Q: What would you add next?
-**A:** Real backend integration, a PDF viewer for citation verification, persistent conversation history, drug comparison, and authentication with JWT tokens.
+**A:** Real backend integration for the chat RAG pipeline, a PDF viewer for citation verification, persistent conversation history, and authentication with JWT tokens.
 
 ---
 
-## 16. 2–3 Minute Presentation Script
+## 17. 2–3 Minute Presentation Script
 
 > Use this as a spoken script for your demo. Keep a relaxed pace — it's about 350 words.
 
@@ -632,13 +715,15 @@ Here's the full journey a user takes through the frontend:
 
 For the frontend, we built a polished, dark, ChatGPT-style interface using **React 19, TypeScript, Vite, and Tailwind CSS**. We chose TypeScript for type safety, Vite for fast development, and Tailwind because it lets us define a semantic theme system using CSS variables — so light and dark modes switch instantly without touching any component.
 
-The app has four main screens. First, a **Sign In and Sign Up** flow with a premium two-column layout — form on the left, an animated CSS brand panel on the right that hides on mobile. Form validation is inline and real-time.
+The app has five main screens. First, a **Sign In and Sign Up** flow with a premium two-column layout — form on the left, an animated CSS brand panel on the right that hides on mobile. Form validation is inline and real-time.
 
-After login, you land on the **Chat page**. On the left is a responsive sidebar with the LabelProof logo, a New Chat button, a Manage Documents link, a flat recent-chats list with inline rename and delete, and a user profile at the bottom. On mobile, this sidebar becomes a slide-in drawer.
+After login, you land on the **Chat page**. On the left is a responsive sidebar with the LabelProof logo, a New Chat button, a Manage Documents link, a Compare Drugs link, a flat recent-chats list with inline rename and delete, and a user profile at the bottom. On mobile, this sidebar becomes a slide-in drawer.
 
 The chat itself supports markdown answers, a typewriter streaming effect, a loading state that says 'Searching the document,' citation badges showing the source page, copy and feedback actions, and follow-up question chips. The prompt bar auto-resizes and sends on Enter.
 
 The **Manage Documents** page lets users upload drug-label PDFs via drag-and-drop, search and filter documents, see processing status badges, rename inline, and delete with a confirmation dialog and toast notifications. It's fully responsive — one column on mobile, three on desktop.
+
+The **Compare Drugs** page lets users pick two approved drug documents and compare attributes like indications, dosage, warnings, contraindications, pregnancy guidance, and storage side-by-side, with clickable page citations for verification.
 
 For state management, we use **React Context** — five contexts for theme, UI, conversations, documents, and chat. No Zustand or Redux, keeping the app lightweight and easy to reason about.
 

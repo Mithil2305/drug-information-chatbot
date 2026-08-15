@@ -1,6 +1,7 @@
 import { PanelLeftClose, PanelLeftOpen, Search, X } from 'lucide-react'
 import { useUI } from '../../hooks/useUI'
 import { Tooltip } from '../common/Tooltip'
+import { GlobalSearchPanel } from './GlobalSearchPanel'
 
 interface SidebarHeaderProps {
   onClose?: () => void
@@ -8,7 +9,7 @@ interface SidebarHeaderProps {
 }
 
 export function SidebarHeader({ onClose, collapsed }: SidebarHeaderProps) {
-  const { toggleCollapse, toggleSearch } = useUI()
+  const { toggleCollapse, toggleSearch, searchOpen } = useUI()
 
   if (collapsed) {
     return (
@@ -49,8 +50,8 @@ export function SidebarHeader({ onClose, collapsed }: SidebarHeaderProps) {
         <button
           type="button"
           onClick={toggleSearch}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
-          aria-label="Search conversations"
+          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${searchOpen ? 'bg-surface-highlight text-primary' : 'text-fg-muted hover:bg-surface-highlight hover:text-fg'}`}
+          aria-label="Search conversations and documents"
           title="Search"
         >
           <Search className="h-4 w-4" aria-hidden="true" />
@@ -77,6 +78,8 @@ export function SidebarHeader({ onClose, collapsed }: SidebarHeaderProps) {
           </button>
         )}
       </div>
+
+      <GlobalSearchPanel />
     </div>
   )
 }
