@@ -3,12 +3,8 @@ import { Bot } from 'lucide-react'
 export function LoadingState() {
   return (
     <div className="flex items-start gap-3 animate-fade-in">
-      {/* AI Avatar — matches AssistantMessage */}
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-subtle mt-0.5">
-        <Bot className="h-[18px] w-[18px]" />
-      </div>
 
-      <div className="rounded-3xl rounded-tl-sm border border-border bg-surface p-5 shadow-card">
+      <div className="rounded-3xl ">
         <div className="flex items-center gap-3">
           {/* Animated dots */}
           <div className="flex items-center gap-1.5">

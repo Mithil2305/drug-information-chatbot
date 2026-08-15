@@ -21,9 +21,6 @@ function UserMessage({ content }: { content: string }) {
         <div className="rounded-3xl rounded-br-sm bg-primary px-5 py-3.5 text-sm text-white shadow-card">
           <p className="whitespace-pre-wrap leading-relaxed">{content}</p>
         </div>
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface border border-border text-fg-muted mb-0.5">
-          <User className="h-3.5 w-3.5" />
-        </div>
       </div>
     </div>
   )
@@ -83,16 +80,10 @@ function AssistantMessage({ message, isLast }: { message: ChatMessageType; isLas
       className="flex items-start gap-3 animate-fade-in-up"
       style={{ animationDelay: '30ms' }}
     >
-      {/* AI Avatar */}
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-primary text-white border border-primary/20 shadow-subtle mt-0.5">
-        <Bot className="h-4.5 w-4.5 h-[18px] w-[18px]" />
-      </div>
 
       <div className="min-w-0 flex-1">
         <div
-          className={`max-w-3xl rounded-2xl rounded-tl-sm border bg-surface p-5 shadow-card transition-all duration-200 ${
-            isSelected ? 'border-primary/30 ring-2 ring-primary/10' : 'border-border'
-          }`}
+          className={`max-w-3xl transition-all duration-200 `}
         >
           {/* Status Header */}
             <div className="mb-3.5 flex items-center justify-between border-b border-border pb-3">
@@ -153,7 +144,7 @@ function AssistantMessage({ message, isLast }: { message: ChatMessageType; isLas
 
           {/* Action Toolbar */}
           {!isStreaming && (
-            <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-2.5">
+            <div className="mt-3 flex items-center justify-between border-t border-border pt-2.5">
               <div className="flex items-center gap-1.5 text-[11px] text-fg-muted">
                 <FileText className="h-3 w-3 text-accent shrink-0" />
                 <span>

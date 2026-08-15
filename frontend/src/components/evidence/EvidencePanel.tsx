@@ -72,7 +72,7 @@ export function EvidencePanel({ onClose, isMobileDrawer = false }: EvidencePanel
           </div>
         ) : (
           <>
-            <div className="rounded-2xl bg-surface-warm/40 border border-border/80 p-3 text-[11px] text-fg-secondary flex items-center justify-between">
+            <div className="rounded-2xl bg-surface-warm/40 border border-border p-3 text-[11px] text-fg-secondary flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-success" />
                 <span className="font-semibold text-primary">100% Label Grounded</span>

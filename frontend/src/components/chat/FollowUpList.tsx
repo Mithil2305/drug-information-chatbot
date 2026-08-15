@@ -14,7 +14,7 @@ export function FollowUpList({ questions, onSelect }: FollowUpListProps) {
           key={q}
           type="button"
           onClick={() => onSelect(q)}
-          className="group flex w-full items-center gap-2 rounded-2xl border border-border/70 px-3 py-2.5 text-left text-sm text-fg transition-colors hover:border-primary/20 hover:bg-surface-highlight"
+          className="group flex w-full items-center gap-2 rounded-2xl border border-border px-3 py-2.5 text-left text-sm text-fg transition-colors hover:border-primary/20 hover:bg-surface-highlight"
         >
           <CornerDownRight
             className="h-3.5 w-3.5 shrink-0 text-fg-subtle transition-colors group-hover:text-primary"
