@@ -5,7 +5,6 @@ import type { ConversationSummary } from '../types/chat'
 import { useAuth } from '../hooks/useAuth'
 import {
   listSessions,
-  createSession,
   updateSession,
   deleteSession,
   toConversationSummary,
@@ -17,7 +16,7 @@ interface ConversationContextValue {
   selectConversation: (id: string) => void
   renameConversation: (id: string, title: string) => void
   deleteConversation: (id: string) => void
-  newConversation: () => Promise<void>
+  newConversation: () => void
   setConversations: React.Dispatch<React.SetStateAction<ConversationSummary[]>>
   setActiveConversationId: React.Dispatch<React.SetStateAction<string | null>>
 }
@@ -74,15 +73,8 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const newConversation = async () => {
-    try {
-      const session = await createSession()
-      const summary = toConversationSummary(session)
-      setConversations((prev) => [summary, ...prev])
-      setActiveConversationId(summary.id)
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to start new chat')
-    }
+  const newConversation = () => {
+    setActiveConversationId(null)
   }
 
   return (

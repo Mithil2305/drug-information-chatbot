@@ -40,16 +40,16 @@ export function ChatWindow() {
       {messages.length === 0 ? (
         <div className="flex min-h-full flex-col items-center justify-center px-6 py-12 text-center">
           <div className="mb-5 relative">
-            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-primary text-white shadow-hover">
-              <ShieldCheck className="h-8 w-8 text-surface-warm" />
-            </div>
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-white shadow-subtle transition-all duration-200 group-hover:shadow-card">
+            <img src="/logo.png" alt="MediMei" className="h-15 w-15 object-contain" />
+          </div>
             <div className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-success border-2 border-background">
               <span className="block h-2 w-2 rounded-full bg-white animate-pulse" />
             </div>
           </div>
 
           <h1 className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">
-            LabelProof AI Assistant
+            MediMei AI Assistant
           </h1>
 
 

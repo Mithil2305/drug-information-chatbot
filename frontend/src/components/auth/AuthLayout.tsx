@@ -15,7 +15,7 @@ export function AuthLayout({ children, panel = true }: AuthLayoutProps) {
             <Activity className="h-5 w-5" aria-hidden="true" />
           </div>
           <div className="leading-none">
-            <div className="text-lg font-semibold text-fg">LabelProof</div>
+            <div className="text-lg font-semibold text-fg">MediMei</div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">Clinical AI</div>
           </div>
         </div>

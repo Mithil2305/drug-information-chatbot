@@ -3,13 +3,13 @@ from typing import Optional
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = "LabelProof"
+    APP_NAME: str = "MediMei"
     ENVIRONMENT: str = "development"
 
     # MySQL Database Settings
     MYSQL_HOST: str = "localhost"
     MYSQL_PORT: int = 3306
-    MYSQL_DATABASE: str = "labelproof"
+    MYSQL_DATABASE: str = "MediMei"
     MYSQL_USER: str = "root"
     MYSQL_PASSWORD: str = ""
 

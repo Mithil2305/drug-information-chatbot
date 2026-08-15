@@ -188,7 +188,7 @@ class ConversationService:
         )
 
         prompt = (
-            "System: You are LabelProof, a clinical assistant. "
+            "System: You are MediMei, a clinical assistant. "
             "Answer the question using ONLY the provided evidence. "
             "Do not use external knowledge or guess. "
             "If the answer is not in the text, abstain.\n\n"

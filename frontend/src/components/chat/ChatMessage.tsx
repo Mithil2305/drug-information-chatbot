@@ -113,9 +113,12 @@ function AssistantMessage({ message, isLast }: { message: ChatMessageType; isLas
           className={`max-w-3xl transition-all duration-200 `}
         >
           {/* Status Header */}
-            <div className="mb-3.5 flex items-center justify-between border-b border-border pb-3">
+          <div className="mb-3.5 flex items-center justify-between border-b border-border pb-3">
             <div className="flex items-center gap-2.5">
-              <span className="text-xs font-bold text-primary">LabelProof Assistant</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-primary text-white shadow-subtle transition-all duration-200 group-hover:shadow-card">
+                <img src="/logo.png" alt="MediMei" className="h-8 w-8 object-contain" />
+              </div>
+              <span className="text-xs font-bold text-primary">MediMei Assistant</span>
               {isAbstaining ? (
                 <span className="inline-flex items-center gap-1 rounded-pill bg-warning/10 px-2 py-0.5 text-[10px] font-bold text-warning">
                   <AlertCircle className="h-2.5 w-2.5" />
@@ -155,51 +158,51 @@ function AssistantMessage({ message, isLast }: { message: ChatMessageType; isLas
           )}
         </div>
 
-          {/* Citation Badges */}
-          {!isStreaming && citations.length > 0 && (
-            <div className="mt-4 pt-3.5 border-t border-border">
-              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-fg-muted mb-2.5">
-                Supporting Citations
-              </p>
-              <div className="flex flex-wrap gap-2" role="list" aria-label="Citations">
-                {citations.map((c) => (
-                  <CitationBadge key={c.citationId} citation={c} />
-                ))}
-              </div>
+        {/* Citation Badges */}
+        {!isStreaming && citations.length > 0 && (
+          <div className="mt-4 pt-3.5 border-t border-border">
+            <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-fg-muted mb-2.5">
+              Supporting Citations
+            </p>
+            <div className="flex flex-wrap gap-2" role="list" aria-label="Citations">
+              {citations.map((c) => (
+                <CitationBadge key={c.citationId} citation={c} />
+              ))}
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Action Toolbar */}
-          {!isStreaming && (
-            <div className="mt-3 flex items-center justify-between border-t border-border pt-2.5">
-              <div className="flex items-center gap-1.5 text-[11px] text-fg-muted">
-                <FileText className="h-3 w-3 text-accent shrink-0" />
-                <span>
-                  {citations.length > 0
-                    ? 'Click a citation to inspect the source'
-                    : 'No external sources cited'}
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <ActionButton
-                  onClick={handleSpeak}
-                  icon={speaking ? Square : Volume2}
-                  label={speaking ? 'Stop reading' : 'Read aloud'}
-                />
-                <ActionButton
-                  onClick={handleCopy}
-                  icon={copied ? Check : Copy}
-                  label={copied ? 'Copied!' : 'Copy answer'}
-                />
-              </div>
+        {/* Action Toolbar */}
+        {!isStreaming && (
+          <div className="mt-3 flex items-center justify-between border-t border-border pt-2.5">
+            <div className="flex items-center gap-1.5 text-[11px] text-fg-muted">
+              <FileText className="h-3 w-3 text-accent shrink-0" />
+              <span>
+                {citations.length > 0
+                  ? 'Click a citation to inspect the source'
+                  : 'No external sources cited'}
+              </span>
             </div>
-          )}
+            <div className="flex items-center gap-1">
+              <ActionButton
+                onClick={handleSpeak}
+                icon={speaking ? Square : Volume2}
+                label={speaking ? 'Stop reading' : 'Read aloud'}
+              />
+              <ActionButton
+                onClick={handleCopy}
+                icon={copied ? Check : Copy}
+                label={copied ? 'Copied!' : 'Copy answer'}
+              />
+            </div>
+          </div>
+        )}
 
-          {/* Follow-up Suggestions */}
-          {!isStreaming && followUps.length > 0 && (
-            <FollowUpList questions={followUps} onSelect={sendMessage} />
-          )}
-        </div>
+        {/* Follow-up Suggestions */}
+        {!isStreaming && followUps.length > 0 && (
+          <FollowUpList questions={followUps} onSelect={sendMessage} />
+        )}
+      </div>
     </div>
   )
 }

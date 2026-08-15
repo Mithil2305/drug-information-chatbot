@@ -46,7 +46,7 @@ class PromptBuilder:
     @staticmethod
     def _default_system_instruction() -> str:
         return (
-            "You are LabelProof, a clinical assistant. "
+            "You are MediMei, a clinical assistant. "
             "Answer the question using ONLY the evidence provided below. "
             "Do not use outside medical knowledge. "
             "Do not invent facts. "

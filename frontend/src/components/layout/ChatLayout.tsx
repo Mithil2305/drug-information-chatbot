@@ -29,7 +29,7 @@ export function ChatLayout({ children }: ChatLayoutProps) {
                 <span className="text-sm font-bold">L</span>
               </div>
               <span className="text-[15px] font-semibold tracking-tight text-fg">
-                LabelProof
+                MediMei
               </span>
             </div>
             <button

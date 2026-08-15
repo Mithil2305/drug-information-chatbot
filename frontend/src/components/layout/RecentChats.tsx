@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Check, MoreVertical, Pencil, Trash2, X, AlertTriangle } from 'lucide-react'
 import { useConversations } from '../../hooks/useConversations'
 import { Tooltip } from '../common/Tooltip'
+import { useNavigate } from 'react-router-dom'
 interface RecentChatsProps {
   collapsed: boolean
 }
@@ -20,6 +21,8 @@ export function RecentChats({ collapsed }: RecentChatsProps) {
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  const navigate = useNavigate();
 
   const sorted = [...conversations].sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
@@ -61,7 +64,10 @@ export function RecentChats({ collapsed }: RecentChatsProps) {
           <Tooltip key={c.id} content={c.title} side="right">
             <button
               type="button"
-              onClick={() => selectConversation(c.id)}
+              onClick={() =>{
+                navigate(`/chat/${c.id}`);
+                selectConversation(c.id);
+              }}
               className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold transition-colors ${
                 activeConversationId === c.id
                   ? 'bg-primary-soft text-primary'
@@ -130,7 +136,10 @@ export function RecentChats({ collapsed }: RecentChatsProps) {
               <>
                 <button
                   type="button"
-                  onClick={() => selectConversation(c.id)}
+                  onClick={() => {
+                    navigate(`/chat/${c.id}`)
+                    selectConversation(c.id)
+                  }}
                   className="flex min-w-0 flex-1 items-center px-2 py-2 text-left text-sm text-fg"
                 >
                   <span

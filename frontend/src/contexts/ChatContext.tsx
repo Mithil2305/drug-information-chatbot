@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import type { ChatMessage, Citation } from '../types/chat'
 import { useConversations } from '../hooks/useConversations'
 import { sendMessage as sendChatMessage } from '../api/chat'
-import { createSession, getSession } from '../api/sessions'
+import { createSession, getSession, toConversationSummary } from '../api/sessions'
 
 interface ChatContextValue {
   messages: ChatMessage[]
@@ -90,14 +90,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     if (!sessionId) {
       try {
-        const session = await createSession()
+        const title = content.trim().slice(0, 30) + (content.trim().length > 30 ? '…' : '')
+        const session = await createSession(title)
         sessionId = String(session.session_id)
-        const summary = {
-          id: sessionId,
-          title: content.trim().slice(0, 30) + (content.trim().length > 30 ? '…' : ''),
-          updatedAt: session.started_at,
-        }
-        setConversations((prev) => [summary, ...prev])
+        setConversations((prev) => [toConversationSummary(session), ...prev])
         setActiveConversationId(sessionId)
       } catch (err: any) {
         toast.error(err.message || 'Failed to start chat session')

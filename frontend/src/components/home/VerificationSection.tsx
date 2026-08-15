@@ -16,7 +16,7 @@ export function VerificationSection() {
               Always know where every answer originated.
             </h2>
             <p className="mt-5 text-base leading-relaxed text-fg-secondary">
-              Unlike generic chatbots that guess, LabelProof pins every clinical statement to the official Prescribing Information PDF.
+              Unlike generic chatbots that guess, MediMei pins every clinical statement to the official Prescribing Information PDF.
             </p>
 
             <ul className="mt-8 space-y-3.5">

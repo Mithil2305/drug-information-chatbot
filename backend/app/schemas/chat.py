@@ -35,5 +35,9 @@ class SessionResponse(BaseModel):
     messages: List[MessageResponse] = []
 
 
+class SessionCreate(BaseModel):
+    summary: str | None = None
+
+
 class SessionUpdate(BaseModel):
     summary: str

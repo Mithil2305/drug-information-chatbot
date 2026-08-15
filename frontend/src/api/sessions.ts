@@ -11,8 +11,11 @@ export interface SessionResponse {
 export const listSessions = () =>
   apiFetch<SessionResponse[]>('/api/v1/sessions')
 
-export const createSession = () =>
-  apiFetch<SessionResponse>('/api/v1/sessions', { method: 'POST' })
+export const createSession = (summary?: string) =>
+  apiFetch<SessionResponse>('/api/v1/sessions', {
+    method: 'POST',
+    body: summary ? JSON.stringify({ summary }) : undefined,
+  })
 
 export const getSession = (sessionId: string) =>
   apiFetch<SessionResponse>(`/api/v1/sessions/${sessionId}`)

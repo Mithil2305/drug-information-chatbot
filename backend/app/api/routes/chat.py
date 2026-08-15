@@ -9,7 +9,7 @@ from app.db.database import get_db_session
 from app.models.chat import ChatSession, ChatMessage
 from app.models.citation import Citation as CitationModel
 from app.models.document import Document
-from app.schemas.chat import ChatRequest, ChatResponse, SessionResponse, MessageResponse, SessionUpdate
+from app.schemas.chat import ChatRequest, ChatResponse, SessionResponse, MessageResponse, SessionCreate, SessionUpdate
 from app.schemas.evidence import Citation
 from app.services.chat.rag_service import RAGService
 from app.dependencies.embeddings import get_embedding_model
@@ -245,7 +245,7 @@ session_id=str(session_id),
     )
 
     prompt = (
-        "System: You are LabelProof, a clinical assistant. "
+        "System: You are MediMei, a clinical assistant. "
         "Answer the question using ONLY the provided evidence. "
         "Do not use external knowledge or guess. "
         "If the answer is not in the text, abstain.\n\n"
@@ -339,12 +339,13 @@ session_id=str(session_id),
 
 @sessions_router.post("", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)
 async def create_chat_session(
+    request: SessionCreate = SessionCreate(),
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user)
 ):
     new_session = ChatSession(
         user_id=current_user.user_id,
-        summary="New Chat"
+        summary=request.summary or "New Chat"
     )
     db.add(new_session)
     await db.commit()

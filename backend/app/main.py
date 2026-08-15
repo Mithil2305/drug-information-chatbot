@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title=settings.APP_NAME,
-    description="LabelProof: Evidence-First Drug Information Q&A Chatbot Backend",
+    description="MediMei: Evidence-First Drug Information Q&A Chatbot Backend",
     version="1.0.0",
     lifespan=lifespan,
 )

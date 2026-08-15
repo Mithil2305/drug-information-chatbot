@@ -47,7 +47,7 @@ function App() {
                 <ChatProvider>
                   <Routes>
                     {/* Public Landing Page */}
-                    {/* <Route path="/home" element={<HomePage />} /> */}
+                    <Route path="/home" element={<HomePage />} />
 
                     {/* Protected AI Chat Assistant */}
                     <Route

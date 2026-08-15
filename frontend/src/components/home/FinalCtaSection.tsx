@@ -14,7 +14,7 @@ export function FinalCtaSection() {
               Ready to verify drug information with clinical precision?
             </h2>
             <p className="text-sm leading-relaxed text-white/75">
-              Launch the LabelProof AI Assistant to start querying prescribing labels and inspecting page citations immediately.
+              Launch the MediMei AI Assistant to start querying prescribing labels and inspecting page citations immediately.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
               <Link

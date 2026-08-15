@@ -1,6 +1,6 @@
 const BASE_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:8000').replace(/\/+$/, '')
 
-export const AUTH_LOGOUT_EVENT = 'labelproof:auth-logout'
+export const AUTH_LOGOUT_EVENT = 'MediMei:auth-logout'
 
 function formatErrorDetail(detail: unknown): string {
   if (typeof detail === 'string') {

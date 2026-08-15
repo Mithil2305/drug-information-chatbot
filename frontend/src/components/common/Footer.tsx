@@ -23,7 +23,7 @@ export function Footer() {
                 <ShieldCheck className="h-5 w-5 text-white" />
               </div>
               <div className="flex flex-col leading-none">
-                <span className="text-lg font-bold tracking-tight text-primary">LabelProof</span>
+                <span className="text-lg font-bold tracking-tight text-primary">MediMei</span>
                 <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-accent">Clinical AI</span>
               </div>
             </Link>
@@ -91,13 +91,13 @@ export function Footer() {
           <div className="lg:col-span-3">
             <h4 className="mb-3 text-[10px] font-bold uppercase tracking-[0.12em] text-fg-muted">Clinical Disclaimer</h4>
             <p className="rounded-xl border border-border bg-surface/60 p-3 text-xs leading-relaxed text-fg-secondary">
-              LabelProof is designed for healthcare professionals and clinical reference. Responses are synthesized from official prescribing labels and should not replace professional medical judgment.
+              MediMei is designed for healthcare professionals and clinical reference. Responses are synthesized from official prescribing labels and should not replace professional medical judgment.
             </p>
           </div>
         </div>
 
         <div className="mt-8 flex flex-col items-center justify-between gap-3 border-t border-border pt-5 text-xs text-fg-muted sm:flex-row">
-          <p>© {new Date().getFullYear()} LabelProof. Cognizant NPN Healthcare AI Initiative.</p>
+          <p>© {new Date().getFullYear()} MediMei. Cognizant NPN Healthcare AI Initiative.</p>
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             <Link to="/" className="transition-colors hover:text-primary">Home</Link>
             <Link to="/drugs" className="transition-colors hover:text-primary">Drug Library</Link>

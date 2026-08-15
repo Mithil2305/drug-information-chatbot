@@ -1,4 +1,4 @@
-import { ShieldCheck, CheckCircle2 } from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
 
 export function AuthBrandPanel() {
   return (
@@ -8,11 +8,11 @@ export function AuthBrandPanel() {
 
       {/* Header */}
       <div className="relative z-10 flex items-center gap-2.5">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-white shadow-card ring-1 ring-white/10">
-          <ShieldCheck className="h-6 w-6 text-surface-warm" />
-        </div>
+        <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary text-white shadow-subtle transition-all duration-200 group-hover:shadow-card">
+            <img src="/logo.png" alt="MediMei" className="h-16 w-16 object-contain" />
+          </div>
         <div>
-          <span className="text-lg font-bold tracking-tight">LabelProof</span>
+          <span className="text-lg font-bold tracking-tight">MediMei</span>
           <span className="block text-[10px] uppercase tracking-wider text-surface-warm/80">Clinical AI</span>
         </div>
       </div>
@@ -44,7 +44,7 @@ export function AuthBrandPanel() {
 
       {/* Footer */}
       <div className="relative z-10 text-xs text-white/60">
-        © {new Date().getFullYear()} LabelProof. Cognizant NPN Healthcare AI Initiative.
+        © {new Date().getFullYear()} MediMei. Cognizant NPN Healthcare AI Initiative.
       </div>
     </div>
   )

@@ -45,7 +45,7 @@ def test_prompt_builder_contains_grounding_rules():
         evidence_context="[S1] Some evidence",
     )
 
-    assert "LabelProof" in prompt
+    assert "MediMei" in prompt
     assert "ONLY the evidence" in prompt
     assert "I don't know based on the provided documents" in prompt
     assert "What is the dosage?" in prompt

@@ -73,7 +73,7 @@ export default function SignUpPage() {
 
         <h1 className="text-2xl font-bold tracking-tight text-primary">Create an account</h1>
         <p className="mt-1 mb-8 text-xs sm:text-sm text-fg-secondary">
-          Join LabelProof to query official prescribing labels.
+          Join MediMei to query official prescribing labels.
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
@@ -139,7 +139,7 @@ export default function SignUpPage() {
             disabled={submitting}
             className="mt-2 w-full rounded-pill bg-primary py-3 text-sm font-bold text-white shadow-card transition-all hover:bg-primary-hover active:scale-[0.98] disabled:opacity-60"
           >
-            {submitting ? 'Creating account…' : 'Create LabelProof Account'}
+            {submitting ? 'Creating account…' : 'Create MediMei Account'}
           </button>
         </form>
 

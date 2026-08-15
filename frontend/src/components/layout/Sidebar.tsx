@@ -24,9 +24,9 @@ export function Sidebar({ onClose }: SidebarProps) {
   const collapsed = sidebarCollapsed
   const isCompareActive = location.pathname === '/compare'
 
-  const handleNewChat = async () => {
+  const handleNewChat = () => {
     clearChat();
-    await newConversation();
+    newConversation();
     navigate('/');
     onClose?.();
   }

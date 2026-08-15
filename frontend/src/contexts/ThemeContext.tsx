@@ -14,7 +14,7 @@ export const ThemeContext = createContext<ThemeContextValue | null>(null)
 
 function getInitialTheme(): ThemeMode {
   try {
-    const stored = localStorage.getItem('labelproof-theme')
+    const stored = localStorage.getItem('MediMei-theme')
     if (stored === 'dark' || stored === 'light') return stored
   } catch {
     // ignore
@@ -31,7 +31,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.classList.remove('light', 'dark')
     root.classList.add(theme)
     try {
-      localStorage.setItem('labelproof-theme', theme)
+      localStorage.setItem('MediMei-theme', theme)
     } catch {
       // ignore
     }
