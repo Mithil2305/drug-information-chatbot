@@ -26,7 +26,7 @@ export function StreamingText({ content, onComplete }: StreamingTextProps) {
   return (
     <span className="whitespace-pre-wrap">
       {displayed}
-      <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-ai" aria-hidden="true" />
+      <span className="ml-0.5 inline-block h-[1em] w-0.5 animate-pulse bg-primary" aria-hidden="true" />
     </span>
   )
 }

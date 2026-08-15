@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, FileText, MoreVertical, Pencil, Trash2, Eye, X } from 'lucide-react'
+import { Check, Eye, FileText, MoreHorizontal, Pencil, Trash2, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useDocuments } from '../../hooks/useDocuments'
 import { formatDate, formatFileSize } from '../../utils/formatters'
@@ -9,6 +9,31 @@ import { DocumentStatus } from './DocumentStatus'
 interface DocumentCardProps {
   document: Document
   onDelete: (doc: Document) => void
+}
+
+function MenuItem({
+  icon: Icon,
+  label,
+  onClick,
+  danger,
+}: {
+  icon: LucideIcon
+  label: string
+  onClick: () => void
+  danger?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors hover:bg-surface-highlight ${
+        danger ? 'text-danger' : 'text-fg'
+      }`}
+    >
+      <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      <span>{label}</span>
+    </button>
+  )
 }
 
 export function DocumentCard({ document, onDelete }: DocumentCardProps) {
@@ -28,11 +53,15 @@ export function DocumentCard({ document, onDelete }: DocumentCardProps) {
   }
 
   return (
-    <div className="relative flex flex-col rounded-xl border border-line bg-surface p-4 transition-colors hover:border-primary/40">
+    <div className="group relative flex flex-col rounded-xl border border-line bg-surface p-4 transition-all hover:border-line-strong hover:shadow-sm">
+      {/* Header */}
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-highlight text-primary">
-          <FileText className="h-5 w-5" aria-hidden="true" />
+        {/* PDF Icon */}
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft">
+          <FileText className="h-4.5 w-4.5 h-[18px] w-[18px] text-primary" aria-hidden="true" />
         </div>
+
+        {/* Name + Filename */}
         <div className="min-w-0 flex-1">
           {renaming ? (
             <div className="flex items-center gap-1">
@@ -44,7 +73,7 @@ export function DocumentCard({ document, onDelete }: DocumentCardProps) {
                   if (e.key === 'Escape') cancelRename()
                 }}
                 autoFocus
-                className="w-full rounded bg-background px-2 py-1 text-sm font-medium text-fg outline-none ring-1 ring-primary"
+                className="w-full rounded-md bg-background px-2 py-1 text-sm font-medium text-fg outline-none ring-1 ring-primary"
               />
               <button
                 type="button"
@@ -64,23 +93,32 @@ export function DocumentCard({ document, onDelete }: DocumentCardProps) {
               </button>
             </div>
           ) : (
-            <h3 className="truncate text-sm font-semibold text-fg" title={document.name}>
+            <h3
+              className="truncate text-sm font-semibold text-fg leading-snug"
+              title={document.name}
+            >
               {document.name}
             </h3>
           )}
-          <p className="truncate text-xs text-fg-muted" title={document.filename}>
+          <p className="mt-0.5 truncate text-xs text-fg-muted" title={document.filename}>
             {document.filename}
           </p>
         </div>
-        <div className="relative">
+
+        {/* Three-dot Menu */}
+        <div className="relative shrink-0">
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
+            className={`flex h-7 w-7 items-center justify-center rounded-md text-fg-subtle transition-all hover:bg-surface-highlight hover:text-fg-muted ${
+              menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+            }`}
             aria-label="Document actions"
+            aria-expanded={menuOpen}
           >
-            <MoreVertical className="h-4 w-4" aria-hidden="true" />
+            <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
           </button>
+
           {menuOpen && (
             <>
               <div
@@ -88,7 +126,7 @@ export function DocumentCard({ document, onDelete }: DocumentCardProps) {
                 onClick={() => setMenuOpen(false)}
                 aria-hidden="true"
               />
-              <div className="absolute right-0 top-9 z-20 w-36 rounded-lg border border-line bg-surface py-1 shadow-lg">
+              <div className="absolute right-0 top-8 z-20 w-36 rounded-lg border border-line bg-surface-raised py-1 shadow-lg">
                 <MenuItem
                   icon={Eye}
                   label="View"
@@ -105,6 +143,7 @@ export function DocumentCard({ document, onDelete }: DocumentCardProps) {
                     setRenaming(true)
                   }}
                 />
+                <div className="my-0.5 border-t border-line" />
                 <MenuItem
                   icon={Trash2}
                   label="Delete"
@@ -120,42 +159,19 @@ export function DocumentCard({ document, onDelete }: DocumentCardProps) {
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-between">
+      {/* Status + Pages */}
+      <div className="mt-3.5 flex items-center justify-between">
         <DocumentStatus status={document.status} />
         <span className="text-xs text-fg-muted">
           {document.pageCount ? `${document.pageCount} pages` : '—'}
         </span>
       </div>
 
+      {/* File size + Date */}
       <div className="mt-3 flex items-center justify-between border-t border-line pt-3 text-xs text-fg-muted">
         <span>{formatFileSize(document.fileSize)}</span>
         <span>{formatDate(document.uploadedAt)}</span>
       </div>
     </div>
-  )
-}
-
-function MenuItem({
-  icon: Icon,
-  label,
-  onClick,
-  danger,
-}: {
-  icon: LucideIcon
-  label: string
-  onClick: () => void
-  danger?: boolean
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-surface-highlight ${
-        danger ? 'text-danger' : 'text-fg'
-      }`}
-    >
-      <Icon className="h-4 w-4" aria-hidden="true" />
-      <span>{label}</span>
-    </button>
   )
 }

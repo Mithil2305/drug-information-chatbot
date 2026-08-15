@@ -50,14 +50,16 @@ function App() {
                     <Route path="/signup" element={<SignUpPage />} />
                     <Route path="*" element={<SignInPage />} />
                   </Routes>
+
                   <Toaster
                     position="bottom-right"
-                    theme="dark"
                     toastOptions={{
                       style: {
-                        background: 'var(--color-surface)',
+                        background: 'var(--color-surface-raised)',
                         border: '1px solid var(--color-border)',
                         color: 'var(--color-foreground)',
+                        fontSize: '14px',
+                        borderRadius: '10px',
                       },
                     }}
                   />

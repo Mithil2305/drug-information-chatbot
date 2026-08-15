@@ -1,4 +1,4 @@
-import { Activity } from 'lucide-react'
+import { FileText } from 'lucide-react'
 import { AuthBrandPanel } from './AuthBrandPanel'
 
 interface AuthLayoutProps {
@@ -9,15 +9,24 @@ interface AuthLayoutProps {
 export function AuthLayout({ children, panel = true }: AuthLayoutProps) {
   return (
     <div className="flex min-h-screen w-full bg-background lg:h-screen lg:overflow-hidden">
-      <div className="flex w-full flex-col justify-center px-6 py-10 sm:px-12 lg:w-1/2 lg:px-16 xl:px-24">
-        <div className="mb-8 flex items-center gap-2 lg:hidden">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
-            <Activity className="h-5 w-5" aria-hidden="true" />
+      {/* Form Side */}
+      <div className="flex w-full flex-col justify-center px-6 py-10 sm:px-12 lg:w-[580px] lg:shrink-0 lg:px-14 xl:px-20">
+        {/* Mobile Logo */}
+        <div className="mb-8 flex items-center gap-2.5 lg:hidden">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+            <FileText className="h-4 w-4 text-white" aria-hidden="true" />
           </div>
-          <span className="text-lg font-semibold text-fg">LabelProof</span>
+          <span className="text-[15px] font-semibold tracking-tight text-fg">
+            LabelProof
+          </span>
         </div>
-        {children}
+
+        <div className="w-full max-w-[360px] mx-auto lg:mx-0 lg:max-w-none">
+          {children}
+        </div>
       </div>
+
+      {/* Brand Panel */}
       {panel && <AuthBrandPanel />}
     </div>
   )

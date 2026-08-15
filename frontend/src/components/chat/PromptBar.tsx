@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Plus, Send } from 'lucide-react'
+import { Loader2, Send } from 'lucide-react'
 import { useChat } from '../../hooks/useChat'
 
 export function PromptBar() {
@@ -7,8 +7,10 @@ export function PromptBar() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const { sendMessage, isLoading } = useChat()
 
+  const canSend = !isLoading && value.trim().length > 0
+
   const handleSubmit = () => {
-    if (isLoading || !value.trim()) return
+    if (!canSend) return
     sendMessage(value.trim())
     setValue('')
     if (textareaRef.current) {
@@ -27,7 +29,7 @@ export function PromptBar() {
     const target = e.currentTarget
     setValue(target.value)
     target.style.height = 'auto'
-    target.style.height = `${Math.min(target.scrollHeight, 200)}px`
+    target.style.height = `${Math.min(target.scrollHeight, 180)}px`
   }
 
   return (
@@ -36,18 +38,10 @@ export function PromptBar() {
         e.preventDefault()
         handleSubmit()
       }}
-      className="w-full border border-line bg-surface p-3 shadow-sm rounded-2xl"
+      className="relative w-full rounded-2xl border border-line bg-surface shadow-sm transition-shadow focus-within:border-primary/50 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-primary)_12%,transparent)]"
     >
-      <div className="flex items-end gap-2">
-        <button
-          type="button"
-          onClick={() => alert('Document upload coming soon')}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
-          aria-label="Attach document"
-        >
-          <Plus className="h-5 w-5" aria-hidden="true" />
-        </button>
-
+      <div className="flex items-end gap-2 px-4 py-3">
+        {/* Textarea */}
         <textarea
           ref={textareaRef}
           rows={1}
@@ -55,32 +49,41 @@ export function PromptBar() {
           onInput={handleInput}
           onKeyDown={handleKeyDown}
           placeholder="Ask about this document…"
-          className="max-h-40 w-full resize-none bg-transparent px-2 py-2 text-sm text-fg placeholder-fg-muted outline-none"
-          aria-label="Message"
+          disabled={isLoading}
+          className="max-h-[180px] min-h-[28px] w-full resize-none bg-transparent py-0.5 text-[15px] leading-relaxed text-fg placeholder-fg-subtle outline-none disabled:opacity-60"
+          aria-label="Message input"
+          aria-multiline="true"
         />
 
-        {/* <div className="hidden shrink-0 items-center gap-1 rounded-lg border border-line bg-surface-highlight px-3 py-2 text-sm font-medium text-fg sm:flex">
-          <span>RAG-1</span>
-          <ChevronDown className="h-4 w-4 text-fg-muted" aria-hidden="true" />
-        </div> */}
-
-        {/* <button
-          type="button"
-          onClick={() => alert('Voice input coming soon')}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
-          aria-label="Use microphone"
-        >
-          <Mic className="h-5 w-5" aria-hidden="true" />
-        </button> */}
-
+        {/* Send Button */}
         <button
           type="submit"
-          disabled={isLoading || !value.trim()}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
-          aria-label="Send message"
+          disabled={!canSend}
+          aria-label={isLoading ? 'Sending…' : 'Send message'}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-white transition-all hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-primary"
         >
-          <Send className="h-5 w-5" aria-hidden="true" />
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Send className="h-4 w-4" aria-hidden="true" />
+          )}
         </button>
+      </div>
+
+      {/* Hint */}
+      <div className="px-4 pb-2.5 text-[11px] text-fg-subtle">
+        <kbd className="rounded border border-line px-1 py-0.5 font-mono text-[10px]">
+          Enter
+        </kbd>{' '}
+        to send ·{' '}
+        <kbd className="rounded border border-line px-1 py-0.5 font-mono text-[10px]">
+          Shift
+        </kbd>
+        +
+        <kbd className="rounded border border-line px-1 py-0.5 font-mono text-[10px]">
+          Enter
+        </kbd>{' '}
+        for new line
       </div>
     </form>
   )

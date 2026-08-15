@@ -11,7 +11,10 @@ export function PasswordInput({ label, error, ...props }: PasswordInputProps) {
 
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium text-fg" htmlFor={props.id}>
+      <label
+        className="mb-1.5 block text-sm font-medium text-fg"
+        htmlFor={props.id}
+      >
         {label}
       </label>
       <div className="relative">
@@ -22,21 +25,30 @@ export function PasswordInput({ label, error, ...props }: PasswordInputProps) {
         <input
           {...props}
           type={show ? 'text' : 'password'}
-          className={`w-full rounded-lg border bg-surface py-2.5 pl-10 pr-10 text-sm text-fg placeholder-fg-muted outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary ${
-            error ? 'border-danger' : 'border-line'
+          className={`h-10 w-full rounded-lg border bg-surface py-0 pl-10 pr-10 text-sm text-fg placeholder-fg-subtle outline-none transition-all focus:ring-2 ${
+            error
+              ? 'border-danger focus:border-danger focus:ring-danger/20'
+              : 'border-line focus:border-primary focus:ring-primary/20'
           }`}
         />
         <button
           type="button"
           onClick={() => setShow((v) => !v)}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-fg-muted transition-colors hover:text-fg"
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           aria-label={show ? 'Hide password' : 'Show password'}
-          title={show ? 'Hide password' : 'Show password'}
         >
-          {show ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+          {show ? (
+            <EyeOff className="h-4 w-4" aria-hidden="true" />
+          ) : (
+            <Eye className="h-4 w-4" aria-hidden="true" />
+          )}
         </button>
       </div>
-      {error && <p className="mt-1.5 text-xs text-danger">{error}</p>}
+      {error && (
+        <p className="mt-1.5 text-xs text-danger" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   )
 }

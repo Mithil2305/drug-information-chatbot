@@ -5,7 +5,6 @@ import { toast } from 'sonner'
 import { AuthLayout } from '../components/auth/AuthLayout'
 import { AuthInput } from '../components/auth/AuthInput'
 import { PasswordInput } from '../components/auth/PasswordInput'
-import { AuthDivider } from '../components/auth/AuthDivider'
 import { useAuth } from '../hooks/useAuth'
 
 interface FormErrors {
@@ -44,7 +43,10 @@ export default function SignInPage() {
       toast.success('Signed in successfully')
       navigate('/')
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Authentication failed. Please verify your credentials.'
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Authentication failed. Please verify your credentials.'
       toast.error(message)
     } finally {
       setSubmitting(false)
@@ -53,14 +55,18 @@ export default function SignInPage() {
 
   return (
     <AuthLayout>
-      <div className="mx-auto w-full max-w-sm ">
-        <h1 className="mb-2 text-2xl font-semibold text-fg">Welcome back</h1>
-        <p className="mb-8 text-sm text-fg-muted">Sign in to continue using LabelProof.</p>
+      <div className="w-full">
+        <h1 className="mb-1.5 text-[26px] font-semibold tracking-tight text-fg">
+          Welcome back
+        </h1>
+        <p className="mb-8 text-sm text-fg-muted">
+          Sign in to continue using LabelProof.
+        </p>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <AuthInput
             id="signin-email"
-            label="Email"
+            label="Email address"
             type="email"
             placeholder="you@example.com"
             icon={Mail}
@@ -73,46 +79,46 @@ export default function SignInPage() {
             autoComplete="email"
           />
 
-          <PasswordInput
-            id="signin-password"
-            label="Password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value)
-              if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }))
-            }}
-            error={errors.password}
-            autoComplete="current-password"
-          />
-
-
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={() => toast.info('Password reset coming soon')}
-              className="text-xs font-medium text-fg-muted transition-colors hover:text-fg"
-            >
-              Forgot password?
-            </button>
+          <div>
+            <PasswordInput
+              id="signin-password"
+              label="Password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value)
+                if (errors.password)
+                  setErrors((prev) => ({ ...prev, password: undefined }))
+              }}
+              error={errors.password}
+              autoComplete="current-password"
+            />
+            <div className="mt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => toast.info('Password reset coming soon')}
+                className="text-xs text-fg-muted transition-colors hover:text-fg"
+              >
+                Forgot password?
+              </button>
+            </div>
           </div>
 
           <button
             type="submit"
             disabled={submitting}
-            className="mt-2 w-full rounded-lg bg-primary py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:opacity-60"
+            className="mt-1 h-10 w-full rounded-lg bg-primary text-sm font-medium text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
 
-        <div className="my-6">
-          <AuthDivider />
-        </div>
-
         <p className="mt-8 text-center text-sm text-fg-muted">
           Don&apos;t have an account?{' '}
-          <Link to="/signup" className="font-medium text-primary transition-colors hover:text-ai">
+          <Link
+            to="/signup"
+            className="font-medium text-primary transition-colors hover:text-primary-hover"
+          >
             Sign up
           </Link>
         </p>

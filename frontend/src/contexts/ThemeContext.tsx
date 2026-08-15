@@ -12,13 +12,36 @@ interface ThemeContextValue {
 
 export const ThemeContext = createContext<ThemeContextValue | null>(null)
 
+const STORAGE_KEY = 'labelproof_theme'
+
+function getInitialTheme(): ThemeMode {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY) as ThemeMode | null
+    if (stored === 'light' || stored === 'dark') return stored
+  } catch {
+    // localStorage unavailable
+  }
+  // Respect system preference on first visit
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light'
+  }
+  return 'dark'
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<ThemeMode>('dark')
+  const [theme, setTheme] = useState<ThemeMode>(getInitialTheme)
 
   useEffect(() => {
     const root = document.documentElement
     root.classList.remove('light', 'dark')
     root.classList.add(theme)
+    try {
+      localStorage.setItem(STORAGE_KEY, theme)
+    } catch {
+      // ignore
+    }
   }, [theme])
 
   const toggleTheme = () => {

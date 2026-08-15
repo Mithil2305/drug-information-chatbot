@@ -1,48 +1,59 @@
+import { useAuth } from '../../hooks/useAuth'
+import { Tooltip } from '../common/Tooltip'
 
 interface UserProfileProps {
   collapsed: boolean
 }
 
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((n) => n[0].toUpperCase())
+    .join('')
+}
+
 export function UserProfile({ collapsed }: UserProfileProps) {
+  const { user } = useAuth()
+
+  const displayName = user?.email
+    ? user.email.split('@')[0].replace(/[._-]/g, ' ')
+    : 'Mohanapriyan M'
+  const initials = getInitials(displayName)
+  const role = 'LabelProof User'
+
   if (collapsed) {
     return (
-      <div className="flex flex-col items-center gap-2 py-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white">
-          <span className="text-xs font-bold">MM</span>
-        </div>
-        {/* <button
+      <Tooltip content={displayName} side="right">
+        <button
           type="button"
-          onClick={() => alert('Settings coming soon')}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
-          aria-label="Settings"
-          title="Settings"
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white transition-opacity hover:opacity-80"
+          aria-label={`User: ${displayName}`}
         >
-          <Cog className="h-4 w-4" aria-hidden="true" />
-        </button> */}
-      </div>
+          <span className="text-xs font-semibold leading-none">{initials}</span>
+        </button>
+      </Tooltip>
     )
   }
 
   return (
-    <div className="flex items-center justify-between rounded-lg px-2 py-2 transition-colors hover:bg-surface-highlight">
-      <div className="flex min-w-0 items-center gap-2">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white">
-          <span className="text-xs font-bold">MM</span>
-        </div>
-        <div className="min-w-0">
-          <div className="truncate text-sm font-medium text-fg">Mohanapriyan M</div>
-          <div className="truncate text-xs text-fg-muted">LabelProof User</div>
-        </div>
+    <button
+      type="button"
+      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-surface-highlight"
+      aria-label="User profile"
+    >
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary">
+        <span className="text-xs font-semibold text-white leading-none">
+          {initials}
+        </span>
       </div>
-      {/* <button
-        type="button"
-        onClick={() => alert('Settings coming soon')}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-fg-muted transition-colors hover:text-fg"
-        aria-label="Settings"
-        title="Settings"
-      >
-        <Cog className="h-4 w-4" aria-hidden="true" />
-      </button> */}
-    </div>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-medium text-fg leading-tight">
+          {displayName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+        </div>
+        <div className="truncate text-xs text-fg-muted leading-tight">{role}</div>
+      </div>
+    </button>
   )
 }

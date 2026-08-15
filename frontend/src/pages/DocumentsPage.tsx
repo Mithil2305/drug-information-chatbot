@@ -23,25 +23,33 @@ export default function DocumentsPage() {
     <ChatLayout>
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-          <header className="mb-6">
-            <h1 className="text-2xl font-semibold text-fg">Manage Documents</h1>
-            <p className="mt-1 text-sm text-fg-muted">
-              Uploaded approved drug-label documents are used as knowledge sources for the chatbot. Manage your PDFs below.
+          {/* Page Header */}
+          <header className="mb-8">
+            <h1 className="text-2xl font-semibold tracking-tight text-fg">
+              Manage Documents
+            </h1>
+            <p className="mt-1.5 text-sm leading-relaxed text-fg-muted">
+              Uploaded approved drug-label documents are used as knowledge sources
+              for LabelProof. Only PDF files are supported.
             </p>
           </header>
 
-          <div className="mb-6">
+          {/* Upload Area */}
+          <section aria-label="Upload document" className="mb-8">
             <DocumentUpload />
-          </div>
+          </section>
 
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-fg-muted">
-              Documents
-            </h2>
-            <DocumentSearch />
-          </div>
+          {/* Documents Section */}
+          <section aria-label="Document library">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-[11px] font-semibold uppercase tracking-widest text-fg-subtle">
+                Documents
+              </h2>
+              <DocumentSearch />
+            </div>
 
-          <DocumentList onDelete={setPendingDelete} />
+            <DocumentList onDelete={setPendingDelete} />
+          </section>
         </div>
       </div>
 

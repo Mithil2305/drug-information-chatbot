@@ -1,42 +1,69 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Light Theme ─────────────────────────────────────────── */
 :root {
-  --color-background: #F8FAFC;
-  --color-surface: #FFFFFF;
+  color-scheme: light;
+
+  --color-background:        #F8FAFC;
+  --color-surface:           #FFFFFF;
   --color-surface-highlight: #F1F5F9;
-  --color-foreground: #0F172A;
-  --color-foreground-muted: #475569;
-  --color-border: #E2E8F0;
-  --color-primary: #0F766E;
-  --color-primary-hover: #115E59;
-  --color-ai: #06B6D4;
-  --color-success: #16A34A;
-  --color-warning: #D97706;
-  --color-danger: #DC2626;
-  --color-white: #FFFFFF;
+  --color-surface-raised:    #FFFFFF;
+
+  --color-foreground:        #172033;
+  --color-foreground-muted:  #64748B;
+  --color-foreground-subtle: #94A3B8;
+
+  --color-border:            #E2E8F0;
+  --color-border-strong:     #CBD5E1;
+
+  --color-primary:           #0F8F83;
+  --color-primary-hover:     #0B776D;
+  --color-primary-soft:      #DDF5F1;
+  --color-accent:            #16A394;
+
+  --color-ai:                #0F8F83;
+  --color-success:           #16A34A;
+  --color-warning:           #D97706;
+  --color-danger:            #DC2626;
+  --color-white:             #FFFFFF;
 }
 
+/* ─── Dark Theme ──────────────────────────────────────────── */
 .dark {
-  --color-background: #0B1120;
-  --color-surface: #111827;
-  --color-surface-highlight: #1F2937;
-  --color-foreground: #F1F5F9;
-  --color-foreground-muted: #CBD5E1;
-  --color-border: #263449;
-  --color-primary: #0F766E;
-  --color-primary-hover: #115E59;
-  --color-ai: #06B6D4;
-  --color-success: #16A34A;
-  --color-warning: #D97706;
-  --color-danger: #DC2626;
-  --color-white: #FFFFFF;
+  color-scheme: dark;
+
+  --color-background:        #0B1220;
+  --color-surface:           #101827;
+  --color-surface-highlight: #1A2535;
+  --color-surface-raised:    #1E2F44;
+
+  --color-foreground:        #E5E7EB;
+  --color-foreground-muted:  #9CA3AF;
+  --color-foreground-subtle: #6B7280;
+
+  --color-border:            #263448;
+  --color-border-strong:     #374B63;
+
+  --color-primary:           #0F8F83;
+  --color-primary-hover:     #0B776D;
+  --color-primary-soft:      #0D2926;
+  --color-accent:            #16A394;
+
+  --color-ai:                #2DD4BF;
+  --color-success:           #22C55E;
+  --color-warning:           #F59E0B;
+  --color-danger:            #F87171;
+  --color-white:             #FFFFFF;
 }
 
-* {
+/* ─── Base Reset ─────────────────────────────────────────── */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -44,11 +71,129 @@ html,
 body,
 #root {
   height: 100%;
+  margin: 0;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  margin: 0;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  font-feature-settings: 'cv11', 'ss01';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  line-height: 1.5;
+}
+
+/* ─── Theme Transition ───────────────────────────────────── */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
+
+/* Disable transitions on elements that should animate differently */
+button,
+a,
+[class*='transition'] {
+  transition-property: all;
+}
+
+/* ─── Focus Styles ───────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-border-strong);
+}
+
+/* ─── Selection ──────────────────────────────────────────── */
+::selection {
+  background-color: var(--color-primary-soft);
+  color: var(--color-foreground);
+}
+
+/* ─── Loading Dots Animation ─────────────────────────────── */
+@keyframes dot-bounce {
+  0%, 80%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  40% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+.dot-bounce {
+  animation: dot-bounce 1.4s ease-in-out infinite;
+}
+.dot-bounce:nth-child(2) { animation-delay: 0.16s; }
+.dot-bounce:nth-child(3) { animation-delay: 0.32s; }
+
+/* ─── Prose / Markdown ───────────────────────────────────── */
+.prose-chat p { margin-bottom: 0.5rem; }
+.prose-chat p:last-child { margin-bottom: 0; }
+.prose-chat ul { padding-left: 1.25rem; margin-bottom: 0.5rem; }
+.prose-chat ol { padding-left: 1.25rem; margin-bottom: 0.5rem; }
+.prose-chat li { margin-bottom: 0.25rem; }
+.prose-chat strong { font-weight: 600; }
+.prose-chat code {
+  background-color: var(--color-surface-highlight);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.875em;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas,
+    'Liberation Mono', Menlo, monospace;
+}
+.prose-chat pre {
+  background-color: var(--color-surface-highlight);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  margin-bottom: 0.75rem;
+}
+.prose-chat pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.8125em;
+}
+.prose-chat h1,
+.prose-chat h2,
+.prose-chat h3 {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  margin-top: 0.75rem;
+}
+.prose-chat blockquote {
+  border-left: 3px solid var(--color-border-strong);
+  padding-left: 0.75rem;
+  color: var(--color-foreground-muted);
+  margin-bottom: 0.5rem;
 }
