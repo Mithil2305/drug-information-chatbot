@@ -1,26 +1,15 @@
-import { useRef, useState, useEffect, useLayoutEffect, useCallback } from 'react'
-import { Plus, Send, Mic, FileText, X, Loader2, FolderOpen } from 'lucide-react'
+import { useRef, useState, useEffect, useLayoutEffect } from 'react'
+import { Plus, Send, Mic, Loader2, FolderOpen } from 'lucide-react'
 import { useChat } from '../../hooks/useChat'
 import { useDocuments } from '../../hooks/useDocuments'
 import { useSearchParams } from 'react-router-dom'
+import { useVoiceInput } from '../../hooks/useVoiceInput'
 import { DocumentSelectorModal } from './DocumentSelectorModal'
-
-declare global {
-  interface Window {
-    SpeechRecognition?: any
-    webkitSpeechRecognition?: any
-  }
-}
-
-interface SpeechRecognitionResult {
-  transcript: string
-  confidence: number
-}
+import { SelectedDocChips, AttachmentChips } from './PromptBarChips'
 
 export function PromptBar() {
   const [value, setValue] = useState('')
   const [attachments, setAttachments] = useState<string[]>([])
-  const [listening, setListening] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [docModalOpen, setDocModalOpen] = useState(false)
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([])
@@ -28,9 +17,16 @@ export function PromptBar() {
   const measureRef = useRef<HTMLSpanElement>(null)
   const controlsRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const valueRef = useRef('')
   const { sendMessage, isLoading } = useChat()
   const { documents } = useDocuments()
   const [searchParams] = useSearchParams()
+
+  const { listening, toggleListening } = useVoiceInput({
+    valueRef,
+    onTranscript: setValue,
+    textareaRef,
+  })
 
   const readyDocs = documents.filter((d) => d.status === 'ready')
   const selectedDocs = readyDocs.filter((d) => selectedDocIds.includes(d.id))
@@ -97,140 +93,18 @@ export function PromptBar() {
     setAttachments((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const recognitionRef = useRef<any>(null)
-  const finalTranscriptRef = useRef('')
-  const shouldListenRef = useRef(false)
-  const valueRef = useRef('')
-
   useEffect(() => {
     valueRef.current = value
   }, [value])
 
-  const stopListening = useCallback(() => {
-    shouldListenRef.current = false
-    setListening(false)
-    if (recognitionRef.current) {
-      recognitionRef.current.stop()
-      recognitionRef.current = null
-    }
-    finalTranscriptRef.current = ''
-    textareaRef.current?.focus()
-  }, [])
-
-  const startListening = useCallback(() => {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SpeechRecognition) {
-      console.warn('Speech recognition is not supported in this browser')
-      return
-    }
-
-    const recognition = new SpeechRecognition()
-    recognition.continuous = true
-    recognition.interimResults = true
-    recognition.lang = 'en-US'
-
-    finalTranscriptRef.current = valueRef.current ? valueRef.current + ' ' : ''
-    shouldListenRef.current = true
-
-    recognition.onresult = (event: any) => {
-      let interim = ''
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result: SpeechRecognitionResult = event.results[i][0]
-        if (event.results[i].isFinal) {
-          finalTranscriptRef.current += result.transcript + ' '
-        } else {
-          interim += result.transcript
-        }
-      }
-      setValue(finalTranscriptRef.current + interim)
-    }
-
-    recognition.onerror = (event: any) => {
-      if (event.error === 'no-speech' || event.error === 'aborted') return
-      console.error('Speech recognition error:', event.error)
-      shouldListenRef.current = false
-      setListening(false)
-      recognitionRef.current = null
-    }
-
-    recognition.onend = () => {
-      if (shouldListenRef.current && recognitionRef.current === recognition) {
-        try {
-          recognition.start()
-        } catch {
-          shouldListenRef.current = false
-          setListening(false)
-          recognitionRef.current = null
-        }
-      } else if (recognitionRef.current === recognition) {
-        setListening(false)
-        recognitionRef.current = null
-      }
-    }
-
-    recognitionRef.current = recognition
-    setListening(true)
-    recognition.start()
-  }, [])
-
-  const toggleListening = () => {
-    if (listening) {
-      stopListening()
-    } else {
-      startListening()
-    }
-  }
-
-  useEffect(() => {
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop()
-      }
-    }
-  }, [])
-
   return (
     <div className="w-full">
-      {/* selected document chips — shown above the composer */}
-      {selectedDocIds.length > 0 && (
-        <div className="mb-1.5 flex flex-wrap gap-1.5 px-0.5">
-          {allSelected ? (
-            <span className="flex h-7 items-center gap-1.5 rounded-lg bg-primary/10 py-1 pr-1 pl-2 text-[11.5px] font-medium text-primary animate-fade-in">
-              <FileText className="h-3 w-3 shrink-0" />
-              <span>All documents</span>
-              <button
-                type="button"
-                aria-label="Clear selection"
-                onClick={() => setSelectedDocIds([])}
-                className="flex h-4 w-4 items-center justify-center rounded text-primary/60 transition-colors hover:bg-primary/20 hover:text-primary"
-              >
-                <X className="h-2.5 w-2.5" />
-              </button>
-            </span>
-          ) : (
-            selectedDocs.map((doc) => (
-              <span
-                key={doc.id}
-                className="flex h-7 items-center gap-1.5 rounded-lg bg-surface-highlight py-1 pr-1 pl-2 text-[11.5px] text-fg-muted animate-fade-in"
-              >
-                <FileText className="h-3 w-3 shrink-0 text-accent" />
-                <span className="max-w-36 truncate">{doc.name}</span>
-                <button
-                  type="button"
-                  aria-label={`Remove ${doc.name}`}
-                  onClick={() =>
-                    setSelectedDocIds((prev) => prev.filter((id) => id !== doc.id))
-                  }
-                  className="flex h-4 w-4 items-center justify-center rounded text-fg-muted transition-colors hover:bg-border hover:text-fg"
-                >
-                  <X className="h-2.5 w-2.5" />
-                </button>
-              </span>
-            ))
-          )}
-        </div>
-      )}
+      <SelectedDocChips
+        selectedDocs={selectedDocs}
+        allSelected={allSelected}
+        onClearAll={() => setSelectedDocIds([])}
+        onRemoveDoc={(id) => setSelectedDocIds((prev) => prev.filter((d) => d !== id))}
+      />
 
       <div
         className={`relative isolate flex flex-col gap-1.5 overflow-hidden border border-border bg-surface p-2 shadow-card transition-all duration-150 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10 ${
@@ -256,28 +130,7 @@ export function PromptBar() {
           accept=".pdf,.docx,.doc"
         />
 
-        {/* attachment chips */}
-        {attachments.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 pt-0.5 px-0.5">
-            {attachments.map((file, i) => (
-              <span
-                key={`${file}-${i}`}
-                className="flex h-7 items-center gap-1.5 rounded-lg bg-surface-highlight py-1 pr-1 pl-2 text-[11.5px] text-fg-muted animate-fade-in"
-              >
-                <FileText className="h-3 w-3 shrink-0 text-accent" />
-                <span className="max-w-36 truncate">{file}</span>
-                <button
-                  type="button"
-                  aria-label={`Remove ${file}`}
-                  onClick={() => removeAttachment(i)}
-                  className="flex h-4 w-4 items-center justify-center rounded text-fg-muted transition-colors hover:bg-border hover:text-fg"
-                >
-                  <X className="h-2.5 w-2.5" />
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
+        <AttachmentChips attachments={attachments} onRemove={removeAttachment} />
 
         {/* controls row */}
         <div
