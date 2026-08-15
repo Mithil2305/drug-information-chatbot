@@ -1,5 +1,5 @@
-import { FileText, Plus, BookOpen } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { FileText, Plus, GitCompareArrows } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
 import { useChat } from '../../hooks/useChat'
 import { useConversations } from '../../hooks/useConversations'
 import { useDocuments } from '../../hooks/useDocuments'
@@ -7,6 +7,8 @@ import { useUI } from '../../hooks/useUI'
 import { RecentChats } from './RecentChats'
 import { SidebarHeader } from './SidebarHeader'
 import { UserProfile } from './UserProfile'
+import ThemeToggle from '../common/ThemeToggle'
+import { ThemeToggle as ThemeToggleLong } from './ThemeToggle'
 
 interface SidebarProps {
   onClose?: () => void
@@ -17,8 +19,10 @@ export function Sidebar({ onClose }: SidebarProps) {
   const { clearChat } = useChat()
   const { newConversation } = useConversations()
   const { documents } = useDocuments()
+  const location = useLocation()
   const readyDocs = documents.filter((d) => d.status === 'ready')
   const collapsed = sidebarCollapsed
+  const isCompareActive = location.pathname === '/compare'
 
   const handleNewChat = () => {
     clearChat()
@@ -40,15 +44,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           >
             <Plus className="h-5 w-5" />
           </button>
-          <Link
-            to="/drugs"
-            onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-2xl text-fg-muted transition-colors hover:bg-surface-highlight hover:text-primary"
-            aria-label="Drug Library"
-            title="Drug Library"
-          >
-            <BookOpen className="h-5 w-5" />
-          </Link>
+        
           <Link
             to="/documents"
             onClick={onClose}
@@ -58,8 +54,19 @@ export function Sidebar({ onClose }: SidebarProps) {
           >
             <FileText className="h-5 w-5" />
           </Link>
+
+          <Link
+            to="/compare"
+            onClick={onClose}
+            className={`flex h-9 w-9 items-center justify-center rounded-2xl transition-colors hover:bg-surface-highlight ${isCompareActive ? 'bg-surface-highlight text-primary' : 'text-fg-muted hover:text-primary'}`}
+            aria-label="Compare drugs"
+            title="Compare Drugs"
+          >
+            <GitCompareArrows className="h-5 w-5" />
+          </Link>
         </div>
         <div className="mt-4 flex-1" />
+        <ThemeToggle size="sm" />
         <UserProfile collapsed />
       </aside>
     )
@@ -80,23 +87,9 @@ export function Sidebar({ onClose }: SidebarProps) {
         </button>
 
         <Link
-          to="/drugs"
-          onClick={onClose}
-          className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-xs font-semibold text-fg hover:bg-surface-highlight transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4 shrink-0 text-accent" />
-            <span>Drug Library</span>
-          </div>
-          <span className="rounded-pill bg-surface-highlight px-2 py-0.5 text-[10px] font-bold text-fg-muted">
-            {readyDocs.length}
-          </span>
-        </Link>
-
-        <Link
           to="/documents"
           onClick={onClose}
-          className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-xs font-semibold text-fg hover:bg-surface-highlight transition-colors"
+          className={`flex w-full items-center justify-between rounded-2xl px-3 py-2 text-xs font-semibold transition-colors ${location.pathname === '/documents' ? 'bg-surface-highlight text-primary' : 'text-fg hover:bg-surface-highlight'}`}
         >
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 shrink-0 text-accent" />
@@ -106,6 +99,15 @@ export function Sidebar({ onClose }: SidebarProps) {
             PDFs
           </span>
         </Link>
+
+        <Link
+          to="/compare"
+          onClick={onClose}
+          className={`flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors ${isCompareActive ? 'bg-surface-highlight text-primary' : 'text-fg hover:bg-surface-highlight'}`}
+        >
+          <GitCompareArrows className="h-4 w-4 shrink-0 text-accent" />
+          <span>Compare Drugs</span>
+        </Link>
       </div>
 
       <div className="mt-3 flex-1 overflow-y-auto px-2">
@@ -114,6 +116,8 @@ export function Sidebar({ onClose }: SidebarProps) {
         </div>
         <RecentChats collapsed={false} />
       </div>
+
+      <ThemeToggleLong />
 
       <div className="border-t border-border p-2">
         <UserProfile collapsed={false} />

@@ -5,7 +5,6 @@ import {
   BookOpen,
   X,
   ExternalLink,
-  Layers,
 } from 'lucide-react'
 import { useChat } from '../../hooks/useChat'
 import { EvidenceCard } from './EvidenceCard'
@@ -96,14 +95,6 @@ export function EvidencePanel({ onClose, isMobileDrawer = false }: EvidencePanel
         )}
       </div>
 
-      {/* Footer Info */}
-      <div className="border-t border-border bg-background p-3 text-[11px] text-fg-muted flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          <Layers className="h-3 w-3 text-accent" />
-          <span>Vector Similarity Grounding</span>
-        </div>
-        <span className="font-mono text-[10px]">RAG Engine v1.0</span>
-      </div>
 
       {/* Inspection Modal */}
       {inspectModalCitation && (

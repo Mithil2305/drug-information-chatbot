@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
-import { Send, Sparkles, FileText, Loader2 } from 'lucide-react'
+import { Send, FileText, Loader2, Paperclip } from 'lucide-react'
 import { useChat } from '../../hooks/useChat'
 import { useDocuments } from '../../hooks/useDocuments'
 import { useSearchParams } from 'react-router-dom'
@@ -72,7 +72,7 @@ export function PromptBar() {
       >
         {/* Left icon */}
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-surface-highlight text-accent">
-          <Sparkles className="h-4 w-4" />
+          <Paperclip className="h-4 w-4 attach-documents" />
         </div>
 
         {/* Textarea */}

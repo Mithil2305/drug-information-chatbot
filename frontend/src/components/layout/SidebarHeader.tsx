@@ -45,6 +45,7 @@ export function SidebarHeader({ onClose, collapsed }: SidebarHeaderProps) {
 
       {/* Actions */}
       <div className="flex items-center gap-0.5">
+
         <button
           type="button"
           onClick={toggleSearch}

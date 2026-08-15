@@ -9,8 +9,8 @@ import { UIProvider } from './contexts/UIContext'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import HomePage from './pages/HomePage'
 import ChatPage from './pages/ChatPage'
-import DrugLibraryPage from './pages/DrugLibraryPage'
 import DocumentsPage from './pages/DocumentsPage'
+import ComparePage from './pages/ComparePage'
 import SignInPage from './pages/SignInPage'
 import SignUpPage from './pages/SignUpPage'
 import { useTheme } from './hooks/useTheme'
@@ -47,14 +47,11 @@ function App() {
                 <ChatProvider>
                   <Routes>
                     {/* Public Landing Page */}
-                    <Route path="/" element={<HomePage />} />
-
-                    {/* Drug Library Reference */}
-                    <Route path="/drugs" element={<DrugLibraryPage />} />
+                    {/* <Route path="/home" element={<HomePage />} /> */}
 
                     {/* Protected AI Chat Assistant */}
                     <Route
-                      path="/chat"
+                      path="/"
                       element={
                         <ProtectedRoute>
                           <ChatPage />
@@ -62,7 +59,7 @@ function App() {
                       }
                     />
                     <Route
-                      path="/chat/:conversationId?"
+                      path="/:conversationId?"
                       element={
                         <ProtectedRoute>
                           <ChatPage />
@@ -76,6 +73,16 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <DocumentsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    {/* Protected Drug Comparison */}
+                    <Route
+                      path="/compare"
+                      element={
+                        <ProtectedRoute>
+                          <ComparePage />
                         </ProtectedRoute>
                       }
                     />

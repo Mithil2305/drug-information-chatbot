@@ -1,16 +1,12 @@
 import { useEffect, useRef } from 'react'
-import { ShieldCheck, Pill, AlertTriangle, Clock, Layers, Sparkles } from 'lucide-react'
+import { ShieldCheck, Pill, AlertTriangle, Clock, Layers } from 'lucide-react'
 import { useChat } from '../../hooks/useChat'
-import { useDocuments } from '../../hooks/useDocuments'
 import { ChatMessage } from './ChatMessage'
 import { LoadingState } from './LoadingState'
 
 export function ChatWindow() {
   const { messages, isLoading, sendMessage } = useChat()
-  const { documents } = useDocuments()
   const bottomRef = useRef<HTMLDivElement>(null)
-
-  const readyDocs = documents.filter((d) => d.status === 'ready')
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -56,17 +52,6 @@ export function ChatWindow() {
             LabelProof AI Assistant
           </h1>
 
-          <p className="mt-3 max-w-sm text-sm leading-relaxed text-fg-secondary">
-            Evidence-grounded pharmaceutical information. Ask questions about approved drug labels and receive answers backed by page-level citations.
-          </p>
-
-          {/* Status badge */}
-          <div className="mt-5 inline-flex items-center gap-2 rounded-pill border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-fg shadow-subtle">
-            <Sparkles className="h-3.5 w-3.5 text-accent" />
-            <span>
-              {readyDocs.length} Active Prescribing Document{readyDocs.length === 1 ? '' : 's'} Loaded
-            </span>
-          </div>
 
           {/* Suggestion chips */}
           <div className="mt-10 grid grid-cols-1 gap-2.5 sm:grid-cols-2 max-w-lg w-full">

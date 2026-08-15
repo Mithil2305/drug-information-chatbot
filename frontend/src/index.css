@@ -306,3 +306,17 @@ input[type='file']::file-selector-button:hover {
 .prose-chat li { margin-bottom: 0.25rem; line-height: 1.6; }
 .prose-chat strong { font-weight: 700; color: var(--color-primary); }
 .prose-chat code { font-size: 0.8em; background: var(--color-surface-highlight); padding: 0.1em 0.35em; border-radius: 4px; }
+
+/* ============================================================
+   SKELETON LOADING
+   ============================================================ */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-highlight) 25%,
+    color-mix(in srgb, var(--color-surface-highlight) 60%, var(--color-surface) 40%) 50%,
+    var(--color-surface-highlight) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
