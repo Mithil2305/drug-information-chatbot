@@ -11,9 +11,11 @@ from app.models.citation import Citation as CitationModel
 from app.models.document import Document
 from app.schemas.chat import ChatRequest, ChatResponse, SessionResponse, MessageResponse
 from app.schemas.evidence import Citation
+from app.services.chat.rag_service import RAGService
 from app.dependencies.embeddings import get_embedding_model
 from app.dependencies.qdrant import get_qdrant_client
-from app.dependencies.llm import get_llm_client
+
+rag_service = RAGService()
 from app.dependencies.auth import get_current_user
 from app.models.user import User
 
@@ -86,8 +88,7 @@ async def post_chat_message(
     request: ChatRequest,
     db: AsyncSession = Depends(get_db_session),
     embedding_model: Any = Depends(get_embedding_model),
-    qdrant_client: Any = Depends(get_qdrant_client),
-    llm_client: Any = Depends(get_llm_client)
+    qdrant_client: Any = Depends(get_qdrant_client)
 ):
 
     # ---------------------------------------------------------
@@ -257,54 +258,28 @@ session_id=str(session_id),
     # 5. Call LLM
     # ---------------------------------------------------------
 
-    try:
-
-        llm_response = llm_client(
-            prompt,
-            max_tokens=512
-        )
-
-        if isinstance(llm_response, dict):
-
-            answer_text = (
-                llm_response["choices"][0]["text"]
-                .strip()
-            )
-
-        else:
-
-            answer_text = str(
-                llm_response
-            ).strip()
-
-    except Exception as e:
-
-        logger.error(
-            f"LLM call failed: {e}"
-        )
-
-        answer_text = (
-            "[Error calling generation engine. "
-            "Try again later.]"
-        )
+    rag_result = await rag_service.answer_with_evidence(
+        request.message,
+        evidence_chunks,
+    )
+    answer_text = rag_result["answer"]
+    grounded = rag_result["grounded"]
+    evidence_count = rag_result["sources_used"]
 
     # ---------------------------------------------------------
     # 6. Build citations
     # ---------------------------------------------------------
 
-    citations = []
-
-    for chunk in evidence_chunks:
-
-        citations.append(
-            Citation(
-                document_id=chunk["document_id"],
-                document_name=chunk["document_name"],
-                page=chunk["page_no"],
-                section=chunk["section"],
-                chunk_id=chunk["chunk_id"]
-            )
+    citations = [
+        Citation(
+            document_id=c["document_id"],
+            document_name=c.get("document_name"),
+            page=c.get("page_no"),
+            section=c.get("section_title"),
+            chunk_id=c["chunk_id"],
         )
+        for c in rag_result["citations"]
+    ]
 
     # ---------------------------------------------------------
     # 7. Save user message
@@ -361,8 +336,8 @@ session_id=str(session_id),
         message_id=str(assistant_msg.message_id),
         session_id=str(session_id),
         answer=answer_text,
-        grounded=True,
-        evidence_count=len(evidence_chunks),
+        grounded=grounded,
+        evidence_count=evidence_count,
         citations=citations
     )
 
