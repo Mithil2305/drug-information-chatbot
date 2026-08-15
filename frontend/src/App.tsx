@@ -12,6 +12,37 @@ import DocumentsPage from './pages/DocumentsPage'
 import SignInPage from './pages/SignInPage'
 import SignUpPage from './pages/SignUpPage'
 
+import { useTheme } from './hooks/useTheme'
+
+function ThemedToaster() {
+  const { theme } = useTheme()
+  return (
+    <Toaster
+      position="bottom-right"
+      theme={theme}
+      toastOptions={{
+        style: theme === 'dark' ? {
+          background: '#171A21',
+          border: '1px solid #292E38',
+          color: '#F1F3F7',
+          borderRadius: '6px',
+          fontSize: '12px',
+          fontFamily: 'Inter, sans-serif',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)',
+        } : {
+          background: '#FFFFFF',
+          border: '1px solid #D8E2EE',
+          color: '#0F172A',
+          borderRadius: '6px',
+          fontSize: '12px',
+          fontFamily: 'Inter, sans-serif',
+          boxShadow: '0 4px 16px rgba(15, 23, 42, 0.08)',
+        },
+      }}
+    />
+  )
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -52,26 +83,7 @@ function App() {
                     <Route path="/register" element={<SignUpPage />} />
                     <Route path="*" element={<SignInPage />} />
                   </Routes>
-                  <Toaster
-                    position="bottom-right"
-                    theme="dark"
-                    toastOptions={{
-                      style: {
-                        background: '#171A21',
-                        border: '1px solid #292E38',
-                        color: '#F1F3F7',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontFamily: 'IBM Plex Sans, sans-serif',
-                        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)',
-                      },
-                    }}
-                  />
-
-
-
-
-
+                  <ThemedToaster />
                 </ChatProvider>
               </DocumentProvider>
             </ConversationProvider>
@@ -81,6 +93,7 @@ function App() {
     </BrowserRouter>
   )
 }
+
 
 export default App
 

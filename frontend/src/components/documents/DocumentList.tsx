@@ -32,12 +32,12 @@ function DocumentTableRow({
   }
 
   return (
-    <tr className="group border-b border-border/60 hover:bg-surface-raised/50 transition-colors">
+    <tr className="group transition-colors hover:bg-[#E5F7FA] dark:hover:bg-surface-raised/50 text-xs">
       {/* Document Name Column */}
-      <td className="py-3 px-4 text-xs">
+      <td className="py-3 px-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[6px] bg-[#22D3E8]/15 text-[#22D3E8] border border-[#22D3E8]/30 shadow-sm">
-            <FileText className="h-3.5 w-3.5 text-[#22D3E8]" aria-hidden="true" />
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[6px] bg-[var(--bg-icon-container)] text-accent border border-[var(--border-icon-container)] shadow-sm">
+            <FileText className="h-3.5 w-3.5 text-[#20C7DC] dark:text-[#22D3E8]" aria-hidden="true" />
           </div>
 
           <div className="min-w-0 flex-1">
@@ -209,7 +209,7 @@ export function DocumentList({ onDelete }: DocumentListProps) {
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-border bg-surface-raised/40 text-[10px] font-mono tracking-[0.1em] uppercase text-text-tertiary font-semibold">
+            <tr className="border-b border-border bg-surface-alt text-[10px] font-mono tracking-[0.1em] uppercase text-text-tertiary font-semibold">
               <th className="py-2.5 px-4 font-semibold">DOCUMENT NAME</th>
               <th className="py-2.5 px-4 font-semibold hidden sm:table-cell">DATE UPLOADED</th>
               <th className="py-2.5 px-4 font-semibold">STATUS</th>

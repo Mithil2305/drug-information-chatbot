@@ -21,7 +21,7 @@ function UserMessage({ content }: { content: string }) {
       <span className="text-[10px] font-mono tracking-[0.14em] uppercase text-text-muted mb-1 mr-1 font-bold">
         YOU
       </span>
-      <div className="max-w-[85%] sm:max-w-xl rounded-[8px] bg-surface-raised border border-border px-4 py-2.5 text-[13.5px] leading-relaxed text-text-primary shadow-sm font-sans">
+      <div className="max-w-[85%] sm:max-w-xl rounded-[8px] bg-[var(--bg-user-bubble)] border border-[var(--border-user-bubble)] px-4 py-2.5 text-[13.5px] leading-relaxed text-text-primary shadow-sm font-sans">
         {content}
       </div>
     </div>
@@ -82,28 +82,28 @@ function AssistantMessage({ message, isLast }: { message: ChatMessageType; isLas
   return (
     <>
       {/* Clinical Evidence Report Layout */}
-      <div className="my-5 relative pl-4 border-l-2 border-[#22D3E8] py-1">
+      <div className="my-5 relative pl-4 border-l-2 border-[#20C7DC] dark:border-[#22D3E8] py-1">
         <div className="min-w-0 flex-1">
           {/* AI Response Identity Header */}
           <div className="mb-3 flex items-center justify-between border-b border-border pb-2">
             <div className="flex items-center gap-2">
-              <div className="flex h-5 w-5 items-center justify-center rounded-[5px] bg-[#22D3E8]/15 text-[#22D3E8] border border-[#22D3E8]/30 shadow-sm">
-                <Sparkles className="h-3 w-3 text-[#22D3E8]" aria-hidden="true" />
+              <div className="flex h-5 w-5 items-center justify-center rounded-[5px] bg-[var(--bg-icon-container)] text-accent border border-[var(--border-icon-container)] shadow-sm">
+                <Sparkles className="h-3 w-3 text-[#20C7DC] dark:text-[#22D3E8]" aria-hidden="true" />
               </div>
 
               <span className="font-sans text-xs font-bold tracking-wider uppercase text-text-primary">
                 LABELPROOF AI
               </span>
               <span className="text-[11px] text-text-tertiary font-mono">·</span>
-              <span className="text-[11px] text-[#22D3E8] font-semibold">
+              <span className="text-[11px] text-[#0891B2] dark:text-[#22D3E8] font-semibold">
                 Evidence-backed response
               </span>
             </div>
 
             <div className="flex items-center gap-2">
               {message.status === 'grounded' || !message.status ? (
-                <span className="inline-flex items-center gap-1 rounded-[5px] bg-[#22D3E8]/15 px-2 py-0.5 font-mono text-[10px] font-bold text-[#22D3E8] border border-[#22D3E8]/30">
-                  <ShieldCheck className="h-3 w-3 text-[#22D3E8]" />
+                <span className="inline-flex items-center gap-1 rounded-[5px] bg-[var(--bg-badge-evidence)] px-2 py-0.5 font-mono text-[10px] font-bold text-[#0891B2] dark:text-[#22D3E8] border border-[var(--border-badge-evidence)]">
+                  <ShieldCheck className="h-3 w-3 text-[#20C7DC] dark:text-[#22D3E8]" />
                   Evidence-backed
                 </span>
               ) : message.status === 'insufficient_evidence' ? (

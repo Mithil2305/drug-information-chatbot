@@ -1,5 +1,6 @@
-import { LogOut } from 'lucide-react'
+import { LogOut, Moon, Sun } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
+import { useTheme } from '../../hooks/useTheme'
 
 interface UserProfileProps {
   collapsed: boolean
@@ -7,6 +8,7 @@ interface UserProfileProps {
 
 export function UserProfile({ collapsed }: UserProfileProps) {
   const { user, logout } = useAuth()
+  const { theme, toggleTheme } = useTheme()
 
   const displayName = user?.email 
     ? user.email.split('@')[0].replace('.', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
@@ -24,6 +26,19 @@ export function UserProfile({ collapsed }: UserProfileProps) {
         >
           {initials}
         </div>
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="flex h-7 w-7 items-center justify-center rounded-[6px] text-text-muted transition-colors hover:bg-surface-raised hover:text-text-primary cursor-pointer"
+          aria-label={theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode'}
+          title={theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode'}
+        >
+          {theme === 'dark' ? (
+            <Sun className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
+          ) : (
+            <Moon className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
+          )}
+        </button>
         <button
           type="button"
           onClick={logout}
@@ -48,7 +63,7 @@ export function UserProfile({ collapsed }: UserProfileProps) {
       {/* Account Info & Logout */}
       <div className="flex items-center justify-between gap-2 px-1 pt-1">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#22D3E8]/15 text-[#22D3E8] font-mono text-[10px] font-bold border border-[#22D3E8]/30">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--bg-icon-container)] text-accent font-mono text-[10px] font-bold border border-[var(--border-icon-container)]">
             {initials}
           </div>
           <div className="min-w-0">
@@ -61,16 +76,30 @@ export function UserProfile({ collapsed }: UserProfileProps) {
           </div>
         </div>
 
-
-        <button
-          type="button"
-          onClick={logout}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[6px] text-text-muted transition-colors hover:bg-surface-raised hover:text-danger cursor-pointer"
-          aria-label="Sign out"
-          title="Sign out"
-        >
-          <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
-        </button>
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex h-7 w-7 items-center justify-center rounded-[6px] text-text-muted transition-colors hover:bg-surface-raised hover:text-text-primary cursor-pointer"
+            aria-label={theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode'}
+            title={theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode'}
+          >
+            {theme === 'dark' ? (
+              <Sun className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
+            ) : (
+              <Moon className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={logout}
+            className="flex h-7 w-7 items-center justify-center rounded-[6px] text-text-muted transition-colors hover:bg-surface-raised hover:text-danger cursor-pointer"
+            aria-label="Sign out"
+            title="Sign out"
+          >
+            <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </div>
   )

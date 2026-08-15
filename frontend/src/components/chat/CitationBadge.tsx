@@ -21,7 +21,7 @@ export function CitationBadge({ citation, onClick }: CitationBadgeProps) {
         onMouseLeave={() => setShowTooltip(false)}
         onFocus={() => setShowTooltip(true)}
         onBlur={() => setShowTooltip(false)}
-        className="group inline-flex items-center gap-2.5 rounded-[6px] bg-surface-raised px-3 py-1.5 text-xs text-text-primary transition-all hover:border-[#22D3E8]/50 hover:bg-surface border border-border shadow-sm cursor-pointer"
+        className="group inline-flex items-center gap-2.5 rounded-[6px] bg-[var(--bg-citation)] px-3 py-1.5 text-xs text-text-primary transition-all hover:border-[#22D3E8]/50 hover:bg-surface border border-[var(--border-citation)] shadow-sm cursor-pointer"
         aria-label={`Citation reference: ${citation.documentName}, ${sectionLabel}${pageLabel}`}
       >
         <span className="text-[#22D3E8] text-xs">▣</span>

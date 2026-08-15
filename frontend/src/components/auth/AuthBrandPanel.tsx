@@ -15,11 +15,11 @@ export function AuthBrandPanel() {
           <rect width="100%" height="100%" fill="url(#evidence-field-grid)" />
           
           {/* Layered Document Wireframes */}
-          <rect x="80" y="120" width="160" height="220" rx="6" fill="#141A2A" fillOpacity="0.9" stroke="rgba(255, 255, 255, 0.08)" strokeWidth="1" />
-          <line x1="100" y1="150" x2="180" y2="150" stroke="#565F74" strokeWidth="1.5" strokeDasharray="4 2" />
-          <line x1="100" y1="170" x2="210" y2="170" stroke="#565F74" strokeWidth="1.5" />
-          <line x1="100" y1="190" x2="190" y2="190" stroke="#565F74" strokeWidth="1.5" />
-          <line x1="100" y1="210" x2="220" y2="210" stroke="#565F74" strokeWidth="1.5" />
+          <rect x="80" y="120" width="160" height="220" rx="6" fill="var(--bg-surface)" stroke="var(--border-hairline)" strokeWidth="1" />
+          <line x1="100" y1="150" x2="180" y2="150" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeDasharray="4 2" />
+          <line x1="100" y1="170" x2="210" y2="170" stroke="var(--text-tertiary)" strokeWidth="1.5" />
+          <line x1="100" y1="190" x2="190" y2="190" stroke="var(--text-tertiary)" strokeWidth="1.5" />
+          <line x1="100" y1="210" x2="220" y2="210" stroke="var(--text-tertiary)" strokeWidth="1.5" />
           
           {/* Connecting Evidence Paths */}
           <path d="M 240 230 C 340 230, 360 160, 460 160" fill="none" stroke="#22D3E8" strokeWidth="1.5" />

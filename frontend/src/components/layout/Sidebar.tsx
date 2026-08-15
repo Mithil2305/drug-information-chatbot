@@ -75,12 +75,12 @@ export function Sidebar({ onClose }: SidebarProps) {
                 sidebarCollapsed ? 'justify-center p-2 rounded-[6px]' : 'gap-2.5 px-3 py-1.5 rounded-[6px]'
               } ${
                 isChatPage
-                  ? 'bg-[#22D3E8]/15 border border-[#22D3E8]/35 text-[#22D3E8] font-bold shadow-sm'
-                  : 'text-[#8B93A8] hover:bg-[#1E273E] hover:text-[#F1F3F8] border border-transparent'
+                  ? 'bg-[#D5F4FA] dark:bg-[#22D3E8]/15 border border-[#20C7DC]/50 text-[#0891B2] dark:text-[#22D3E8] font-bold shadow-sm'
+                  : 'text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-text border border-transparent'
               }`}
               title="Intelligence"
             >
-              <MessageSquare className={`h-3.5 w-3.5 ${isChatPage ? 'text-[#22D3E8]' : 'text-[#8B93A8]'}`} aria-hidden="true" />
+              <MessageSquare className={`h-3.5 w-3.5 ${isChatPage ? 'text-[#0891B2] dark:text-[#22D3E8]' : 'text-sidebar-muted'}`} aria-hidden="true" />
               {!sidebarCollapsed && <span className="text-xs font-sans">Intelligence</span>}
             </button>
 
@@ -91,12 +91,12 @@ export function Sidebar({ onClose }: SidebarProps) {
                 sidebarCollapsed ? 'justify-center p-2 rounded-[6px]' : 'gap-2.5 px-3 py-1.5 rounded-[6px]'
               } ${
                 isDocumentsPage
-                  ? 'bg-[#22D3E8]/15 border border-[#22D3E8]/35 text-[#22D3E8] font-bold shadow-sm'
-                  : 'text-[#8B93A8] hover:bg-[#1E273E] hover:text-[#F1F3F8] border border-transparent'
+                  ? 'bg-[#D5F4FA] dark:bg-[#22D3E8]/15 border border-[#20C7DC]/50 text-[#0891B2] dark:text-[#22D3E8] font-bold shadow-sm'
+                  : 'text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-text border border-transparent'
               }`}
               title="Manage Documents"
             >
-              <FileText className={`h-3.5 w-3.5 ${isDocumentsPage ? 'text-[#22D3E8]' : 'text-[#8B93A8]'}`} aria-hidden="true" />
+              <FileText className={`h-3.5 w-3.5 ${isDocumentsPage ? 'text-[#0891B2] dark:text-[#22D3E8]' : 'text-sidebar-muted'}`} aria-hidden="true" />
               {!sidebarCollapsed && <span className="text-xs font-sans">Manage Documents</span>}
             </Link>
           </nav>

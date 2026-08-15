@@ -18,7 +18,7 @@ export function PasswordInput({ label, error, ...props }: PasswordInputProps) {
       )}
       <div className="relative flex items-center">
         <Lock
-          className="pointer-events-none absolute left-3 h-4 w-4 text-[#8B93A8]"
+          className="pointer-events-none absolute left-3 h-4 w-4 text-text-tertiary"
           aria-hidden="true"
         />
         <input
