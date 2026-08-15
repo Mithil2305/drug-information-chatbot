@@ -1,66 +1,39 @@
-import { useState } from 'react'
+import { FileText, CheckCircle2 } from 'lucide-react'
 import type { Citation } from '../../types/chat'
-
+import { useChat } from '../../hooks/useChat'
 
 interface CitationBadgeProps {
   citation: Citation
   onClick?: () => void
 }
 
-export function CitationBadge({ citation, onClick }: CitationBadgeProps) {
-  const [showTooltip, setShowTooltip] = useState(false)
-  const pageLabel = `PAGE ${citation.page || '1'}`
-  const sectionLabel = citation.section ? `§${citation.section} · ` : ''
+export function CitationBadge({ citation }: CitationBadgeProps) {
+  const { setSelectedCitation, selectedCitation } = useChat()
+  const isSelected = selectedCitation?.citationId === citation.citationId
 
   return (
-    <div className="relative inline-block">
-      <button
-        type="button"
-        onClick={onClick}
-        onMouseEnter={() => setShowTooltip(true)}
-        onMouseLeave={() => setShowTooltip(false)}
-        onFocus={() => setShowTooltip(true)}
-        onBlur={() => setShowTooltip(false)}
-        className="group inline-flex items-center gap-2.5 rounded-[6px] bg-[var(--bg-citation)] px-3 py-1.5 text-xs text-text-primary transition-all hover:border-[#22D3E8]/50 hover:bg-surface border border-[var(--border-citation)] shadow-sm cursor-pointer"
-        aria-label={`Citation reference: ${citation.documentName}, ${sectionLabel}${pageLabel}`}
-      >
-        <span className="text-[#22D3E8] text-xs">▣</span>
-
-        <span className="font-semibold text-text-primary font-sans truncate max-w-[180px] sm:max-w-[220px]">
-          {citation.documentName}
+    <button
+      type="button"
+      onClick={() => setSelectedCitation(citation)}
+      className={`inline-flex items-center gap-1.5 rounded-pill border px-3 py-1 text-xs font-semibold transition-all duration-200 ${
+        isSelected
+          ? 'border-primary bg-primary text-white shadow-subtle'
+          : 'border-border bg-surface text-fg hover:border-primary hover:text-primary'
+      }`}
+      aria-label={`Source: ${citation.documentName}, page ${citation.page}`}
+    >
+      <FileText className={`h-3.5 w-3.5 ${isSelected ? 'text-surface-warm' : 'text-accent'}`} />
+      <span>
+        {citation.documentName.slice(0, 14)}… p.{citation.page}
+      </span>
+      {citation.section && (
+        <span className={`text-[10px] ${isSelected ? 'text-white/70' : 'text-fg-muted'}`}>
+          • {citation.section.slice(0, 16)}
         </span>
-
-        <span className="font-mono text-[11px] text-text-tertiary font-medium">
-          {sectionLabel}{pageLabel}
-        </span>
-
-        <span className="text-text-tertiary group-hover:text-[#22D3E8] group-hover:translate-x-0.5 transition-all font-bold">
-          →
-        </span>
-      </button>
-
-      {showTooltip && (
-        <div 
-          role="tooltip" 
-          className="pointer-events-none absolute bottom-full left-0 z-30 mb-2 whitespace-nowrap rounded-[6px] border border-border bg-surface-elevated px-3 py-2 text-[11px] font-sans text-text-primary shadow-console"
-        >
-
-          <div className="flex items-center gap-1.5 font-mono text-[10px] text-[#22D3E8] font-bold">
-            <span>SOURCE DOCUMENT:</span>
-            <span className="text-text-primary font-medium">{citation.documentName}</span>
-          </div>
-
-          <div className="text-[11px] text-text-secondary truncate max-w-[280px] mt-0.5 font-sans">
-            {citation.text || `Verified excerpt from ${pageLabel}`}
-          </div>
-        </div>
       )}
-    </div>
+      <CheckCircle2 className={`h-3 w-3 ${isSelected ? 'text-emerald-300' : 'text-success'}`} />
+    </button>
   )
 }
 
-
-
-
-
-
+export default CitationBadge

@@ -7,26 +7,26 @@ interface DocumentStatusProps {
 export function DocumentStatus({ status }: DocumentStatusProps) {
   if (status === 'ready') {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#22D3E8]/15 px-2.5 py-0.5 font-mono text-[10.5px] font-bold text-[#22D3E8] border border-[#22D3E8]/40">
-        <span className="h-1.5 w-1.5 rounded-full bg-[#22D3E8]" />
-        <span>Verified</span>
+      <span className="inline-flex items-center gap-1.5 rounded-md bg-success/10 px-2.5 py-1 text-xs font-medium text-success">
+        <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        Ready
       </span>
     )
   }
 
   if (status === 'processing') {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E0A83C]/15 px-2.5 py-0.5 font-mono text-[10.5px] font-bold text-[#E0A83C] border border-[#E0A83C]/40">
-        <span className="h-1.5 w-1.5 rounded-full bg-[#E0A83C] animate-pulse" />
-        <span>Analyzing</span>
+      <span className="inline-flex items-center gap-1.5 rounded-md bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary">
+        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden="true" />
+        Processing
       </span>
     )
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E0554F]/15 px-2.5 py-0.5 font-mono text-[10.5px] font-bold text-[#E0554F] border border-[#E0554F]/40">
-      <span className="h-1.5 w-1.5 rounded-full bg-[#E0554F]" />
-      <span>Failed</span>
+    <span className="inline-flex items-center gap-1.5 rounded-md bg-danger/10 px-2.5 py-1 text-xs font-medium text-danger">
+      <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      Failed
     </span>
   )
 }

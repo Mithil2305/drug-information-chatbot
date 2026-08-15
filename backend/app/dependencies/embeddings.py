@@ -1,4 +1,5 @@
 import logging
+import torch
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -10,6 +11,7 @@ def get_embedding_model():
     """
     Dependency injection helper for Embedding Model.
     Caches model loading to avoid expensive initialization on every request.
+    Detects CUDA/GPU environment automatically for optimal hardware utilization.
     """
     global _embedding_model_instance
     if _embedding_model_instance is not None:
@@ -17,7 +19,14 @@ def get_embedding_model():
 
     try:
         from sentence_transformers import SentenceTransformer
-        _embedding_model_instance = SentenceTransformer(settings.EMBEDDING_MODEL)
+        # Check if GPU is available
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        logger.info(f"Initializing SentenceTransformer model '{settings.EMBEDDING_MODEL}' on device: {device}")
+        
+        _embedding_model_instance = SentenceTransformer(
+            settings.EMBEDDING_MODEL,
+            device=device
+        )
         logger.info(f"Successfully loaded embedding model: {settings.EMBEDDING_MODEL}")
     except Exception as e:
         logger.error(f"Failed to load sentence-transformers model: {e}. Returning mock embedding model.")

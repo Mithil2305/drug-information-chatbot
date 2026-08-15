@@ -1,107 +1,169 @@
-import { LogOut, Moon, Sun } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { LogOut, AlertTriangle, X } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
-import { useTheme } from '../../hooks/useTheme'
 
 interface UserProfileProps {
   collapsed: boolean
 }
 
+function LogoutConfirmModal({
+  open,
+  onCancel,
+  onConfirm,
+  displayName,
+}: {
+  open: boolean
+  onCancel: () => void
+  onConfirm: () => void
+  displayName: string
+}) {
+  if (!open) return null
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in"
+      onClick={onCancel}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Confirm logout"
+    >
+      <div
+        className="relative w-full max-w-sm rounded-3xl border border-border bg-surface p-6 shadow-hover animate-fade-in"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onCancel}
+          className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
+          aria-label="Close"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        <div className="flex flex-col items-center text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-danger/10 text-danger">
+            <AlertTriangle className="h-7 w-7" />
+          </div>
+
+          <h3 className="text-lg font-bold text-fg">Confirm Logout</h3>
+          <p className="mt-2 text-sm leading-relaxed text-fg-secondary">
+            Are you sure you want to log out
+            {displayName !== 'User' ? (
+              <>
+                {' '}as <span className="font-semibold text-fg">{displayName}</span>
+              </>
+            ) : null}
+            ? You will need to sign in again to continue.
+          </p>
+
+          <div className="mt-6 flex w-full gap-3">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="flex-1 rounded-pill border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-fg transition-colors hover:bg-surface-highlight"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onConfirm}
+              className="flex-1 rounded-pill bg-danger px-4 py-2.5 text-sm font-bold text-white shadow-subtle transition-all hover:bg-danger/90 active:scale-[0.98]"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <LogOut className="h-3.5 w-3.5" />
+                Log out
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
 export function UserProfile({ collapsed }: UserProfileProps) {
   const { user, logout } = useAuth()
-  const { theme, toggleTheme } = useTheme()
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
 
-  const displayName = user?.email 
-    ? user.email.split('@')[0].replace('.', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-    : 'Mohanapriyan M'
-  const initials = user?.email
-    ? user.email.slice(0, 2).toUpperCase()
-    : 'MM'
+  const displayName = useMemo(() => {
+    const candidates = [user?.name, user?.full_name, user?.username, user?.display_name]
+    const resolved = candidates.find((value): value is string => Boolean(value && value.trim()))
+    if (resolved) return resolved.trim()
+    if (user?.email) return user.email.split('@')[0]
+    return 'User'
+  }, [user])
+
+  const subtitle = user?.role ? user.role.replace(/_/g, ' ') : 'LabelProof User'
+  const initials = displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'U'
+
+  const handleLogout = () => {
+    setShowLogoutModal(false)
+    logout()
+  }
 
   if (collapsed) {
     return (
-      <div className="flex flex-col items-center gap-2 py-3 border-t border-border bg-sidebar">
-        <div 
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-accent-tint text-accent font-mono text-[10px] font-bold border border-accent/25 shadow-sm"
-          title={user?.email || 'User profile'}
-        >
-          {initials}
+      <>
+        <div className="flex flex-col items-center gap-2 py-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white shadow-subtle">
+            <span className="text-xs font-bold">{initials}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowLogoutModal(true)}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-fg-muted transition-colors hover:bg-danger/10 hover:text-danger"
+            aria-label="Log out"
+            title="Log out"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="flex h-7 w-7 items-center justify-center rounded-[6px] text-text-muted transition-colors hover:bg-surface-raised hover:text-text-primary cursor-pointer"
-          aria-label={theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode'}
-          title={theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode'}
-        >
-          {theme === 'dark' ? (
-            <Sun className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
-          ) : (
-            <Moon className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={logout}
-          className="flex h-7 w-7 items-center justify-center rounded-[6px] text-text-muted transition-colors hover:bg-surface-raised hover:text-danger cursor-pointer"
-          aria-label="Sign out"
-          title="Sign out"
-        >
-          <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
-        </button>
-      </div>
+        <LogoutConfirmModal
+          open={showLogoutModal}
+          onCancel={() => setShowLogoutModal(false)}
+          onConfirm={handleLogout}
+          displayName={displayName}
+        />
+      </>
     )
   }
 
   return (
-    <div className="flex flex-col border-t border-border bg-sidebar px-3 py-2.5">
-      {/* System Status Line */}
-      <div className="flex items-center gap-2 px-1 pb-2 mb-1 border-b border-border/50 text-[10px] font-mono text-text-tertiary">
-        <span className="h-1.5 w-1.5 rounded-full bg-[#3FCB78] animate-pulse" />
-        <span>System · Operational</span>
-      </div>
-
-      {/* Account Info & Logout */}
-      <div className="flex items-center justify-between gap-2 px-1 pt-1">
+    <>
+      <div className="flex items-center justify-between rounded-2xl px-2 py-2 transition-colors hover:bg-surface-highlight">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--bg-icon-container)] text-accent font-mono text-[10px] font-bold border border-[var(--border-icon-container)]">
-            {initials}
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-subtle">
+            <span className="text-xs font-bold">{initials}</span>
           </div>
           <div className="min-w-0">
-            <div className="truncate text-xs font-semibold text-text-primary font-sans">
-              {displayName}
-            </div>
-            <div className="truncate text-[10px] text-text-tertiary">
-              {user?.email || 'user@labelproof.ai'}
-            </div>
+            <div className="truncate text-sm font-medium text-fg">{displayName}</div>
+            <div className="truncate text-xs text-fg-muted">{subtitle}</div>
           </div>
         </div>
-
-        <div className="flex items-center gap-0.5 shrink-0">
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="flex h-7 w-7 items-center justify-center rounded-[6px] text-text-muted transition-colors hover:bg-surface-raised hover:text-text-primary cursor-pointer"
-            aria-label={theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode'}
-            title={theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode'}
-          >
-            {theme === 'dark' ? (
-              <Sun className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
-            ) : (
-              <Moon className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={logout}
-            className="flex h-7 w-7 items-center justify-center rounded-[6px] text-text-muted transition-colors hover:bg-surface-raised hover:text-danger cursor-pointer"
-            aria-label="Sign out"
-            title="Sign out"
-          >
-            <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setShowLogoutModal(true)}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-fg-muted transition-colors hover:bg-danger/10 hover:text-danger"
+          aria-label="Log out"
+          title="Log out"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+        </button>
       </div>
-    </div>
+      <LogoutConfirmModal
+        open={showLogoutModal}
+        onCancel={() => setShowLogoutModal(false)}
+        onConfirm={handleLogout}
+        displayName={displayName}
+      />
+    </>
   )
 }
 

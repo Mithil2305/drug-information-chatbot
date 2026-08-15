@@ -1,57 +1,30 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Check, MessageSquare, Pencil, Trash2, X } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
+import { Check, MoreVertical, Pencil, Trash2, X, AlertTriangle } from 'lucide-react'
 import { useConversations } from '../../hooks/useConversations'
-import type { ConversationSummary } from '../../types/chat'
-
+import { Tooltip } from '../common/Tooltip'
 interface RecentChatsProps {
   collapsed: boolean
   onClose?: () => void
 }
 
-export function RecentChats({ collapsed, onClose }: RecentChatsProps) {
-  const { conversations, activeConversationId, selectConversation, renameConversation, deleteConversation } =
-    useConversations()
+export function RecentChats({ collapsed }: RecentChatsProps) {
+  const {
+    conversations,
+    activeConversationId,
+    selectConversation,
+    renameConversation,
+    deleteConversation,
+  } = useConversations()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
-  const navigate = useNavigate()
-
-  const handleSelect = (id: string) => {
-    selectConversation(id)
-    navigate('/')
-    onClose?.()
-  }
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   const sorted = [...conversations].sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
   )
-
-  if (collapsed) {
-    return (
-      <nav className="flex flex-col items-center gap-1.5 px-1 py-2" aria-label="Recent conversations">
-        {sorted.slice(0, 8).map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            onClick={() => handleSelect(c.id)}
-            className={`flex h-8 w-8 items-center justify-center rounded-[8px] transition-colors cursor-pointer ${
-              activeConversationId === c.id
-                ? 'bg-accent-tint text-accent border border-accent/30'
-                : 'text-text-muted hover:bg-surface-raised hover:text-text-primary'
-            }`}
-            title={c.title}
-          >
-            <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
-          </button>
-        ))}
-      </nav>
-    )
-  }
-
-  const startEdit = (c: ConversationSummary) => {
-    setEditingId(c.id)
-    setEditValue(c.title)
-  }
 
   const commitEdit = () => {
     if (editingId) renameConversation(editingId, editValue)
@@ -63,106 +36,223 @@ export function RecentChats({ collapsed, onClose }: RecentChatsProps) {
     setEditValue('')
   }
 
-  return (
-    <nav className="flex flex-col gap-1 px-2" aria-label="Recent conversations">
-      <div className="px-2 py-1.5 text-[10px] font-mono tracking-[0.14em] uppercase text-text-muted font-semibold">
-        RECENT
-      </div>
+  useEffect(() => {
+    if (!menuOpenId) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpenId(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [menuOpenId])
 
-      <div className="flex flex-col gap-0.5">
-        {sorted.map((c) => {
-          const isActive = activeConversationId === c.id
-          const isEditing = editingId === c.id
-          return (
-            <div
-              key={c.id}
-              className={`group relative flex items-center transition-all ${
-                isActive
-                  ? 'bg-accent-tint text-accent font-semibold rounded-[6px]'
-                  : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary rounded-[6px]'
+  const confirmDelete = () => {
+    if (deleteTarget) {
+      deleteConversation(deleteTarget.id)
+      setDeleteTarget(null)
+    }
+  }
+
+  /* ── Collapsed view ─────────────────────────────────────── */
+  if (collapsed) {
+    return (
+      <nav className="flex flex-col items-center gap-0.5 px-2 py-1" aria-label="Recent chats">
+        {sorted.slice(0, 8).map((c) => (
+          <Tooltip key={c.id} content={c.title} side="right">
+            <button
+              type="button"
+              onClick={() => selectConversation(c.id)}
+              className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold transition-colors ${
+                activeConversationId === c.id
+                  ? 'bg-primary-soft text-primary'
+                  : 'text-fg-muted hover:bg-surface-highlight hover:text-fg'
               }`}
+              aria-label={c.title}
             >
+              {c.title.charAt(0).toUpperCase()}
+            </button>
+          </Tooltip>
+        ))}
+      </nav>
+    )
+  }
 
-
-              {isEditing ? (
-                <div className="flex w-full items-center gap-1 px-2 py-1.5">
-                  <input
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') commitEdit()
-                      if (e.key === 'Escape') cancelEdit()
-                    }}
-                    autoFocus
-                    className="w-full rounded-[6px] bg-surface px-2 py-0.5 text-xs text-text-primary outline-none border border-accent font-sans"
-                  />
-
-
-                  <button
-                    type="button"
-                    onClick={commitEdit}
-                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-success hover:bg-surface-raised cursor-pointer"
-                    aria-label="Save name"
-                  >
-                    <Check className="h-3 w-3" aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={cancelEdit}
-                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-text-muted hover:bg-surface-raised cursor-pointer"
-                    aria-label="Cancel rename"
-                  >
-                    <X className="h-3 w-3" aria-hidden="true" />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => handleSelect(c.id)}
-                    className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-left text-xs leading-relaxed cursor-pointer font-sans"
-                  >
-                    <MessageSquare className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-accent' : 'text-text-muted'}`} aria-hidden="true" />
-                    <span className="truncate">{c.title}</span>
-                  </button>
-                  <div className="absolute right-1.5 flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 bg-surface rounded-[6px] px-1 py-0.5 border border-border shadow-sm">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        startEdit(c)
-                      }}
-                      className="flex h-5 w-5 items-center justify-center rounded text-text-muted hover:text-text-primary cursor-pointer"
-                      aria-label="Rename conversation"
-                      title="Rename"
-                    >
-                      <Pencil className="h-3 w-3" aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        deleteConversation(c.id)
-                      }}
-                      className="flex h-5 w-5 items-center justify-center rounded text-text-muted hover:text-danger cursor-pointer"
-                      aria-label="Delete conversation"
-                      title="Delete"
-                    >
-                      <Trash2 className="h-3 w-3" aria-hidden="true" />
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )
-        })}
+  /* ── Expanded view ─────────────────────────────────────── */
+  return (
+    <nav className="flex flex-col" aria-label="Recent chats">
+      {/* Section Label */}
+      <div className="px-4 pb-1 pt-2">
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-fg-subtle">
+          Chats
+        </span>
       </div>
+
+      {sorted.map((c) => {
+        const isActive = activeConversationId === c.id
+        const isEditing = editingId === c.id
+        return (
+          <div
+            key={c.id}
+            className={`group relative flex items-center rounded-2xl transition-colors ${
+              isActive ? 'bg-surface-highlight' : 'hover:bg-surface-highlight'
+            }`}
+          >
+            {isEditing ? (
+              <div className="flex w-full items-center gap-1 px-2 py-1.5">
+                <input
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') commitEdit()
+                    if (e.key === 'Escape') cancelEdit()
+                  }}
+                  autoFocus
+                  className="clinical-input w-full px-2 py-1.5 text-sm text-fg"
+                />
+                <button
+                  type="button"
+                  onClick={commitEdit}
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-success hover:bg-surface"
+                  aria-label="Save name"
+                >
+                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-fg-muted hover:bg-surface"
+                  aria-label="Cancel rename"
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => selectConversation(c.id)}
+                  className="flex min-w-0 flex-1 items-center px-2 py-2 text-left text-sm text-fg"
+                >
+                  <span
+                    className={`truncate text-sm ${
+                      isActive ? 'font-medium text-fg' : 'text-fg-muted'
+                    }`}
+                  >
+                    {c.title}
+                  </span>
+                </button>
+
+                {/* Three-dot menu */}
+                <div className="relative shrink-0 pr-1" ref={menuOpenId === c.id ? menuRef : undefined}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setMenuOpenId(menuOpenId === c.id ? null : c.id)
+                    }}
+                    className={`flex h-6 w-6 items-center justify-center rounded-full text-fg-muted transition-colors hover:bg-surface hover:text-fg ${
+                      menuOpenId === c.id ? 'bg-surface text-fg' : 'opacity-0 group-hover:opacity-100'
+                    }`}
+                    aria-label="More options"
+                    aria-expanded={menuOpenId === c.id}
+                  >
+                    <MoreVertical className="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+
+                  {menuOpenId === c.id && (
+                    <div
+                      className="absolute right-0 top-full z-20 mt-1 w-32 overflow-hidden rounded-xl border border-border bg-surface shadow-card animate-fade-in"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingId(c.id)
+                          setEditValue(c.title)
+                          setMenuOpenId(null)
+                        }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-fg transition-colors hover:bg-surface-highlight"
+                      >
+                        <Pencil className="h-3.5 w-3.5 shrink-0 text-fg-muted" />
+                        <span>Rename</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeleteTarget({ id: c.id, title: c.title })
+                          setMenuOpenId(null)
+                        }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-danger transition-colors hover:bg-surface-highlight"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )
+      })}
 
       {conversations.length === 0 && (
-        <div className="px-3 py-4 text-center rounded-[8px] bg-surface-raised/40 border border-border">
-          <p className="text-xs font-medium text-text-secondary">No conversations yet</p>
-          <p className="text-[11px] text-text-muted mt-0.5">Start a query to build your research log.</p>
-        </div>
+        <p className="px-4 py-3 text-xs text-fg-subtle">
+          No conversations yet. Start by asking a question.
+        </p>
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleteTarget && createPortal(
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in p-4"
+          onClick={() => setDeleteTarget(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirm delete"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-2xl border border-border bg-surface p-5 shadow-hover animate-fade-in"
+          >
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-danger/10 text-danger">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-fg">Delete conversation?</h3>
+                <p className="mt-0.5 text-xs text-fg-muted">
+                  This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-4 rounded-lg bg-surface-highlight px-3 py-2">
+              <p className="truncate text-xs text-fg-muted">
+                <span className="font-medium text-fg">{deleteTarget.title}</span>
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className="rounded-pill border border-border bg-surface px-4 py-2 text-xs font-semibold text-fg transition-colors hover:bg-surface-highlight"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                className="rounded-pill bg-danger px-4 py-2 text-xs font-bold text-white shadow-subtle transition-all hover:brightness-110 active:scale-95"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
       )}
     </nav>
   )

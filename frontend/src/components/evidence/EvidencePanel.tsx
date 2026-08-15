@@ -1,132 +1,174 @@
 import { useState } from 'react'
-import { Check, Copy, ShieldCheck, X } from 'lucide-react'
+import {
+  ShieldCheck,
+  FileSearch,
+  BookOpen,
+  X,
+  ExternalLink,
+} from 'lucide-react'
+import { useChat } from '../../hooks/useChat'
+import { EvidenceCard } from './EvidenceCard'
 import type { Citation } from '../../types/chat'
 
-interface EvidencePanelProps {
-  citation: Citation | null
-  onClose: () => void
+export interface EvidencePanelProps {
+  onClose?: () => void
+  isMobileDrawer?: boolean
 }
 
-export function EvidencePanel({ citation, onClose }: EvidencePanelProps) {
-  const [copied, setCopied] = useState(false)
-
-  if (!citation) return null
-
-  const handleCopy = async () => {
-    const textToCopy = citation.text || `Excerpt from ${citation.documentName}, section ${citation.section || 'General'}, page ${citation.page}`
-    try {
-      await navigator.clipboard.writeText(textToCopy)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // ignore
-    }
-  }
-
-  const excerptText = citation.text || 
-    `Clinical documentation excerpt verified for ${citation.documentName}. Exact prescribing information and therapeutic guidelines retrieved from official FDA package insert (§${citation.section || '4.0'}, page ${citation.page || '1'}).`
+export function EvidencePanel({ onClose, isMobileDrawer = false }: EvidencePanelProps) {
+  const { activeCitations, selectedCitation, setSelectedCitation, isLoading } = useChat()
+  const [inspectModalCitation, setInspectModalCitation] = useState<Citation | null>(null)
 
   return (
-    <aside 
-      className="fixed inset-y-0 right-0 z-40 flex w-full flex-col border-l border-border bg-surface transition-all duration-200 ease-out sm:w-[380px] shadow-evidence"
-      role="complementary"
-      aria-label="Clinical Evidence Panel"
-    >
+    <aside className="flex h-full w-full flex-col border-l border-border bg-surface text-fg">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3.5 bg-surface">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-accent-tint text-accent border border-accent/25">
-            <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+      <div className="flex items-center justify-between border-b border-border px-5 py-4">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <ShieldCheck className="h-4 w-4" />
           </div>
-
           <div>
-            <div className="text-[10px] font-mono tracking-[0.14em] uppercase text-text-muted font-semibold">
-              EVIDENCE VAULT
-            </div>
-            <div className="text-xs font-semibold text-text-primary truncate max-w-[220px]">
-              {citation.documentName}
-            </div>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex h-7 w-7 items-center justify-center rounded-[6px] text-text-muted transition-colors hover:bg-surface-raised hover:text-text-primary cursor-pointer"
-          aria-label="Close evidence panel"
-        >
-          <X className="h-4 w-4" aria-hidden="true" />
-        </button>
-      </div>
-
-      {/* Content Section */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Verification Stamped Meta */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full bg-accent-tint px-2.5 py-0.5 font-mono text-[10px] font-medium text-accent border border-accent/25">
-            §{citation.section || '4.0'} · PAGE {citation.page || '1'}
-          </span>
-
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-raised px-2.5 py-0.5 font-mono text-[10px] text-success border border-border">
-            <span className="h-1.5 w-1.5 rounded-full bg-success" />
-            REGULATORY GROUNDED
-          </span>
-        </div>
-
-        {/* Highlighted Passage */}
-        <div className="space-y-1.5">
-          <div className="text-[10px] font-mono tracking-wider uppercase text-text-muted font-semibold">
-            OFFICIAL PACKAGE INSERT EXCERPT
-          </div>
-          <div className="rounded-[10px] bg-accent-tint/60 p-3.5 text-xs leading-relaxed text-text-primary font-sans border-l-2 border-accent border border-accent/20 shadow-sm">
-            <p className="text-text-primary leading-relaxed">
-              "{excerptText}"
+            <h3 className="text-xs font-bold uppercase tracking-wider text-primary">
+              Source Verification
+            </h3>
+            <p className="text-[11px] text-fg-muted">
+              {activeCitations.length} Grounded Source{activeCitations.length === 1 ? '' : 's'}
             </p>
           </div>
         </div>
 
-        {/* Source Meta Details */}
-        <div className="rounded-[10px] bg-surface-raised p-3.5 space-y-2 text-xs border border-border">
-          <div className="flex items-center justify-between text-text-muted text-[11px]">
-            <span className="font-mono text-[10px]">DOCUMENT REF</span>
-            <span className="font-mono text-text-primary">{citation.documentId ? citation.documentId.slice(0, 12) + '...' : 'FDA-PKG-INSERT'}</span>
+        {isMobileDrawer && onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-2xl text-fg-muted hover:bg-surface-highlight hover:text-fg"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Content Area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-surface-highlight text-accent animate-pulse">
+              <FileSearch className="h-5 w-5" />
+            </div>
+            <p className="text-xs font-semibold text-primary">Searching trusted documentation…</p>
+            <p className="text-[11px] text-fg-muted max-w-[200px]">
+              Extracting dense vector chunks and verifying page alignment in Qdrant.
+            </p>
           </div>
-          <div className="flex items-center justify-between text-text-muted text-[11px]">
-            <span className="font-mono text-[10px]">LABEL SECTION</span>
-            <span className="font-mono text-accent font-medium">§{citation.section || 'General Prescribing'}</span>
+        ) : activeCitations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-surface-highlight text-fg-muted">
+              <BookOpen className="h-5 w-5" />
+            </div>
+            <p className="text-xs font-semibold text-fg">No Citations Selected</p>
+            <p className="text-[11px] text-fg-muted max-w-[220px]">
+              Ask a question about a drug label or click on any AI response to inspect its supporting source citations.
+            </p>
           </div>
-          <div className="flex items-center justify-between text-text-muted text-[11px]">
-            <span className="font-mono text-[10px]">PAGE COORDINATE</span>
-            <span className="font-mono text-text-secondary">Page {citation.page || '1'}</span>
+        ) : (
+          <>
+            <div className="rounded-2xl bg-surface-warm/40 border border-border p-3 text-[11px] text-fg-secondary flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-success" />
+                <span className="font-semibold text-primary">100% Label Grounded</span>
+              </div>
+              <span className="text-[10px] text-fg-muted">Click card to select</span>
+            </div>
+
+            <div className="space-y-3" role="list" aria-label="Evidence sources">
+              {activeCitations.map((citation) => (
+                <EvidenceCard
+                  key={citation.citationId}
+                  citation={citation}
+                  isSelected={selectedCitation?.citationId === citation.citationId}
+                  onClick={() => setSelectedCitation(citation)}
+                  onViewSource={(c) => setInspectModalCitation(c)}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+
+      {/* Inspection Modal */}
+      {inspectModalCitation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-lg rounded-3xl border border-border bg-surface p-6 shadow-hover space-y-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="rounded-pill bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary">
+                  Official Prescribing Information
+                </span>
+                <h3 className="mt-2 text-base font-bold text-fg">
+                  {inspectModalCitation.documentName}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInspectModalCitation(null)}
+                className="flex h-8 w-8 items-center justify-center rounded-2xl text-fg-muted hover:bg-surface-highlight"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2 border-y border-border py-4">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-fg">Page Number:</span>
+                <span className="font-bold text-primary">Page {inspectModalCitation.page}</span>
+              </div>
+              {inspectModalCitation.section && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-fg">Label Section:</span>
+                  <span className="font-bold text-accent">{inspectModalCitation.section}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-fg">Chunk ID:</span>
+                <span className="font-mono text-fg-muted">{inspectModalCitation.citationId}</span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <p className="text-xs font-bold uppercase tracking-wider text-fg-muted">
+                Extracted Evidence Excerpt
+              </p>
+              <div className="max-h-48 overflow-y-auto rounded-2xl bg-background p-3 text-xs leading-relaxed text-fg border border-border font-serif">
+                {inspectModalCitation.text || (
+                  <span className="italic text-fg-muted">
+                    This section was verified against the official vector embedding for Page {inspectModalCitation.page} ({inspectModalCitation.section}).
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setInspectModalCitation(null)}
+                className="rounded-pill border border-border px-4 py-2 text-xs font-semibold text-fg hover:bg-surface-highlight"
+              >
+                Close
+              </button>
+              <a
+                href={`/documents`}
+                className="inline-flex items-center gap-1.5 rounded-pill bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-hover"
+              >
+                <span>View in Documents</span>
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Action Footer */}
-      <div className="border-t border-border p-3 bg-surface flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-[6px] bg-surface-raised px-3 py-2 text-xs text-text-primary hover:bg-surface-hover border border-border transition-colors font-sans cursor-pointer"
-        >
-          {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5 text-text-tertiary" />}
-          <span>{copied ? 'Copied' : 'Copy Excerpt'}</span>
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-[6px] bg-surface-raised px-3.5 py-2 text-xs text-text-secondary hover:text-text-primary hover:bg-surface-hover border border-border transition-colors font-sans cursor-pointer"
-        >
-          Done
-        </button>
-      </div>
-
+      )}
     </aside>
   )
 }
 
-
-
-
-
-
-
+export default EvidencePanel

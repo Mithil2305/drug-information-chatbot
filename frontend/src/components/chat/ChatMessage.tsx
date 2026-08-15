@@ -1,10 +1,9 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { AlertCircle, Check, Copy, FileText, ShieldCheck, Sparkles, ThumbsDown, ThumbsUp } from 'lucide-react'
-
+import { Bot, Check, Copy, FileText, Sparkles, AlertCircle, User, Volume2, Square } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useChat } from '../../hooks/useChat'
-import type { ChatMessage as ChatMessageType, Citation } from '../../types/chat'
+import type { ChatMessage as ChatMessageType } from '../../types/chat'
 import { CitationBadge } from './CitationBadge'
 import { FollowUpList } from './FollowUpList'
 import { StreamingText } from './StreamingText'
@@ -15,19 +14,20 @@ interface ChatMessageProps {
   isLast: boolean
 }
 
+/* ── User Bubble ─────────────────────────────────────────────── */
 function UserMessage({ content }: { content: string }) {
   return (
-    <div className="flex flex-col items-end my-4">
-      <span className="text-[10px] font-mono tracking-[0.14em] uppercase text-text-muted mb-1 mr-1 font-bold">
-        YOU
-      </span>
-      <div className="max-w-[85%] sm:max-w-xl rounded-[8px] bg-[var(--bg-user-bubble)] border border-[var(--border-user-bubble)] px-4 py-2.5 text-[13.5px] leading-relaxed text-text-primary shadow-sm font-sans">
-        {content}
+    <div className="flex justify-end animate-fade-in-up" style={{ animationDelay: '0ms' }}>
+      <div className="flex items-end gap-2.5 max-w-[85%] md:max-w-2xl">
+        <div className="rounded-3xl rounded-br-sm bg-primary px-5 py-3.5 text-sm text-white shadow-card">
+          <p className="whitespace-pre-wrap leading-relaxed">{content}</p>
+        </div>
       </div>
     </div>
   )
 }
 
+/* ── Action Icon Button ──────────────────────────────────────── */
 function ActionButton({
   onClick,
   icon: Icon,
@@ -45,14 +45,9 @@ function ActionButton({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className={`flex h-6 px-2 items-center gap-1.5 rounded-[5px] text-xs font-sans transition-colors cursor-pointer ${
-        active 
-          ? 'bg-[#22D3E8]/15 text-[#22D3E8] font-bold' 
-          : 'text-text-muted hover:bg-surface-raised hover:text-text-primary'
-      }`}
+      className="flex h-7 w-7 items-center justify-center rounded-full text-fg-muted transition-all duration-150 hover:bg-surface-highlight hover:text-fg"
     >
-      <Icon className="h-3 w-3" aria-hidden="true" />
-      <span className="hidden sm:inline text-[11px]">{label}</span>
+      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
     </button>
   )
 }
@@ -60,14 +55,15 @@ function ActionButton({
 function AssistantMessage({ message, isLast }: { message: ChatMessageType; isLast: boolean }) {
   const [done, setDone] = useState(!isLast)
   const [copied, setCopied] = useState(false)
-  const [feedback, setFeedback] = useState<'up' | 'down' | null>(null)
-  const [activeCitation, setActiveCitation] = useState<Citation | null>(null)
-  const { sendMessage } = useChat()
+  const [speaking, setSpeaking] = useState(false)
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
+  const { sendMessage, selectedMessageId, setSelectedMessageId } = useChat()
   const onComplete = useCallback(() => setDone(true), [])
   const isStreaming = isLast && !done
 
   const citations = message.citations ?? []
   const followUps = message.followUps ?? []
+  const isSelected = selectedMessageId === message.id
 
   const handleCopy = async () => {
     try {
@@ -79,138 +75,145 @@ function AssistantMessage({ message, isLast }: { message: ChatMessageType; isLas
     }
   }
 
+  const stripMarkdown = (text: string) =>
+    text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/__/g, '').replace(/`/g, '').replace(/#{1,6}\s/g, '').replace(/\[(.*?)\]\(.*?\)/g, '$1')
+
+  const handleSpeak = () => {
+    if (speaking) {
+      window.speechSynthesis.cancel()
+      setSpeaking(false)
+      return
+    }
+    const utterance = new SpeechSynthesisUtterance(stripMarkdown(message.content))
+    utterance.rate = 1
+    utterance.pitch = 1
+    utterance.onend = () => {
+      setSpeaking(false)
+      utteranceRef.current = null
+    }
+    utterance.onerror = () => {
+      setSpeaking(false)
+      utteranceRef.current = null
+    }
+    utteranceRef.current = utterance
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(utterance)
+    setSpeaking(true)
+  }
+
+  const isAbstaining =
+    message.status === 'insufficient_evidence' ||
+    message.content.toLowerCase().includes("couldn't find sufficient information")
+
   return (
-    <>
-      {/* Clinical Evidence Report Layout */}
-      <div className="my-5 relative pl-4 border-l-2 border-[#20C7DC] dark:border-[#22D3E8] py-1">
-        <div className="min-w-0 flex-1">
-          {/* AI Response Identity Header */}
-          <div className="mb-3 flex items-center justify-between border-b border-border pb-2">
-            <div className="flex items-center gap-2">
-              <div className="flex h-5 w-5 items-center justify-center rounded-[5px] bg-[var(--bg-icon-container)] text-accent border border-[var(--border-icon-container)] shadow-sm">
-                <Sparkles className="h-3 w-3 text-[#20C7DC] dark:text-[#22D3E8]" aria-hidden="true" />
-              </div>
+    <div
+      onClick={() => setSelectedMessageId(message.id)}
+      className="flex items-start gap-3 animate-fade-in-up"
+      style={{ animationDelay: '30ms' }}
+    >
 
-              <span className="font-sans text-xs font-bold tracking-wider uppercase text-text-primary">
-                LABELPROOF AI
-              </span>
-              <span className="text-[11px] text-text-tertiary font-mono">·</span>
-              <span className="text-[11px] text-[#0891B2] dark:text-[#22D3E8] font-semibold">
-                Evidence-backed response
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {message.status === 'grounded' || !message.status ? (
-                <span className="inline-flex items-center gap-1 rounded-[5px] bg-[var(--bg-badge-evidence)] px-2 py-0.5 font-mono text-[10px] font-bold text-[#0891B2] dark:text-[#22D3E8] border border-[var(--border-badge-evidence)]">
-                  <ShieldCheck className="h-3 w-3 text-[#20C7DC] dark:text-[#22D3E8]" />
-                  Evidence-backed
+      <div className="min-w-0 flex-1">
+        <div
+          className={`max-w-3xl transition-all duration-200 `}
+        >
+          {/* Status Header */}
+            <div className="mb-3.5 flex items-center justify-between border-b border-border pb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xs font-bold text-primary">LabelProof Assistant</span>
+              {isAbstaining ? (
+                <span className="inline-flex items-center gap-1 rounded-pill bg-warning/10 px-2 py-0.5 text-[10px] font-bold text-warning">
+                  <AlertCircle className="h-2.5 w-2.5" />
+                  <span>Clinical Abstention</span>
                 </span>
-              ) : message.status === 'insufficient_evidence' ? (
-                <span className="inline-flex items-center gap-1 rounded-[5px] bg-warning/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-warning border border-warning/20">
-                  <AlertCircle className="h-3 w-3" />
-                  Unverified
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-pill bg-success/10 px-2 py-0.5 text-[10px] font-bold text-success">
+                  <Sparkles className="h-2.5 w-2.5" />
+                  <span>Grounded Answer</span>
                 </span>
-              ) : null}
+              )}
             </div>
+            {citations.length > 0 && (
+              <span className="text-[10px] text-fg-muted font-mono tabular-nums">
+                {citations.length} source{citations.length === 1 ? '' : 's'}
+              </span>
+            )}
           </div>
 
-
-
-          {/* Clinical Reading Content */}
+          {/* Answer Text */}
           {!isStreaming ? (
-            <div className="text-[15px] leading-[1.7] text-text-primary space-y-3 font-sans">
+            <div className="prose-chat text-sm leading-relaxed text-fg">
               <ReactMarkdown
                 components={{
-                  p: ({ children }) => <p className="mb-2.5 leading-[1.7] text-text-primary last:mb-0">{children}</p>,
-                  strong: ({ children }) => <strong className="font-semibold text-text-primary bg-accent-tint px-1 py-0.5 rounded-[4px] text-accent">{children}</strong>,
-                  h1: ({ children }) => <h1 className="font-sans text-base sm:text-lg font-semibold text-text-primary mt-4 mb-2 tracking-tight">{children}</h1>,
-                  h2: ({ children }) => <h2 className="font-sans text-sm sm:text-base font-semibold text-text-primary mt-3.5 mb-1.5">{children}</h2>,
-                  h3: ({ children }) => <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-accent mt-3 mb-1">{children}</h3>,
-                  ul: ({ children }) => <ul className="mb-3 list-disc pl-5 space-y-1 text-text-secondary">{children}</ul>,
-                  ol: ({ children }) => <ol className="mb-3 list-decimal pl-5 space-y-1 text-text-secondary">{children}</ol>,
-                  li: ({ children }) => <li className="leading-[1.7] text-text-secondary">{children}</li>,
-                  hr: () => <hr className="my-3.5 border-border" />,
+                  p: ({ children }) => <p className="mb-2.5 last:mb-0 leading-relaxed">{children}</p>,
+                  strong: ({ children }) => <strong className="font-bold text-primary">{children}</strong>,
+                  ul: ({ children }) => <ul className="mb-2.5 list-disc pl-5 space-y-1">{children}</ul>,
+                  ol: ({ children }) => <ol className="mb-2.5 list-decimal pl-5 space-y-1">{children}</ol>,
+                  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
                 }}
               >
                 {message.content}
               </ReactMarkdown>
             </div>
           ) : (
-            <div className="text-[15px] leading-[1.7] text-text-primary font-sans">
-              <StreamingText content={message.content} onComplete={onComplete} />
-            </div>
+            <StreamingText content={message.content} onComplete={onComplete} />
           )}
+        </div>
 
-          {/* Prominent Evidence / Citation Sources */}
+          {/* Citation Badges */}
           {!isStreaming && citations.length > 0 && (
-            <div className="mt-5 border-t border-border pt-3.5">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-[10px] font-mono tracking-[0.14em] uppercase text-text-muted font-semibold">
-                  SOURCE
-                </span>
-              </div>
+            <div className="mt-4 pt-3.5 border-t border-border">
+              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-fg-muted mb-2.5">
+                Supporting Citations
+              </p>
               <div className="flex flex-wrap gap-2" role="list" aria-label="Citations">
                 {citations.map((c) => (
-                  <CitationBadge 
-                    key={c.citationId} 
-                    citation={c} 
-                    onClick={() => setActiveCitation(c)}
-                  />
+                  <CitationBadge key={c.citationId} citation={c} />
                 ))}
               </div>
             </div>
           )}
 
-
-          {/* Assistant Action Bar Footer */}
+          {/* Action Toolbar */}
           {!isStreaming && (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2 text-[11px] text-text-muted font-sans">
-              <div className="flex items-center gap-1.5 font-medium">
-                <FileText className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
+            <div className="mt-3 flex items-center justify-between border-t border-border pt-2.5">
+              <div className="flex items-center gap-1.5 text-[11px] text-fg-muted">
+                <FileText className="h-3 w-3 text-accent shrink-0" />
                 <span>
-                  {citations.length} Evidence Source{citations.length === 1 ? '' : 's'} verified
+                  {citations.length > 0
+                    ? 'Click a citation to inspect the source'
+                    : 'No external sources cited'}
                 </span>
               </div>
               <div className="flex items-center gap-1">
-                <ActionButton onClick={handleCopy} icon={copied ? Check : Copy} label={copied ? 'Copied' : 'Copy'} />
-                <ActionButton 
-                  onClick={() => setFeedback(feedback === 'up' ? null : 'up')} 
-                  icon={ThumbsUp} 
-                  label="Helpful" 
-                  active={feedback === 'up'}
+                <ActionButton
+                  onClick={handleSpeak}
+                  icon={speaking ? Square : Volume2}
+                  label={speaking ? 'Stop reading' : 'Read aloud'}
                 />
-                <ActionButton 
-                  onClick={() => setFeedback(feedback === 'down' ? null : 'down')} 
-                  icon={ThumbsDown} 
-                  label="Not helpful" 
-                  active={feedback === 'down'}
+                <ActionButton
+                  onClick={handleCopy}
+                  icon={copied ? Check : Copy}
+                  label={copied ? 'Copied!' : 'Copy answer'}
                 />
               </div>
             </div>
           )}
 
-          {/* Follow-up suggestions */}
+          {/* Follow-up Suggestions */}
           {!isStreaming && followUps.length > 0 && (
-            <div className="mt-3">
-              <FollowUpList questions={followUps} onSelect={sendMessage} />
-            </div>
+            <FollowUpList questions={followUps} onSelect={sendMessage} />
           )}
         </div>
-      </div>
-
-      {/* Slide-out Evidence Panel on right */}
-      <EvidencePanel citation={activeCitation} onClose={() => setActiveCitation(null)} />
-    </>
+    </div>
   )
 }
 
+/* ── Exported Component ──────────────────────────────────────── */
 export function ChatMessage({ message, isLast }: ChatMessageProps) {
   if (message.role === 'user') {
     return <UserMessage content={message.content} />
   }
-
   return <AssistantMessage message={message} isLast={isLast} />
 }
 
-
+export default ChatMessage

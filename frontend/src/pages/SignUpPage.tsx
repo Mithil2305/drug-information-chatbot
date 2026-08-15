@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Mail, User } from 'lucide-react'
-
-
+import { Mail, User, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { AuthLayout } from '../components/auth/AuthLayout'
+import { AuthDivider } from '../components/auth/AuthDivider'
 import { AuthInput } from '../components/auth/AuthInput'
 import { PasswordInput } from '../components/auth/PasswordInput'
 import { useAuth } from '../hooks/useAuth'
@@ -50,10 +49,11 @@ export default function SignUpPage() {
     setSubmitting(true)
     try {
       await register(email, password)
-      toast.success('Account created successfully. Please sign in.')
+      toast.success('Account created successfully! Please sign in.')
       navigate('/signin')
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Registration failed. Try again.'
+      const message =
+        err instanceof Error ? err.message : 'Registration failed. Try again.'
       toast.error(message)
     } finally {
       setSubmitting(false)
@@ -63,35 +63,25 @@ export default function SignUpPage() {
   return (
     <AuthLayout>
       <div className="mx-auto w-full max-w-sm">
-        {/* Brand Header */}
-        <div className="hidden lg:flex items-center gap-2.5 mb-8">
-          <div className="flex h-9 w-9 items-center justify-center rounded-[6px] bg-[#22D3E8] text-[#0D1220] font-black shadow-sm">
-            <span className="text-sm">L</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="font-sans text-xs font-bold tracking-[0.18em] uppercase text-text-primary">LABELPROOF</span>
-            <span className="text-[10px] text-text-tertiary font-medium">EVIDENCE AI</span>
-          </div>
-        </div>
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-fg-muted hover:text-primary transition-colors mb-6"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          <span>Back to Home</span>
+        </Link>
 
-        <div className="mb-6">
-          <div className="font-mono text-[10px] tracking-[0.14em] uppercase text-text-tertiary font-semibold mb-1">
-            NEW RESEARCHER ACCOUNT
-          </div>
-          <h1 className="font-sans text-2xl font-semibold tracking-tight text-text-primary leading-tight">
-            Create your account
-          </h1>
-          <p className="mt-1.5 text-xs text-text-secondary font-sans">
-            Access evidence-grounded drug label intelligence.
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold tracking-tight text-primary">Create an account</h1>
+        <p className="mt-1 mb-8 text-xs sm:text-sm text-fg-secondary">
+          Join LabelProof to query official prescribing labels.
+        </p>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <AuthInput
             id="signup-name"
             label="Full Name"
             type="text"
-            placeholder="Dr. Eleanor Vance"
+            placeholder="Dr. Jane Doe"
             icon={User}
             value={name}
             onChange={(e) => {
@@ -106,7 +96,7 @@ export default function SignUpPage() {
             id="signup-email"
             label="Email Address"
             type="email"
-            placeholder="researcher@institution.org"
+            placeholder="physician@hospital.org"
             icon={Mail}
             value={email}
             onChange={(e) => {
@@ -117,48 +107,49 @@ export default function SignUpPage() {
             autoComplete="email"
           />
 
-          <div>
-            <PasswordInput
-              id="signup-password"
-              label="Password"
-              placeholder="Create a password (min 6 chars)"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value)
-                if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }))
-              }}
-              error={errors.password}
-              autoComplete="new-password"
-            />
-          </div>
+          <PasswordInput
+            id="signup-password"
+            label="Password"
+            placeholder="Create a strong password (min 8 chars)"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }))
+            }}
+            error={errors.password}
+            autoComplete="new-password"
+          />
 
-          <div>
-            <PasswordInput
-              id="signup-confirm"
-              label="Confirm Password"
-              placeholder="Confirm your password"
-              value={confirmPassword}
-              onChange={(e) => {
-                setConfirmPassword(e.target.value)
-                if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: undefined }))
-              }}
-              error={errors.confirmPassword}
-              autoComplete="new-password"
-            />
-          </div>
+          <PasswordInput
+            id="signup-confirm"
+            label="Confirm Password"
+            placeholder="Confirm your password"
+            value={confirmPassword}
+            onChange={(e) => {
+              setConfirmPassword(e.target.value)
+              if (errors.confirmPassword)
+                setErrors((prev) => ({ ...prev, confirmPassword: undefined }))
+            }}
+            error={errors.confirmPassword}
+            autoComplete="new-password"
+          />
 
           <button
             type="submit"
             disabled={submitting}
-            className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-[6px] bg-[#22D3E8] hover:bg-[#38EDFF] font-sans text-xs font-bold text-[#0D1220] transition-all disabled:opacity-40 shadow-sm cursor-pointer"
+            className="mt-2 w-full rounded-pill bg-primary py-3 text-sm font-bold text-white shadow-card transition-all hover:bg-primary-hover active:scale-[0.98] disabled:opacity-60"
           >
-            <span>{submitting ? 'Creating account…' : 'Create Account →'}</span>
+            {submitting ? 'Creating account…' : 'Create LabelProof Account'}
           </button>
         </form>
 
-        <p className="mt-8 text-center text-xs text-text-secondary">
+        <div className="my-6">
+          <AuthDivider />
+        </div>
+
+        <p className="mt-6 text-center text-xs text-fg-secondary">
           Already have an account?{' '}
-          <Link to="/signin" className="font-semibold text-[#22D3E8] hover:underline transition-colors">
+          <Link to="/signin" className="font-bold text-primary transition-colors hover:text-accent underline">
             Sign in
           </Link>
         </p>

@@ -8,7 +8,11 @@ interface DeleteDocumentDialogProps {
   onConfirm: () => void
 }
 
-export function DeleteDocumentDialog({ document, onCancel, onConfirm }: DeleteDocumentDialogProps) {
+export function DeleteDocumentDialog({
+  document,
+  onCancel,
+  onConfirm,
+}: DeleteDocumentDialogProps) {
   useEffect(() => {
     if (!document) return
     const handleKey = (e: KeyboardEvent) => {
@@ -21,28 +25,34 @@ export function DeleteDocumentDialog({ document, onCancel, onConfirm }: DeleteDo
   if (!document) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      role="presentation"
+    >
+      {/* Backdrop */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onCancel}
         aria-hidden="true"
       />
+
+      {/* Dialog */}
       <div
-        className="relative w-full max-w-md rounded-[10px] border border-border bg-surface-raised p-6 shadow-console"
+        className="relative w-full max-w-md rounded-3xl border border-border bg-surface p-6 shadow-hover"
         role="alertdialog"
+        aria-modal="true"
         aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-desc"
       >
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] bg-danger/10 text-danger border border-danger/20">
-              <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-            </div>
-            <div>
-              <h2 id="delete-dialog-title" className="font-sans text-sm font-semibold text-text-primary">
-                Remove document from repository?
-              </h2>
-              <p className="text-[10px] font-mono text-text-muted">This action cannot be undone.</p>
-            </div>
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-danger/10 text-danger">
+            <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+          </div>
+          <div>
+            <h2 id="delete-dialog-title" className="text-[15px] font-semibold text-fg">
+              Delete document?
+            </h2>
+            <p className="text-sm text-fg-muted">This action cannot be undone.</p>
           </div>
           <button
             type="button"
@@ -54,15 +64,17 @@ export function DeleteDocumentDialog({ document, onCancel, onConfirm }: DeleteDo
           </button>
         </div>
 
-        <p className="my-4 text-xs leading-relaxed text-text-secondary font-sans">
-          Are you sure you want to remove <strong className="font-semibold text-text-primary">{document.name}</strong>? Grounded citations linking to this package insert will no longer resolve.
+        <p id="delete-dialog-desc" className="mb-6 text-sm text-fg-muted">
+          Are you sure you want to delete{' '}
+          <span className="font-medium text-fg">{document.name}</span>? It will
+          no longer be available as a knowledge source.
         </p>
 
-        <div className="flex justify-end gap-2 pt-3 border-t border-border">
+        <div className="flex justify-end gap-2">
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-[6px] bg-surface px-3.5 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-raised border border-border transition-colors font-sans cursor-pointer"
+            className="rounded-pill border border-border px-4 py-2 text-sm font-medium text-fg transition-colors hover:bg-surface-highlight"
           >
             Cancel
           </button>
@@ -70,7 +82,7 @@ export function DeleteDocumentDialog({ document, onCancel, onConfirm }: DeleteDo
           <button
             type="button"
             onClick={onConfirm}
-            className="rounded-[6px] bg-danger px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-red-600 transition-colors font-sans shadow-sm cursor-pointer"
+            className="rounded-pill bg-danger px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-danger/90"
           >
             Delete Document
           </button>

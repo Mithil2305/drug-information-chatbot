@@ -17,13 +17,14 @@ A practical, beginner-friendly reference covering everything implemented in the 
 7. [Chat Interface Deep Dive](#7-chat-interface-deep-dive)
 8. [Citations / Source UI](#8-citations--source-ui)
 9. [Manage Documents Page](#9-manage-documents-page)
-10. [Sign In / Sign Up UI](#10-sign-in--sign-up-ui)
-11. [Responsive / Mobile Design](#11-responsive--mobile-design)
-12. [Important React Concepts Used](#12-important-react-concepts-used)
-13. [How the Frontend Talks to the Future FastAPI Backend](#13-how-the-frontend-talks-to-the-future-fastapi-backend)
-14. [Complete User Flow](#14-complete-user-flow)
-15. [Viva Questions with Short Answers](#15-viva-questions-with-short-answers)
-16. [2–3 Minute Presentation Script](#16-23-minute-presentation-script)
+10. [Compare Drugs Page](#10-compare-drugs-page)
+11. [Sign In / Sign Up UI](#11-sign-in--sign-up-ui)
+12. [Responsive / Mobile Design](#12-responsive--mobile-design)
+13. [Important React Concepts Used](#13-important-react-concepts-used)
+14. [How the Frontend Talks to the FastAPI Backend](#14-how-the-frontend-talks-to-the-fastapi-backend)
+15. [Complete User Flow](#15-complete-user-flow)
+16. [Viva Questions with Short Answers](#16-viva-questions-with-short-answers)
+17. [2–3 Minute Presentation Script](#17-23-minute-presentation-script)
 
 ---
 
@@ -37,8 +38,9 @@ A practical, beginner-friendly reference covering everything implemented in the 
 | **Tailwind CSS 3** | Utility-first CSS framework | Lets us style directly in JSX, keeps design consistent via theme tokens, no separate CSS files to maintain |
 | **Lucide React** | Icon library | Clean, consistent, tree-shakeable SVG icons. Used everywhere (sidebar, buttons, status badges) |
 | **React Markdown** | Renders markdown in chat answers | Assistant answers include **bold**, lists, paragraphs — rendered safely as HTML |
-| **React Router DOM** | Client-side routing | Powers `/`, `/signin`, `/signup`, `/documents` routes without page reloads |
+| **React Router DOM** | Client-side routing | Powers `/`, `/chat`, `/signin`, `/signup`, `/documents`, `/compare` routes without page reloads |
 | **Sonner** | Toast notifications | Lightweight, polished toasts for upload/delete/sign-in feedback |
+| **Web Speech API** | Voice input & text-to-speech | `SpeechRecognition` for dictation in prompt bar; `SpeechSynthesis` for reading AI responses aloud |
 
 > **Note:** We deliberately avoided heavy UI libraries (Material UI, Ant Design) and state libraries (Zustand, Redux). The design stays custom and lightweight.
 
@@ -53,13 +55,17 @@ index.html
   └── src/main.tsx          → mounts <App /> into #root
         └── src/App.tsx     → sets up Router + all Context Providers
               └── Routes
-                    ├── /            → ChatPage
-                    ├── /chat/:id    → ChatPage
-                    ├── /documents   → DocumentsPage
-                    ├── /signin      → SignInPage
-                    ├── /signup      → SignUpPage
-                    └── *            → ChatPage (fallback)
+                    ├── /                  → ChatPage (ProtectedRoute)
+                    ├── /chat              → ChatPage (ProtectedRoute)
+                    ├── /chat/:conversationId? → ChatPage (ProtectedRoute)
+                    ├── /documents         → DocumentsPage (ProtectedRoute)
+                    ├── /compare           → ComparePage (ProtectedRoute)
+                    ├── /signin            → SignInPage
+                    ├── /signup            → SignUpPage
+                    └── *                  → ChatPage (fallback)
 ```
+
+> **Note:** Chat, Documents, and Compare routes are wrapped in `<ProtectedRoute>` which checks authentication state before rendering. Sign-in and sign-up pages are public.
 
 ### Provider nesting (in `App.tsx`)
 
@@ -162,7 +168,7 @@ Each context has a matching hook in `src/hooks/` (`useTheme`, `useUI`, `useConve
 
 ```
 src/
-├── api/                    # Future API client functions (currently unused by UI)
+├── api/                    # API client wrappers used by contexts and services
 │   ├── client.ts           # apiFetch() wrapper around fetch()
 │   ├── chat.ts, documents.ts, citations.ts, compare.ts
 ├── components/
@@ -174,12 +180,22 @@ src/
 │   │   └── AuthDivider.tsx         # "OR" divider
 │   ├── chat/               # Chat experience
 │   │   ├── ChatWindow.tsx          # Message list + empty state
-│   │   ├── ChatMessage.tsx         # User vs assistant bubble
-│   │   ├── PromptBar.tsx           # Bottom input bar
+│   │   ├── ChatMessage.tsx         # User vs assistant bubble + TTS
+│   │   ├── PromptBar.tsx           # Composer-style input bar with voice & doc selector
+│   │   ├── DocumentSelectorModal.tsx # Modal for selecting saved documents
 │   │   ├── StreamingText.tsx       # Typewriter effect
 │   │   ├── LoadingState.tsx        # "Searching the document…" spinner
 │   │   ├── CitationBadge.tsx       # Clickable page citation chip
 │   │   └── FollowUpList.tsx        # Suggested follow-up questions
+│   ├── compare/            # Drug comparison interface
+│   │   ├── DrugSelector.tsx        # Drug 1 / Drug 2 selection panel
+│   │   ├── DrugSelect.tsx          # Accessible custom dropdown
+│   │   ├── SwapDrugsButton.tsx     # Swap drugs icon button
+│   │   ├── CompareButton.tsx       # Primary compare CTA
+│   │   ├── ComparisonTable.tsx     # Side-by-side comparison table
+│   │   ├── ComparisonCell.tsx      # Single table cell with citations
+│   │   ├── ComparisonSkeleton.tsx  # Loading skeleton
+│   │   └── ComparisonError.tsx     # Error / retry state
 │   ├── documents/          # Manage Documents page
 │   │   ├── DocumentUpload.tsx      # Dropzone + upload button
 │   │   ├── DocumentSearch.tsx      # Search input
@@ -190,16 +206,19 @@ src/
 │   └── layout/             # App shell
 │       ├── ChatLayout.tsx          # Sidebar + main area wrapper
 │       ├── Sidebar.tsx             # Composes header, nav, recent chats, profile
-│       ├── SidebarHeader.tsx       # Logo, search, collapse buttons
-│       ├── RecentChats.tsx         # Flat recent-chats list with rename/delete
-│       ├── UserProfile.tsx         # Bottom user profile section
+│       ├── SidebarHeader.tsx       # Logo, search, collapse buttons + GlobalSearchPanel
+│       ├── GlobalSearchPanel.tsx   # Portal-based modal search for chats & documents
+│       ├── RecentChats.tsx         # Flat recent-chats list with 3-dot menu & delete confirmation
+│       ├── UserProfile.tsx         # Bottom user profile + logout confirmation modal
 │       └── MobileSidebar.tsx       # Slide-in drawer for mobile
 ├── contexts/               # All React Context providers
 ├── hooks/                  # useChat, useUI, useTheme, useDocuments, useConversations
 ├── pages/                  # Route-level pages
-│   ├── ChatPage.tsx, DocumentsPage.tsx, SignInPage.tsx, SignUpPage.tsx
+│   ├── ChatPage.tsx, ComparePage.tsx, DocumentsPage.tsx, SignInPage.tsx, SignUpPage.tsx
 ├── theme/                  # Color tokens, light/dark themes, typography
-├── types/                  # TypeScript interfaces (chat.ts, document.ts)
+├── types/                  # TypeScript interfaces (chat.ts, document.ts, comparison.ts)
+├── services/               # Business-logic service abstractions
+│   └── comparisonService.ts      # Wraps /api/v1/compare, supports mock flag
 ├── utils/                  # formatters.ts (date/file size), validators.ts
 ├── App.tsx                 # Router + providers
 ├── main.tsx                # Entry point
@@ -226,8 +245,9 @@ A fixed left sidebar on desktop (`w-64`) with two modes:
 
 Sub-components:
 - **`SidebarHeader`** — LabelProof logo, search button, collapse/expand button, close button (mobile only).
-- **`RecentChats`** — flat list of recent conversations (sorted by most recent). Each row shows the title; hovering reveals rename (pencil) and delete (trash) icons. Active conversation is highlighted with `bg-surface-highlight`. Inline rename uses a controlled input with Enter to save / Escape to cancel.
-- **`UserProfile`** — avatar circle ("MM"), name "Mohanapriyan M", label "LabelProof User", settings icon.
+- **`RecentChats`** — flat list of recent conversations (sorted by most recent). Each row shows the title; hovering reveals a **three-dot menu** (⋮). Clicking opens a dropdown with **Rename** and **Delete** options. Delete triggers a **custom confirmation modal** (portal-based) showing the conversation title with Cancel/Delete buttons. Active conversation is highlighted with `bg-surface-highlight`. Inline rename uses a controlled input with Enter to save / Escape to cancel.
+- **`UserProfile`** — avatar circle ("MM"), name "Mohanapriyan M", label "LabelProof User", settings icon. Includes a **logout confirmation modal** rendered via React portal with backdrop blur.
+- **`GlobalSearchPanel`** — portal-based centered modal with live search across recent chats and documents. Triggered from the search button in `SidebarHeader`. Renders to `document.body` with `z-50`.
 
 ### Mobile sidebar (`MobileSidebar.tsx`)
 
@@ -262,16 +282,28 @@ The assistant message has a **streaming phase**: when it's the last message and 
 
 **Action bar** (after streaming completes):
 - Source count ("1 source" / "2 sources")
+- **Speaker icon** (`Volume2` / `Square`) — uses the Web Speech Synthesis API (`window.speechSynthesis`) to read the AI response aloud. Markdown formatting is stripped before passing to the utterance. Clicking again stops the speech. The icon toggles between `Volume2` (not speaking) and `Square` (actively reading).
 - Copy button (uses `navigator.clipboard.writeText`, shows a check icon for 2 seconds)
-- Regenerate button (placeholder alert)
-- Thumbs up / Thumbs down (placeholder alerts)
 
 ### PromptBar (`components/chat/PromptBar.tsx`)
 
-- Rounded card with a `+` attach button, an auto-growing `<textarea>`, and a send button.
-- **Enter** sends the message; **Shift+Enter** inserts a newline.
-- Send button is disabled when input is empty or the assistant is loading.
-- Auto-resizes up to a max height of 200px.
+A composer-style input bar with a grid layout that adapts to content:
+
+- **`+` button** (left) — opens a native file picker for uploading documents. Accepts `.pdf`, `.docx`, and `.doc` files only. Selected files appear as removable chips inside the composer.
+- **Auto-growing `<textarea>`** — uses a hidden measuring `<span>` and `useLayoutEffect` to auto-resize. Min height 28px, max height 120px. **Enter** sends the message; **Shift+Enter** inserts a newline.
+- **`FolderOpen` button** — opens a `DocumentSelectorModal` to pick from saved (ready) documents. Selected documents appear as chips **above** the prompt bar. When all documents are selected, a single "All documents" chip with primary styling is shown.
+- **Mic button** — toggles voice dictation using the Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`). Shows animated equalizer bars while listening. Uses `continuous: true` and `interimResults: true` for real-time transcription. Auto-restarts on `onend` if the user hasn't stopped. Interim results are shown live; finalized segments accumulate in a ref.
+- **Send button** — disabled when input is empty or the assistant is loading. Shows a spinner (`Loader2`) during loading.
+- The container switches from `rounded-full` to `rounded-2xl` when attachments are present or the textarea is expanded.
+
+### DocumentSelectorModal (`components/chat/DocumentSelectorModal.tsx`)
+
+- Portal-based modal (`createPortal` to `document.body`, `z-50`) for selecting saved documents.
+- **Search bar** at the top — filters documents by name or filename in real-time.
+- **"Select all" row** — toggles between selecting all ready documents and none.
+- **Document list** — scrollable, each row has a checkbox, `FileText` icon, document name, filename, and page count. Only shows documents with `status: 'ready'`.
+- **Footer** — shows selection count with Cancel and Confirm buttons. Confirm is disabled when nothing is selected.
+- Empty state when no documents match the search.
 
 ### StreamingText (`components/chat/StreamingText.tsx`)
 
@@ -286,13 +318,15 @@ The assistant message has a **streaming phase**: when it's the last message and 
 
 ### Simulated streaming (in `ChatContext.tsx`)
 
-Currently mock-only:
+Currently mock-only with hardcoded demo responses:
 1. User message added immediately.
 2. `isLoading` set to `true`.
 3. After ~1.5s, a grounded assistant message is added with demo citations and follow-ups.
 4. `isLoading` set to `false`.
 
-> When the backend is ready, this `setTimeout` block becomes a real API call (see Section 13).
+The mock responses include realistic drug information content (dosage, warnings, contraindications) with citations pointing to specific pages and follow-up questions for a natural chat experience.
+
+> When the backend is ready, this `setTimeout` block becomes a real API call (see Section 14).
 
 ---
 
@@ -364,7 +398,67 @@ Wrapped in `ChatLayout` so the sidebar stays consistent.
 
 ---
 
-## 10. Sign In / Sign Up UI
+## 10. Compare Drugs Page
+
+### Route: `/compare` → `ComparePage.tsx`
+
+This is a dedicated side-by-side drug-label comparison page. It lets a user pick two approved drug documents and compare clinically relevant attributes.
+
+### Why we added it
+
+Clinicians and pharmacists often compare two drugs on dosage, warnings, interactions, pregnancy guidance, and more. This page surfaces those sections side-by-side with clickable page citations, so users can verify differences against the source PDFs instead of opening two documents manually.
+
+### User flow
+
+1. Select **Drug 1** and **Drug 2** from the dropdown of ready documents.
+2. Optionally click the **swap** button to exchange them.
+3. Click **Compare**.
+4. The UI shows a loading skeleton.
+5. A three-column comparison table appears:
+   - **Attribute** (e.g., Indications, Warnings, Storage)
+   - **Drug 1**
+   - **Drug 2**
+6. Each cell shows the value and one or more "Page X" citation badges.
+7. Clicking a citation badge sets `selectedCitation` in `ChatContext`, reusing the existing source-verification flow.
+8. On mobile, the table stacks into sections so it stays readable.
+
+### Components added (`src/components/compare/`)
+
+- `ComparePage.tsx` — route-level page; wraps `ChatLayout` and handles the comparison lifecycle.
+- `DrugSelector.tsx` / `DrugSelect.tsx` — accessible custom dropdowns with search, keyboard navigation, and validation state.
+- `SwapDrugsButton.tsx` — small icon button with a tooltip to swap the two selected drugs.
+- `CompareButton.tsx` — primary call-to-action with loading spinner.
+- `ComparisonTable.tsx` — semantic `<table>` on desktop; stacked attribute cards on mobile.
+- `ComparisonHeader.tsx` — drug name, generic name, drug class badge, and document info.
+- `ComparisonRow.tsx` / `ComparisonCell.tsx` — renders each attribute row, with warning/highlight/unavailable styling.
+- `ComparisonCitationBadge.tsx` — clickable page badges wired to `setSelectedCitation`.
+- `ComparisonEmptyState.tsx`, `ComparisonSkeleton.tsx`, `ComparisonError.tsx` — empty, loading, and error states.
+
+### Service layer (`src/services/`)
+
+- `comparisonService.ts` — wraps `compareDrugsApi` from `src/api/compare.ts`. If `VITE_USE_MOCK_COMPARE=true` it returns clearly-isolated mock data; otherwise it calls the FastAPI backend. This keeps the API call out of the UI components.
+
+### TypeScript data model (`src/types/comparison.ts`)
+
+```ts
+interface ComparisonResult {
+  drug1: DrugInfo
+  drug2: DrugInfo
+  attributes: ComparisonAttribute[]
+}
+```
+
+Cells support `content`, `citations[]`, and a `status` (`normal`, `warning`, `highlight`, `unavailable`). This lets the table subtly warn about serious safety information and highlight dosage differences without inventing missing data.
+
+### Validation & states
+
+- Empty state shown before any comparison is run.
+- Validation messages if Drug 1 or Drug 2 is missing, or if both are the same drug.
+- Loading state with shimmer skeleton rows.
+- Error state with a "Try again" button.
+- "Not available in source document" for any missing attribute.
+
+## 11. Sign In / Sign Up UI
 
 ### Routes: `/signin` and `/signup`
 
@@ -425,7 +519,7 @@ No external images — everything is Tailwind/CSS.
 
 ---
 
-## 11. Responsive / Mobile Design
+## 12. Responsive / Mobile Design
 
 ### Breakpoint strategy
 
@@ -454,15 +548,16 @@ No external images — everything is Tailwind/CSS.
 
 ---
 
-## 12. Important React Concepts Used
+## 13. Important React Concepts Used
 
 | Concept | Where it's used |
 |---|---|
 | **Components & Props** | Every UI piece is a reusable component with typed props |
-| **`useState`** | Form fields, sidebar open/closed, menu open, editing state, password visibility |
-| **`useEffect`** | Window resize listener (UIContext), theme class on `<html>` (ThemeContext), streaming interval (StreamingText), Escape key handler (MobileSidebar, DeleteDocumentDialog), auto-scroll (ChatWindow) |
-| **`useRef`** | Textarea auto-resize (PromptBar), hidden file input click (DocumentUpload), scroll target (ChatWindow) |
-| **`useCallback`** | Stable `onComplete` callback in ChatMessage |
+| **`useState`** | Form fields, sidebar open/closed, menu open, editing state, password visibility, voice listening, speaking state, doc modal open, selected doc IDs |
+| **`useEffect`** | Window resize listener (UIContext), theme class on `<html>` (ThemeContext), streaming interval (StreamingText), Escape key handler (MobileSidebar, DeleteDocumentDialog), auto-scroll (ChatWindow), click-outside for dropdown menus (RecentChats), speech recognition cleanup (PromptBar) |
+| **`useRef`** | Textarea auto-resize (PromptBar), hidden file input click (DocumentUpload), scroll target (ChatWindow), speech recognition instance (PromptBar), speech synthesis utterance (ChatMessage), measuring span for auto-expand |
+| **`useCallback`** | Stable `onComplete` callback in ChatMessage, `startListening`/`stopListening` in PromptBar |
+| **`useLayoutEffect`** | Textarea auto-resize measurement (PromptBar) — runs before paint to avoid flicker |
 | **`useMemo`** | Filtered documents in DocumentContext (avoids re-filtering on every render) |
 | **Context API** | All 5 contexts described in Section 4 |
 | **Custom hooks** | `useChat`, `useUI`, `useTheme`, `useDocuments`, `useConversations` — each wraps `useContext` with a guard |
@@ -476,11 +571,11 @@ No external images — everything is Tailwind/CSS.
 
 ---
 
-## 13. How the Frontend Talks to the Future FastAPI Backend
+## 14. How the Frontend Talks to the FastAPI Backend
 
 ### Current state
 
-The UI uses **mock data only** — contexts hold hardcoded seed arrays and `setTimeout` to simulate latency. No real network calls happen yet.
+The **documents** and **drug comparison** flows already call the FastAPI backend through `src/api/`. The **chat** flow is currently simulated with `setTimeout` until the RAG pipeline is fully integrated, but it uses the same context shape the real API will return. This keeps the component layer stable while the backend catches up.
 
 ### Prepared API layer (`src/api/`)
 
@@ -490,7 +585,7 @@ The UI uses **mock data only** — contexts hold hardcoded seed arrays and `setT
   ```
   It wraps `fetch()`, sets JSON headers, throws on non-OK responses, and returns parsed JSON.
 - **`documents.ts`** already declares `fetchDocuments()`, `uploadDocument(file)`, `deleteDocument(id)`.
-- **`chat.ts`, `citations.ts`, `compare.ts`** are stubs for future endpoints.
+- **`chat.ts` and `citations.ts`** are stubs for future endpoints; **`compare.ts`** is already used by `comparisonService.ts`.
 
 ### How the switch will work
 
@@ -517,12 +612,13 @@ The components **don't change** because they only consume the context — they d
 | `GET` | `/api/documents` | List user's documents |
 | `POST` | `/api/documents` | Upload PDF (multipart) |
 | `DELETE` | `/api/documents/:id` | Delete document |
+| `POST` | `/api/v1/compare` | Compare two drug documents side-by-side |
 | `POST` | `/api/chat` | Send question, get grounded answer + citations |
 | `GET` | `/api/documents/:id/page/:page` | Fetch a specific PDF page (for the viewer) |
 
 ---
 
-## 14. Complete User Flow
+## 15. Complete User Flow
 
 Here's the full journey a user takes through the frontend:
 
@@ -544,30 +640,43 @@ Here's the full journey a user takes through the frontend:
    └── Rename a document inline
    └── Delete a document → confirmation dialog → toast
 
-5. CLICK "New Chat" → back to / (empty chat)
+5. CLICK "Compare Drugs" → /compare
+   └── Select Drug 1 and Drug 2 from the dropdown of ready documents
+   └── Swap them if needed
+   └── Click Compare and wait for the skeleton to fill
+   └── View side-by-side attributes, warnings, dosage, and page citations
+
+6. CLICK "New Chat" → back to / (empty chat)
    └── Type a question in the prompt bar → Enter
+   └── Or click the mic icon to dictate using voice (Web Speech API)
+   └── Or click the folder icon to select saved documents as context
+   └── Or click the + icon to upload PDF/DOCX/DOC files
    └── User bubble appears immediately
    └── "Searching the document…" loading state
    └── Assistant answer streams in character-by-character
    └── Markdown renders (bold, lists)
    └── Citation badges appear ("Page 12")
    └── Source count shown
-   └── Copy / Regenerate / Thumbs up / Thumbs down actions
+   └── Click speaker icon to hear the answer read aloud (text-to-speech)
+   └── Copy answer to clipboard
    └── Follow-up question buttons → click to ask next
 
-6. CLICK A CITATION (future)
+7. CLICK A CITATION (future)
    └── Opens PDF viewer at the cited page (not yet implemented)
 
-7. SIDEBAR → recent chat appears in the list
-   └── Hover to rename or delete
+8. SIDEBAR → recent chat appears in the list
+   └── Hover to reveal three-dot menu (⋮)
+   └── Click → Rename or Delete options in dropdown
+   └── Delete → custom confirmation modal → confirm to delete
    └── Click to (future) reload that conversation
+   └── Search button in header opens GlobalSearchPanel (search chats & documents)
 ```
 
 **Ask → Answer → Cite → Verify** — the first three steps are implemented; "Verify" (PDF page navigation) is the next phase.
 
 ---
 
-## 15. Viva Questions with Short Answers
+## 16. Viva Questions with Short Answers
 
 ### Q: What is LabelProof?
 **A:** An evidence-first drug-information chatbot. Users ask questions about approved drugs, and the AI answers with citations pointing to exact pages of official drug-label PDFs.
@@ -589,6 +698,18 @@ Here's the full journey a user takes through the frontend:
 
 ### Q: How is the chat answer streamed?
 **A:** Currently simulated. `StreamingText` uses `setInterval` to reveal one character every 20ms with a blinking cursor. When the backend is ready, this will be replaced with a real streaming response (e.g., Server-Sent Events).
+
+### Q: How does voice input work in the prompt bar?
+**A:** We use the Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`) with `continuous: true` and `interimResults: true`. When the user clicks the mic button, recognition starts and transcribed text appears in the textarea in real-time. The browser may stop recognition periodically, so we auto-restart it via the `onend` handler using a `shouldListenRef`. Clicking the mic again stops recognition. The button shows animated equalizer bars while listening.
+
+### Q: How does the text-to-speech feature work?
+**A:** We use `window.speechSynthesis` with `SpeechSynthesisUtterance`. When the user clicks the speaker icon next to an AI response, we strip markdown formatting and pass the plain text to the utterance. The icon toggles to a `Square` (stop) icon while speaking. Clicking again cancels the speech. The `onend` and `onerror` handlers reset the state automatically.
+
+### Q: What is the Document Selector Modal?
+**A:** A portal-based modal that lets users pick from their saved (ready) documents before asking a question. It has a search bar, a "Select all" toggle, and a scrollable list with checkboxes. Selected documents appear as chips above the prompt bar. When all are selected, a single "All documents" chip is shown. This lets users scope their question to specific drug-label documents.
+
+### Q: How does the three-dot menu in recent chats work?
+**A:** Each conversation row in the sidebar has a `MoreVertical` (⋮) icon that appears on hover. Clicking opens a small dropdown with Rename and Delete options. The dropdown closes on outside click (via a `mousedown` listener). Delete triggers a custom confirmation modal rendered via React portal, showing the conversation title with Cancel and Delete buttons.
 
 ### Q: What is a citation badge?
 **A:** A small clickable pill that shows "Page 12" with a document icon. It tells the user exactly where in the source PDF the answer came from. Clicking it will eventually open the PDF viewer at that page.
@@ -617,12 +738,15 @@ Here's the full journey a user takes through the frontend:
 ### Q: Is the app accessible?
 **A:** Yes — semantic HTML, `aria-label` on icon-only buttons, `aria-hidden` on decorative icons, keyboard support (Enter to send, Escape to close dialogs/drawers), focus styles on inputs, and `role="status"` on the loading indicator.
 
+### Q: How does the Compare Drugs page work?
+**A:** The user selects two ready drug documents from custom dropdowns, optionally swaps them, and clicks Compare. The frontend calls `/api/v1/compare` (with a clearly isolated mock fallback when `VITE_USE_MOCK_COMPARE=true`), then renders a side-by-side table of clinical attributes. Each cell shows the value and clickable page citations. Missing data is shown as "Not available in source document." On mobile, the table stacks into readable sections.
+
 ### Q: What would you add next?
-**A:** Real backend integration, a PDF viewer for citation verification, persistent conversation history, drug comparison, and authentication with JWT tokens.
+**A:** Real backend integration for the chat RAG pipeline, a PDF viewer for citation verification, persistent conversation history, and authentication with JWT tokens.
 
 ---
 
-## 16. 2–3 Minute Presentation Script
+## 17. 2–3 Minute Presentation Script
 
 > Use this as a spoken script for your demo. Keep a relaxed pace — it's about 350 words.
 
@@ -632,13 +756,17 @@ Here's the full journey a user takes through the frontend:
 
 For the frontend, we built a polished, dark, ChatGPT-style interface using **React 19, TypeScript, Vite, and Tailwind CSS**. We chose TypeScript for type safety, Vite for fast development, and Tailwind because it lets us define a semantic theme system using CSS variables — so light and dark modes switch instantly without touching any component.
 
-The app has four main screens. First, a **Sign In and Sign Up** flow with a premium two-column layout — form on the left, an animated CSS brand panel on the right that hides on mobile. Form validation is inline and real-time.
+The app has five main screens. First, a **Sign In and Sign Up** flow with a premium two-column layout — form on the left, an animated CSS brand panel on the right that hides on mobile. Form validation is inline and real-time.
 
-After login, you land on the **Chat page**. On the left is a responsive sidebar with the LabelProof logo, a New Chat button, a Manage Documents link, a flat recent-chats list with inline rename and delete, and a user profile at the bottom. On mobile, this sidebar becomes a slide-in drawer.
+After login, you land on the **Chat page**. On the left is a responsive sidebar with the LabelProof logo, a New Chat button, a Manage Documents link, a Compare Drugs link, a flat recent-chats list with inline rename and delete, and a user profile at the bottom. On mobile, this sidebar becomes a slide-in drawer.
 
-The chat itself supports markdown answers, a typewriter streaming effect, a loading state that says 'Searching the document,' citation badges showing the source page, copy and feedback actions, and follow-up question chips. The prompt bar auto-resizes and sends on Enter.
+The chat itself supports markdown answers, a typewriter streaming effect, a loading state that says 'Searching the document,' citation badges showing the source page, a **speaker icon for text-to-speech** that reads answers aloud, a copy button, and follow-up question chips. The **prompt bar** is a composer-style input with a **+ button for file upload** (PDF/DOCX/DOC), a **folder icon to select saved documents** via a modal with search and select-all, a **mic button for voice dictation** using the Web Speech API with animated equalizer bars, and an auto-resizing textarea that sends on Enter. Selected documents appear as chips above the bar.
 
 The **Manage Documents** page lets users upload drug-label PDFs via drag-and-drop, search and filter documents, see processing status badges, rename inline, and delete with a confirmation dialog and toast notifications. It's fully responsive — one column on mobile, three on desktop.
+
+The **Compare Drugs** page lets users pick two approved drug documents and compare attributes like indications, dosage, warnings, contraindications, pregnancy guidance, and storage side-by-side, with clickable page citations for verification.
+
+The **sidebar** features a three-dot menu on each recent chat for rename and delete, with a custom confirmation modal for deletion. A global search panel lets users search across chats and documents from the sidebar header.
 
 For state management, we use **React Context** — five contexts for theme, UI, conversations, documents, and chat. No Zustand or Redux, keeping the app lightweight and easy to reason about.
 
