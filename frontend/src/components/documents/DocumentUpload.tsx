@@ -35,23 +35,12 @@ export function DocumentUpload() {
       }}
       onDragLeave={() => setDragging(false)}
       onDrop={handleDrop}
-      className={`
-        group relative flex flex-col items-center justify-center rounded-xl
-        border-2 border-dashed p-10 text-center
-        transition-all duration-200
-        ${dragging
-          ? 'border-primary bg-primary-soft'
-          : 'border-line bg-surface hover:border-primary/40 hover:bg-surface-highlight'
-        }
-      `}
+      className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${
+        dragging ? 'border-primary bg-primary/5' : 'border-border bg-surface'
+      }`}
     >
-      {/* Upload Icon */}
-      <div
-        className={`mb-4 flex h-12 w-12 items-center justify-center rounded-xl transition-colors ${
-          dragging ? 'bg-primary text-white' : 'bg-surface-highlight text-primary'
-        }`}
-      >
-        <Upload className="h-5 w-5" aria-hidden="true" />
+      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-highlight text-primary">
+        <Upload className="h-6 w-6" aria-hidden="true" />
       </div>
 
       {/* Copy */}
@@ -66,7 +55,7 @@ export function DocumentUpload() {
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        className="rounded-pill bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover"
       >
         Upload PDF
       </button>

@@ -13,7 +13,12 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 from app.core.config import settings
 from app.db.database import Base
-from app.models.user import User  # Registers User metadata
+from app.models.user import User
+from app.models.document import Document
+from app.models.document_page import DocumentPage
+from app.models.chunk import Chunk
+from app.models.chat import ChatSession, ChatMessage
+from app.models.citation import Citation
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

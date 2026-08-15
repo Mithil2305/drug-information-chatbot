@@ -5,16 +5,17 @@ import { DocumentCard } from './DocumentCard'
 
 interface DocumentListProps {
   onDelete: (doc: Document) => void
+  selectedDocumentId?: string | null
 }
 
-export function DocumentList({ onDelete }: DocumentListProps) {
+export function DocumentList({ onDelete, selectedDocumentId }: DocumentListProps) {
   const { filteredDocuments, documents } = useDocuments()
 
   if (documents.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line py-20 text-center">
-        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-surface-highlight">
-          <FileText className="h-6 w-6 text-fg-subtle" aria-hidden="true" />
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface py-16 text-center">
+        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-highlight text-fg-muted">
+          <FileText className="h-6 w-6" aria-hidden="true" />
         </div>
         <h3 className="mb-1 text-sm font-semibold text-fg">No documents yet</h3>
         <p className="max-w-xs text-xs text-fg-muted">
@@ -27,7 +28,7 @@ export function DocumentList({ onDelete }: DocumentListProps) {
 
   if (filteredDocuments.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line py-16 text-center">
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface py-16 text-center">
         <h3 className="mb-1 text-sm font-semibold text-fg">No matching documents</h3>
         <p className="text-xs text-fg-muted">
           Try a different search term, or clear the search.
@@ -37,9 +38,14 @@ export function DocumentList({ onDelete }: DocumentListProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       {filteredDocuments.map((doc) => (
-        <DocumentCard key={doc.id} document={doc} onDelete={onDelete} />
+        <DocumentCard
+          key={doc.id}
+          document={doc}
+          onDelete={onDelete}
+          isSelected={selectedDocumentId === doc.id}
+        />
       ))}
     </div>
   )

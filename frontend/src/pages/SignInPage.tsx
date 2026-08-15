@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Mail } from 'lucide-react'
+import { Mail, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { AuthLayout } from '../components/auth/AuthLayout'
 import { AuthInput } from '../components/auth/AuthInput'
@@ -41,7 +41,7 @@ export default function SignInPage() {
     try {
       await login(email, password)
       toast.success('Signed in successfully')
-      navigate('/')
+      navigate('/chat')
     } catch (err) {
       const message =
         err instanceof Error
@@ -55,20 +55,26 @@ export default function SignInPage() {
 
   return (
     <AuthLayout>
-      <div className="w-full">
-        <h1 className="mb-1.5 text-[26px] font-semibold tracking-tight text-fg">
-          Welcome back
-        </h1>
-        <p className="mb-8 text-sm text-fg-muted">
-          Sign in to continue using LabelProof.
+      <div className="mx-auto w-full max-w-sm">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-fg-muted hover:text-primary transition-colors mb-6"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          <span>Back to Home</span>
+        </Link>
+
+        <h1 className="text-2xl font-bold tracking-tight text-primary">Welcome back</h1>
+        <p className="mt-1 mb-8 text-xs sm:text-sm text-fg-secondary">
+          Sign in to access the LabelProof clinical AI assistant.
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <AuthInput
             id="signin-email"
-            label="Email address"
+            label="Email Address"
             type="email"
-            placeholder="you@example.com"
+            placeholder="physician@hospital.org"
             icon={Mail}
             value={email}
             onChange={(e) => {
@@ -79,47 +85,36 @@ export default function SignInPage() {
             autoComplete="email"
           />
 
-          <div>
-            <PasswordInput
-              id="signin-password"
-              label="Password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value)
-                if (errors.password)
-                  setErrors((prev) => ({ ...prev, password: undefined }))
-              }}
-              error={errors.password}
-              autoComplete="current-password"
-            />
-            <div className="mt-2 flex justify-end">
-              <button
-                type="button"
-                onClick={() => toast.info('Password reset coming soon')}
-                className="text-xs text-fg-muted transition-colors hover:text-fg"
-              >
-                Forgot password?
-              </button>
-            </div>
-          </div>
+          <PasswordInput
+            id="signin-password"
+            label="Password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }))
+            }}
+            error={errors.password}
+            autoComplete="current-password"
+          />
 
           <button
             type="submit"
             disabled={submitting}
-            className="mt-1 h-10 w-full rounded-lg bg-primary text-sm font-medium text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-2 w-full rounded-pill bg-primary py-3 text-sm font-bold text-white shadow-card transition-all hover:bg-primary-hover active:scale-[0.98] disabled:opacity-60"
           >
-            {submitting ? 'Signing in…' : 'Sign in'}
+            {submitting ? 'Signing in…' : 'Sign in to LabelProof'}
           </button>
         </form>
 
-        <p className="mt-8 text-center text-sm text-fg-muted">
+        <div className="my-6">
+          <AuthDivider />
+        </div>
+
+        <p className="mt-6 text-center text-xs text-fg-secondary">
           Don&apos;t have an account?{' '}
-          <Link
-            to="/signup"
-            className="font-medium text-primary transition-colors hover:text-primary-hover"
-          >
-            Sign up
+          <Link to="/signup" className="font-bold text-primary transition-colors hover:text-accent underline">
+            Create an account
           </Link>
         </p>
       </div>

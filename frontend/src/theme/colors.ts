@@ -1,32 +1,28 @@
 export const BaseColors = {
-  // Brand
-  primary:      '#0F8F83',
-  primaryHover: '#0B776D',
-  primarySoft:  '#DDF5F1',
-  accent:       '#16A394',
-
-  // Semantic
-  ai:      '#2DD4BF',
-  success: '#16A34A',
-  warning: '#D97706',
-  danger:  '#DC2626',
-  white:   '#FFFFFF',
-
-  // Light theme
-  backgroundLight:        '#F8FAFC',
-  surfaceLight:           '#FFFFFF',
-  surfaceHighlightLight:  '#F1F5F9',
-  textPrimaryLight:       '#172033',
-  textSecondaryLight:     '#64748B',
-  borderLight:            '#E2E8F0',
-
-  // Dark theme
-  backgroundDark:         '#0B1220',
-  surfaceDark:            '#101827',
-  surfaceHighlightDark:   '#1A2535',
-  textPrimaryDark:        '#E5E7EB',
-  textSecondaryDark:      '#9CA3AF',
-  borderDark:             '#263448',
+  primary: '#0E3A3A',
+  primaryLight: '#115150',
+  primaryHover: '#115150',
+  teal: '#1C5959',
+  accent: '#0F7772',
+  ai: '#0F7772',
+  success: '#2F7D65',
+  warning: '#B87925',
+  danger: '#B64A4A',
+  info: '#347A82',
+  white: '#FFFFFF',
+  backgroundLight: '#F7F6F2',
+  surfaceLight: '#FFFFFF',
+  surfaceWarmLight: '#F5F3E6',
+  backgroundDark: '#0e1619',
+  surfaceDark: '#162226',
+  surfaceHighlightDark: '#25393f',
+  textPrimaryLight: '#021D1D',
+  textSecondaryLight: '#52605F',
+  textMutedLight: '#7B8583',
+  textPrimaryDark: '#f4f8f7',
+  textSecondaryDark: '#c5d5d2',
+  borderLight: '#E4E5E1',
+  borderDark: 'rgba(200, 225, 221, 0.22)',
 } as const
 
 export type BaseColorKey = keyof typeof BaseColors

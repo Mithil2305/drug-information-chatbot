@@ -1,7 +1,8 @@
-import { FileText, Plus } from 'lucide-react'
-import { Link, useLocation } from 'react-router-dom'
+import { FileText, Plus, BookOpen } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useChat } from '../../hooks/useChat'
 import { useConversations } from '../../hooks/useConversations'
+import { useDocuments } from '../../hooks/useDocuments'
 import { useUI } from '../../hooks/useUI'
 import { Tooltip } from '../common/Tooltip'
 import { RecentChats } from './RecentChats'
@@ -17,7 +18,8 @@ export function Sidebar({ onClose }: SidebarProps) {
   const { sidebarCollapsed } = useUI()
   const { clearChat } = useChat()
   const { newConversation } = useConversations()
-  const location = useLocation()
+  const { documents } = useDocuments()
+  const readyDocs = documents.filter((d) => d.status === 'ready')
   const collapsed = sidebarCollapsed
 
   const handleNewChat = () => {
@@ -30,86 +32,98 @@ export function Sidebar({ onClose }: SidebarProps) {
 
   if (collapsed) {
     return (
-      <aside className="flex h-full w-[68px] shrink-0 flex-col items-center border-r border-line bg-surface py-2">
+      <aside className="sticky top-0 flex h-screen w-14 flex-col items-center border-r border-border bg-surface py-2 shadow-subtle">
         <SidebarHeader onClose={onClose} collapsed />
-
-        <div className="mt-3 flex flex-col items-center gap-1 px-2">
-          <Tooltip content="New Chat" side="right">
-            <button
-              type="button"
-              onClick={handleNewChat}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
-              aria-label="New chat"
-            >
-              <Plus className="h-5 w-5" aria-hidden="true" />
-            </button>
-          </Tooltip>
-
-          <Tooltip content="Manage Documents" side="right">
-            <Link
-              to="/documents"
-              onClick={onClose}
-              className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-surface-highlight hover:text-fg ${
-                isDocuments ? 'bg-surface-highlight text-fg' : 'text-fg-muted'
-              }`}
-              aria-label="Manage documents"
-            >
-              <FileText className="h-5 w-5" aria-hidden="true" />
-            </Link>
-          </Tooltip>
+        <div className="mt-2 flex flex-col items-center gap-1.5">
+          <button
+            type="button"
+            onClick={handleNewChat}
+            className="flex h-9 w-9 items-center justify-center rounded-2xl text-primary transition-colors hover:bg-surface-highlight"
+            aria-label="New clinical inquiry"
+            title="New Chat"
+          >
+            <Plus className="h-5 w-5" />
+          </button>
+          <Link
+            to="/drugs"
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-2xl text-fg-muted transition-colors hover:bg-surface-highlight hover:text-primary"
+            aria-label="Drug Library"
+            title="Drug Library"
+          >
+            <BookOpen className="h-5 w-5" />
+          </Link>
+          <Link
+            to="/documents"
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-2xl text-fg-muted transition-colors hover:bg-surface-highlight hover:text-primary"
+            aria-label="Manage documents"
+            title="Manage Documents"
+          >
+            <FileText className="h-5 w-5" />
+          </Link>
         </div>
-
-        <div className="mt-4 flex-1 overflow-y-auto w-full">
-          <RecentChats collapsed />
-        </div>
-
-        <div className="flex flex-col items-center gap-1 border-t border-line pt-2 pb-1 w-full px-2">
-          <ThemeToggle collapsed />
-          <UserProfile collapsed />
-        </div>
+        <div className="mt-4 flex-1" />
+        <UserProfile collapsed />
       </aside>
     )
   }
 
   return (
-    <aside className="flex h-full w-[268px] shrink-0 flex-col border-r border-line bg-surface">
+    <aside className="sticky top-0 flex h-screen w-64 flex-col border-r border-border bg-surface shadow-subtle">
       <SidebarHeader onClose={onClose} collapsed={false} />
 
-      {/* Primary Actions */}
-      <div className="flex flex-col gap-0.5 px-2 pt-1 pb-2">
+      <div className="flex flex-col gap-1.5 px-3 pt-3">
         <button
           type="button"
           onClick={handleNewChat}
-          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
+          className="flex w-full items-center gap-2 rounded-pill bg-primary px-3.5 py-2 text-xs font-bold text-white shadow-subtle hover:bg-primary-hover transition-all"
         >
-          <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span>New Chat</span>
+          <Plus className="h-4 w-4 shrink-0" />
+          <span>New Clinical Chat</span>
         </button>
+
+        <Link
+          to="/drugs"
+          onClick={onClose}
+          className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-xs font-semibold text-fg hover:bg-surface-highlight transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4 shrink-0 text-accent" />
+            <span>Drug Library</span>
+          </div>
+          <span className="rounded-pill bg-surface-highlight px-2 py-0.5 text-[10px] font-bold text-fg-muted">
+            {readyDocs.length}
+          </span>
+        </Link>
 
         <Link
           to="/documents"
           onClick={onClose}
-          className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-surface-highlight hover:text-fg ${
-            isDocuments
-              ? 'bg-surface-highlight text-fg'
-              : 'text-fg-muted'
-          }`}
+          className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-xs font-semibold text-fg hover:bg-surface-highlight transition-colors"
         >
-          <FileText className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span>Manage Documents</span>
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 shrink-0 text-accent" />
+            <span>Manage Labels</span>
+          </div>
+          <span className="rounded-pill bg-surface-highlight px-2 py-0.5 text-[10px] font-bold text-fg-muted">
+            PDFs
+          </span>
         </Link>
       </div>
 
-      {/* Chat History */}
-      <div className="flex-1 overflow-y-auto border-t border-line pt-2">
+      <div className="mt-3 flex-1 overflow-y-auto px-2">
+        <div className="px-2 pb-1.5 pt-2 text-[10px] font-bold uppercase tracking-wider text-fg-muted">
+          Recent Consultations
+        </div>
         <RecentChats collapsed={false} />
       </div>
 
-      {/* Bottom Section */}
-      <div className="border-t border-line p-2 space-y-0.5">
-        <ThemeToggle collapsed={false} />
+      <div className="border-t border-border p-2">
         <UserProfile collapsed={false} />
       </div>
     </aside>
   )
 }
+
+export default Sidebar

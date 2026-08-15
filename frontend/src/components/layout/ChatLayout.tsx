@@ -11,13 +11,8 @@ export function ChatLayout({ children }: ChatLayoutProps) {
   const { isMobile, sidebarCollapsed, toggleSidebar } = useUI()
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background text-fg">
-      {/* Desktop Sidebar — smooth width transition */}
-      <div
-        className={`hidden h-full transition-all duration-[280ms] ease-in-out lg:block ${
-          sidebarCollapsed ? 'w-[68px]' : 'w-[268px]'
-        }`}
-      >
+    <div className="app-shell flex h-screen w-full overflow-hidden text-fg">
+      <div className="hidden shrink-0 lg:block lg:sticky lg:top-0 lg:h-screen">
         <Sidebar />
       </div>
 
@@ -28,10 +23,10 @@ export function ChatLayout({ children }: ChatLayoutProps) {
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Mobile Top Bar */}
         {isMobile && (
-          <header className="flex shrink-0 items-center justify-between border-b border-line bg-surface px-4 py-3">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-                <span className="text-sm font-bold text-white leading-none">L</span>
+          <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-3 shadow-subtle">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-primary text-white">
+                <span className="text-sm font-bold">L</span>
               </div>
               <span className="text-[15px] font-semibold tracking-tight text-fg">
                 LabelProof
@@ -40,7 +35,7 @@ export function ChatLayout({ children }: ChatLayoutProps) {
             <button
               type="button"
               onClick={toggleSidebar}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
+              className="flex h-9 w-9 items-center justify-center rounded-2xl text-fg transition-colors hover:bg-surface-highlight"
               aria-label="Open sidebar"
             >
               <Menu className="h-5 w-5" aria-hidden="true" />

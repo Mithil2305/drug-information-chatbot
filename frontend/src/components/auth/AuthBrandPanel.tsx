@@ -1,90 +1,53 @@
-import { CheckCircle2, FileText, Shield } from 'lucide-react'
-
-const FEATURES = [
-  {
-    icon: FileText,
-    title: 'Evidence-first answers',
-    description: 'Every response is grounded in uploaded drug-label documents.',
-  },
-  {
-    icon: CheckCircle2,
-    title: 'Page-level citations',
-    description: 'Click any citation to jump directly to the source page.',
-  },
-  {
-    icon: Shield,
-    title: 'Approved drug-label sources',
-    description: 'Built on verified regulatory documents, not general web data.',
-  },
-]
+import { ShieldCheck, CheckCircle2 } from 'lucide-react'
 
 export function AuthBrandPanel() {
   return (
-    <div className="relative hidden flex-1 flex-col justify-center overflow-hidden bg-surface lg:flex border-l border-line">
-      {/* Subtle grid pattern */}
-      <div
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage: `linear-gradient(var(--color-foreground) 1px, transparent 1px),
-            linear-gradient(90deg, var(--color-foreground) 1px, transparent 1px)`,
-          backgroundSize: '40px 40px',
-        }}
-        aria-hidden="true"
-      />
+    <div className="relative hidden h-full w-1/2 overflow-hidden bg-primary text-white lg:flex flex-col justify-between p-12 lg:p-16">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(15,119,114,0.28),transparent_26%)]" />
+      <div className="absolute inset-y-0 right-0 w-[65%] bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.03),transparent)]" />
 
-      {/* Subtle top accent */}
-      <div
-        className="absolute top-0 left-0 right-0 h-1 bg-primary"
-        aria-hidden="true"
-      />
-
-      <div className="relative z-10 flex flex-col items-start justify-center px-12 xl:px-16">
-        {/* Logo Mark */}
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary mb-6">
-          <FileText className="h-6 w-6 text-white" aria-hidden="true" />
+      {/* Header */}
+      <div className="relative z-10 flex items-center gap-2.5">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-white shadow-card ring-1 ring-white/10">
+          <ShieldCheck className="h-6 w-6 text-surface-warm" />
         </div>
+        <div>
+          <span className="text-lg font-bold tracking-tight">LabelProof</span>
+          <span className="block text-[10px] uppercase tracking-wider text-surface-warm/80">Clinical AI</span>
+        </div>
+      </div>
 
-        {/* Brand */}
-        <h2 className="mb-2 text-2xl font-semibold tracking-tight text-fg">
-          LabelProof
+      {/* Center Value Prop */}
+      <div className="relative z-10 max-w-md space-y-6">
+        <h2 className="max-w-sm text-3xl font-bold tracking-tight text-white sm:text-4xl leading-tight">
+          Evidence-First Drug Information, Grounded in Official Labels.
         </h2>
-        <p className="mb-10 max-w-sm text-sm leading-relaxed text-fg-muted">
-          Trusted drug information backed by source evidence.
-          Ask questions, get grounded answers, verify with citations.
+        <p className="text-sm leading-relaxed text-white/80">
+          Access verified pharmaceutical prescribing guidelines, dosage regimens, warnings, and adverse reactions with exact page-level citations.
         </p>
 
-        {/* Feature List */}
-        <div className="flex flex-col gap-5 max-w-sm">
-          {FEATURES.map(({ icon: Icon, title, description }) => (
-            <div key={title} className="flex items-start gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-soft mt-0.5">
-                <Icon className="h-4 w-4 text-primary" aria-hidden="true" />
+        <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+          {[
+            'FDA Prescribing Information Grounding',
+            'Zero-Hallucination Safe Abstention Rules',
+            'Verifiable Page & Section Citations',
+          ].map((item) => (
+            <div key={item} className="flex items-center gap-3">
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success/20 text-emerald-300">
+                <CheckCircle2 className="h-3.5 w-3.5" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-fg leading-snug">{title}</p>
-                <p className="mt-0.5 text-xs text-fg-muted leading-relaxed">
-                  {description}
-                </p>
-              </div>
+              <span className="text-xs font-semibold text-white/90">{item}</span>
             </div>
           ))}
-        </div>
-
-        {/* Trust Badge */}
-        <div className="mt-10 inline-flex items-center gap-2 rounded-lg border border-line bg-surface-highlight px-3 py-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true" />
-          <span className="text-xs font-medium text-fg-muted">
-            Evidence-first · Always verified
-          </span>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="absolute bottom-6 left-0 right-0 px-12 xl:px-16">
-        <p className="text-xs text-fg-subtle">
-          © 2026 LabelProof. All rights reserved.
-        </p>
+      <div className="relative z-10 text-xs text-white/60">
+        © {new Date().getFullYear()} LabelProof. Cognizant NPN Healthcare AI Initiative.
       </div>
     </div>
   )
 }
+
+export default AuthBrandPanel

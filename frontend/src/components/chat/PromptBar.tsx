@@ -1,13 +1,26 @@
-import { useRef, useState } from 'react'
-import { Loader2, Send } from 'lucide-react'
+import { useRef, useState, useEffect } from 'react'
+import { Send, Sparkles, FileText, Loader2 } from 'lucide-react'
 import { useChat } from '../../hooks/useChat'
+import { useDocuments } from '../../hooks/useDocuments'
+import { useSearchParams } from 'react-router-dom'
 
 export function PromptBar() {
   const [value, setValue] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const { sendMessage, isLoading } = useChat()
+  const { documents } = useDocuments()
+  const [searchParams] = useSearchParams()
 
-  const canSend = !isLoading && value.trim().length > 0
+  const readyDocs = documents.filter((d) => d.status === 'ready')
+
+  // Pick up query param from URL if present
+  useEffect(() => {
+    const q = searchParams.get('q')
+    if (q && !value) {
+      setValue(q)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   const handleSubmit = () => {
     if (!canSend) return
@@ -32,15 +45,36 @@ export function PromptBar() {
     target.style.height = `${Math.min(target.scrollHeight, 180)}px`
   }
 
+  const canSubmit = !isLoading && !!value.trim()
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault()
-        handleSubmit()
-      }}
-      className="relative w-full rounded-2xl border border-line bg-surface shadow-sm transition-shadow focus-within:border-primary/50 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-primary)_12%,transparent)]"
-    >
-      <div className="flex items-end gap-2 px-4 py-3">
+    <div className="w-full space-y-2">
+      {/* Context status bar */}
+      <div className="flex items-center justify-between px-1 text-[11px] text-fg-muted">
+        <div className="flex items-center gap-1.5">
+          <FileText className="h-3 w-3 text-accent shrink-0" />
+          <span>
+            Grounded against{' '}
+            <span className="font-semibold text-fg">{readyDocs.length}</span>{' '}
+            approved drug label{readyDocs.length === 1 ? '' : 's'}
+          </span>
+        </div>
+        <span className="hidden sm:inline text-fg-muted/60">Enter ↵ to send • Shift+Enter for new line</span>
+      </div>
+
+      {/* Input form */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          handleSubmit()
+        }}
+        className="relative flex items-end gap-3 rounded-3xl border border-border bg-surface p-3.5 shadow-card transition-all duration-200 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10"
+      >
+        {/* Left icon */}
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-surface-highlight text-accent">
+          <Sparkles className="h-4 w-4" />
+        </div>
+
         {/* Textarea */}
         <textarea
           ref={textareaRef}
@@ -48,43 +82,28 @@ export function PromptBar() {
           value={value}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
-          placeholder="Ask about this document…"
+          placeholder="Ask about dosage, warnings, contraindications, adverse reactions…"
+          className="max-h-36 w-full resize-none bg-transparent px-1 py-1 text-sm leading-relaxed text-fg placeholder:text-fg-muted focus:outline-none"
+          aria-label="Ask about medication"
           disabled={isLoading}
-          className="max-h-[180px] min-h-[28px] w-full resize-none bg-transparent py-0.5 text-[15px] leading-relaxed text-fg placeholder-fg-subtle outline-none disabled:opacity-60"
-          aria-label="Message input"
-          aria-multiline="true"
         />
 
         {/* Send Button */}
         <button
           type="submit"
-          disabled={!canSend}
-          aria-label={isLoading ? 'Sending…' : 'Send message'}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-white transition-all hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-primary"
+          disabled={!canSubmit}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-subtle transition-all duration-150 hover:bg-primary-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
+          aria-label="Send clinical inquiry"
         >
           {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <Send className="h-4 w-4" aria-hidden="true" />
+            <Send className="h-4 w-4" />
           )}
         </button>
-      </div>
-
-      {/* Hint */}
-      <div className="px-4 pb-2.5 text-[11px] text-fg-subtle">
-        <kbd className="rounded border border-line px-1 py-0.5 font-mono text-[10px]">
-          Enter
-        </kbd>{' '}
-        to send ·{' '}
-        <kbd className="rounded border border-line px-1 py-0.5 font-mono text-[10px]">
-          Shift
-        </kbd>
-        +
-        <kbd className="rounded border border-line px-1 py-0.5 font-mono text-[10px]">
-          Enter
-        </kbd>{' '}
-        for new line
-      </div>
-    </form>
+      </form>
+    </div>
   )
 }
+
+export default PromptBar

@@ -2,28 +2,39 @@ import { Bot } from 'lucide-react'
 
 export function LoadingState() {
   return (
-    <div
-      className="flex items-start gap-3 animate-fade-in"
-      role="status"
-      aria-live="polite"
-      aria-label="Searching for an answer"
-    >
-      {/* Avatar matching AssistantMessage */}
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-soft mt-0.5">
-        <Bot className="h-4 w-4 text-primary" aria-hidden="true" />
+    <div className="flex items-start gap-3 animate-fade-in">
+      {/* AI Avatar — matches AssistantMessage */}
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-subtle mt-0.5">
+        <Bot className="h-[18px] w-[18px]" />
       </div>
 
-      <div className="flex flex-col gap-1.5 pt-0.5">
-        {/* Dot pulse loader */}
-        <div className="flex items-center gap-1.5" aria-hidden="true">
-          <span className="h-1.5 w-1.5 rounded-full bg-primary dot-bounce" />
-          <span className="h-1.5 w-1.5 rounded-full bg-primary dot-bounce" />
-          <span className="h-1.5 w-1.5 rounded-full bg-primary dot-bounce" />
+      <div className="rounded-3xl rounded-tl-sm border border-border bg-surface p-5 shadow-card">
+        <div className="flex items-center gap-3">
+          {/* Animated dots */}
+          <div className="flex items-center gap-1.5">
+            <span
+              className="h-2 w-2 rounded-full bg-accent"
+              style={{ animation: 'pulse-dot 1.2s ease-in-out infinite', animationDelay: '0ms' }}
+            />
+            <span
+              className="h-2 w-2 rounded-full bg-accent"
+              style={{ animation: 'pulse-dot 1.2s ease-in-out infinite', animationDelay: '200ms' }}
+            />
+            <span
+              className="h-2 w-2 rounded-full bg-accent"
+              style={{ animation: 'pulse-dot 1.2s ease-in-out infinite', animationDelay: '400ms' }}
+            />
+          </div>
+          <span className="text-xs font-semibold text-primary">
+            Searching trusted documentation…
+          </span>
         </div>
-        <span className="text-xs text-fg-subtle">
-          Searching the document…
-        </span>
+        <p className="mt-2 text-[11px] text-fg-muted">
+          Matching your query against approved prescribing labels.
+        </p>
       </div>
     </div>
   )
 }
+
+export default LoadingState

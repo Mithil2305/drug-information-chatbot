@@ -7,12 +7,12 @@ class ChatSession(Base):
     __tablename__ = "sessions"
 
     session_id = Column(BigInteger, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey("users.user_id"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.user_id"), nullable=False)
     started_at = Column(DateTime, server_default=func.current_timestamp())
     summary = Column(Text)
 
     # Establish relationship to messages
-    messages = relationship("ChatMessage", back_populates="session", cascade="all, delete-orphan")
+    messages = relationship("ChatMessage", back_populates="session", cascade="all, delete-orphan", lazy="selectin")
 
 
 class ChatMessage(Base):
@@ -26,3 +26,6 @@ class ChatMessage(Base):
 
     # Inverse relationship to session
     session = relationship("ChatSession", back_populates="messages")
+
+    # Citations relationship
+    citations = relationship("Citation", lazy="selectin", cascade="all, delete-orphan")

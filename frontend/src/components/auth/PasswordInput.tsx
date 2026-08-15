@@ -25,16 +25,14 @@ export function PasswordInput({ label, error, ...props }: PasswordInputProps) {
         <input
           {...props}
           type={show ? 'text' : 'password'}
-          className={`h-10 w-full rounded-lg border bg-surface py-0 pl-10 pr-10 text-sm text-fg placeholder-fg-subtle outline-none transition-all focus:ring-2 ${
-            error
-              ? 'border-danger focus:border-danger focus:ring-danger/20'
-              : 'border-line focus:border-primary focus:ring-primary/20'
+          className={`clinical-input w-full py-3 pl-10 pr-10 text-sm placeholder:text-fg-muted ${
+            error ? 'border-danger focus:border-danger focus:ring-danger/10' : ''
           }`}
         />
         <button
           type="button"
           onClick={() => setShow((v) => !v)}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
           aria-label={show ? 'Hide password' : 'Show password'}
         >
           {show ? (

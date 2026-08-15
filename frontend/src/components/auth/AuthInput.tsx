@@ -22,11 +22,9 @@ export function AuthInput({ label, icon: Icon, error, className, ...props }: Aut
         />
         <input
           {...props}
-          className={`h-10 w-full rounded-lg border bg-surface py-0 pl-10 pr-3 text-sm text-fg placeholder-fg-subtle outline-none transition-all focus:ring-2 ${
-            error
-              ? 'border-danger focus:border-danger focus:ring-danger/20'
-              : 'border-line focus:border-primary focus:ring-primary/20'
-          }`}
+          className={`clinical-input w-full py-3 pl-10 pr-3 text-sm placeholder:text-fg-muted ${
+            error ? 'border-danger focus:border-danger focus:ring-danger/10' : ''
+          } ${className ?? ''}`}
         />
       </div>
       {error && (

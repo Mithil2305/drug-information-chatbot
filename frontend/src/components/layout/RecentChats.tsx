@@ -87,10 +87,8 @@ export function RecentChats({ collapsed }: RecentChatsProps) {
         return (
           <div
             key={c.id}
-            className={`group relative mx-2 flex items-center rounded-lg transition-colors ${
-              isActive
-                ? 'bg-surface-highlight'
-                : 'hover:bg-surface-highlight'
+            className={`group relative flex items-center rounded-2xl transition-colors ${
+              isActive ? 'bg-surface-highlight' : 'hover:bg-surface-highlight'
             }`}
           >
             {isEditing ? (
@@ -103,7 +101,7 @@ export function RecentChats({ collapsed }: RecentChatsProps) {
                     if (e.key === 'Escape') cancelEdit()
                   }}
                   autoFocus
-                  className="w-full rounded-md bg-background px-2 py-1 text-sm text-fg outline-none ring-1 ring-primary"
+                  className="clinical-input w-full px-2 py-1.5 text-sm text-fg"
                 />
                 <button
                   type="button"
@@ -127,7 +125,7 @@ export function RecentChats({ collapsed }: RecentChatsProps) {
                 <button
                   type="button"
                   onClick={() => selectConversation(c.id)}
-                  className="flex min-w-0 flex-1 items-center px-3 py-2 text-left"
+                  className="flex min-w-0 flex-1 items-center px-2 py-2 text-left text-sm text-fg"
                 >
                   <span
                     className={`truncate text-sm ${
@@ -146,44 +144,24 @@ export function RecentChats({ collapsed }: RecentChatsProps) {
                       e.stopPropagation()
                       setMenuOpenId((prev) => (prev === c.id ? null : c.id))
                     }}
-                    className={`flex h-6 w-6 items-center justify-center rounded text-fg-subtle transition-all hover:bg-surface hover:text-fg-muted ${
-                      isMenuOpen
-                        ? 'opacity-100'
-                        : 'opacity-0 group-hover:opacity-100'
-                    }`}
-                    aria-label="Conversation options"
-                    aria-expanded={isMenuOpen}
+                    className="flex h-6 w-6 items-center justify-center rounded-full text-fg-muted hover:bg-surface hover:text-fg"
+                    aria-label="Rename conversation"
+                    title="Rename"
                   >
-                    <MoreHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
+                    <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                   </button>
-
-                  {isMenuOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setMenuOpenId(null)}
-                        aria-hidden="true"
-                      />
-                      <div className="absolute right-0 top-7 z-20 w-36 rounded-lg border border-line bg-surface-raised py-1 shadow-lg">
-                        <button
-                          type="button"
-                          onClick={() => startEdit(c)}
-                          className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-fg transition-colors hover:bg-surface-highlight"
-                        >
-                          <Pencil className="h-3.5 w-3.5 text-fg-muted" aria-hidden="true" />
-                          Rename
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(c.id)}
-                          className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-danger transition-colors hover:bg-surface-highlight"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                          Delete
-                        </button>
-                      </div>
-                    </>
-                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      deleteConversation(c.id)
+                    }}
+                    className="flex h-6 w-6 items-center justify-center rounded-full text-fg-muted hover:bg-surface hover:text-danger"
+                    aria-label="Delete conversation"
+                    title="Delete"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
                 </div>
               </>
             )}

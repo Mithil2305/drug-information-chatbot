@@ -1,3 +1,5 @@
+import { Navigate } from 'react-router-dom'
+
 export default function Compare() {
-  return <div className="p-6" />
+  return <Navigate to="/drugs" replace />
 }

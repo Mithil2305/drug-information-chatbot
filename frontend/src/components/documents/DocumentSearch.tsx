@@ -15,7 +15,7 @@ export function DocumentSearch() {
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         placeholder="Search documents…"
-        className="h-9 w-full rounded-lg border border-line bg-surface py-0 pl-9 pr-8 text-sm text-fg placeholder-fg-subtle outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+        className="clinical-input w-full py-2.5 pl-9 pr-3 text-sm placeholder:text-fg-muted"
         aria-label="Search documents"
       />
       {searchQuery && (

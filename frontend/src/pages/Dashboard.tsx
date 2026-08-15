@@ -1,3 +1,5 @@
+import { Navigate } from 'react-router-dom'
+
 export default function Dashboard() {
-  return <div className="p-6" />
+  return <Navigate to="/chat" replace />
 }

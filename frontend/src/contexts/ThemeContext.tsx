@@ -12,22 +12,15 @@ interface ThemeContextValue {
 
 export const ThemeContext = createContext<ThemeContextValue | null>(null)
 
-const STORAGE_KEY = 'labelproof_theme'
-
 function getInitialTheme(): ThemeMode {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY) as ThemeMode | null
-    if (stored === 'light' || stored === 'dark') return stored
+    const stored = localStorage.getItem('labelproof-theme')
+    if (stored === 'dark' || stored === 'light') return stored
   } catch {
-    // localStorage unavailable
+    // ignore
   }
-  // Respect system preference on first visit
-  if (typeof window !== 'undefined' && window.matchMedia) {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light'
-  }
-  return 'dark'
+  // Default to light
+  return 'light'
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -38,7 +31,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.classList.remove('light', 'dark')
     root.classList.add(theme)
     try {
-      localStorage.setItem(STORAGE_KEY, theme)
+      localStorage.setItem('labelproof-theme', theme)
     } catch {
       // ignore
     }

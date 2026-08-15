@@ -12,10 +12,9 @@ export function SidebarHeader({ onClose, collapsed }: SidebarHeaderProps) {
 
   if (collapsed) {
     return (
-      <div className="flex flex-col items-center gap-1.5 px-2 py-3">
-        {/* Logo Mark */}
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-          <span className="text-sm font-bold text-white leading-none">L</span>
+      <div className="flex flex-col items-center gap-2 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-primary text-white shadow-subtle">
+          <span className="text-sm font-bold">L</span>
         </div>
 
         <Tooltip content="Expand sidebar" side="right">
@@ -34,14 +33,14 @@ export function SidebarHeader({ onClose, collapsed }: SidebarHeaderProps) {
 
   return (
     <div className="flex items-center justify-between px-3 py-3">
-      {/* Logo + Brand */}
-      <div className="flex items-center gap-2.5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
-          <span className="text-sm font-bold text-white leading-none">L</span>
+      <div className="flex items-center gap-2">
+        <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-primary text-white shadow-subtle">
+          <span className="text-sm font-bold">L</span>
         </div>
-        <span className="text-[15px] font-semibold tracking-tight text-fg">
-          LabelProof
-        </span>
+        <div className="leading-none">
+          <div className="text-base font-semibold text-fg">LabelProof</div>
+          <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-accent">Clinical AI</div>
+        </div>
       </div>
 
       {/* Actions */}
