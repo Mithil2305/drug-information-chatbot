@@ -1,5 +1,5 @@
 import { FileText, Plus, GitCompareArrows } from 'lucide-react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useChat } from '../../hooks/useChat'
 import { useConversations } from '../../hooks/useConversations'
 import { useDocuments } from '../../hooks/useDocuments'
@@ -18,6 +18,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   const { sidebarCollapsed } = useUI()
   const { clearChat } = useChat()
   const { newConversation } = useConversations()
+  const navigate = useNavigate();
   const { documents } = useDocuments()
   const location = useLocation()
   const readyDocs = documents.filter((d) => d.status === 'ready')
@@ -25,9 +26,10 @@ export function Sidebar({ onClose }: SidebarProps) {
   const isCompareActive = location.pathname === '/compare'
 
   const handleNewChat = () => {
-    clearChat()
-    newConversation()
-    onClose?.()
+    clearChat();
+    newConversation();
+    navigate('/');
+    onClose?.();
   }
 
   if (collapsed) {
@@ -83,7 +85,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           className="flex w-full items-center gap-2 rounded-pill bg-primary px-3.5 py-2 text-xs font-bold text-white shadow-subtle hover:bg-primary-hover transition-all"
         >
           <Plus className="h-4 w-4 shrink-0" />
-          <span>New Clinical Chat</span>
+          <span>New Chat</span>
         </button>
 
         <Link

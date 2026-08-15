@@ -62,7 +62,7 @@ export function ChatWindow() {
                   key={sug.label}
                   type="button"
                   onClick={() => sendMessage(sug.query)}
-                  className="group flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 text-left shadow-subtle transition-all duration-200 hover:border-primary/30 hover:shadow-card hover:-translate-y-0.5"
+                  className="group  flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 text-left shadow-subtle transition-all duration-200 hover:border-primary/30 hover:shadow-card hover:-translate-y-0.5"
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-surface-highlight text-primary border border-border transition-colors group-hover:bg-primary/8 group-hover:border-primary/20">
                     <Icon className="h-4 w-4" />
