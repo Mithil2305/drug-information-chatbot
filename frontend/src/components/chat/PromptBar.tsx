@@ -23,7 +23,7 @@ export function PromptBar() {
   }, [searchParams])
 
   const handleSubmit = () => {
-    if (!canSend) return
+    if (!canSubmit) return
     sendMessage(value.trim())
     setValue('')
     if (textareaRef.current) {

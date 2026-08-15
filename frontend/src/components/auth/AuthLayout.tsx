@@ -1,4 +1,4 @@
-import { FileText } from 'lucide-react'
+import { Activity } from 'lucide-react'
 import { AuthBrandPanel } from './AuthBrandPanel'
 
 interface AuthLayoutProps {

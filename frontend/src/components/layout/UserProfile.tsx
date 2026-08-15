@@ -6,15 +6,6 @@ interface UserProfileProps {
   collapsed: boolean
 }
 
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((n) => n[0].toUpperCase())
-    .join('')
-}
-
 export function UserProfile({ collapsed }: UserProfileProps) {
   const { user } = useAuth()
 
@@ -46,8 +37,8 @@ export function UserProfile({ collapsed }: UserProfileProps) {
           aria-label={`User: ${displayName}`}
         >
           <span className="text-xs font-semibold leading-none">{initials}</span>
-        </button>
-      </Tooltip>
+        </button> */}
+      </div>
     )
   }
 
@@ -61,8 +52,7 @@ export function UserProfile({ collapsed }: UserProfileProps) {
           <div className="truncate text-sm font-medium text-fg">{displayName}</div>
           <div className="truncate text-xs text-fg-muted">{subtitle}</div>
         </div>
-        <div className="truncate text-xs text-fg-muted leading-tight">{role}</div>
       </div>
-    </button>
+    </div>
   )
 }

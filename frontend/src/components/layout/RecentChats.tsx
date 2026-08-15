@@ -1,9 +1,7 @@
 import { useState } from 'react'
-import { Check, MoreHorizontal, Pencil, Trash2, X } from 'lucide-react'
+import { Check, Pencil, Trash2, X } from 'lucide-react'
 import { useConversations } from '../../hooks/useConversations'
 import { Tooltip } from '../common/Tooltip'
-import type { ConversationSummary } from '../../types/chat'
-
 interface RecentChatsProps {
   collapsed: boolean
 }
@@ -18,17 +16,10 @@ export function RecentChats({ collapsed }: RecentChatsProps) {
   } = useConversations()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
 
   const sorted = [...conversations].sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
   )
-
-  const startEdit = (c: ConversationSummary) => {
-    setMenuOpenId(null)
-    setEditingId(c.id)
-    setEditValue(c.title)
-  }
 
   const commitEdit = () => {
     if (editingId) renameConversation(editingId, editValue)
@@ -38,11 +29,6 @@ export function RecentChats({ collapsed }: RecentChatsProps) {
   const cancelEdit = () => {
     setEditingId(null)
     setEditValue('')
-  }
-
-  const handleDelete = (id: string) => {
-    setMenuOpenId(null)
-    deleteConversation(id)
   }
 
   /* ── Collapsed view ─────────────────────────────────────── */
@@ -82,8 +68,6 @@ export function RecentChats({ collapsed }: RecentChatsProps) {
       {sorted.map((c) => {
         const isActive = activeConversationId === c.id
         const isEditing = editingId === c.id
-        const isMenuOpen = menuOpenId === c.id
-
         return (
           <div
             key={c.id}
@@ -142,7 +126,8 @@ export function RecentChats({ collapsed }: RecentChatsProps) {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation()
-                      setMenuOpenId((prev) => (prev === c.id ? null : c.id))
+                      setEditingId(c.id)
+                      setEditValue(c.title)
                     }}
                     className="flex h-6 w-6 items-center justify-center rounded-full text-fg-muted hover:bg-surface hover:text-fg"
                     aria-label="Rename conversation"

@@ -4,10 +4,8 @@ import { useChat } from '../../hooks/useChat'
 import { useConversations } from '../../hooks/useConversations'
 import { useDocuments } from '../../hooks/useDocuments'
 import { useUI } from '../../hooks/useUI'
-import { Tooltip } from '../common/Tooltip'
 import { RecentChats } from './RecentChats'
 import { SidebarHeader } from './SidebarHeader'
-import { ThemeToggle } from './ThemeToggle'
 import { UserProfile } from './UserProfile'
 
 interface SidebarProps {
@@ -27,8 +25,6 @@ export function Sidebar({ onClose }: SidebarProps) {
     newConversation()
     onClose?.()
   }
-
-  const isDocuments = location.pathname === '/documents'
 
   if (collapsed) {
     return (

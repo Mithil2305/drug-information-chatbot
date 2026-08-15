@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, FileText, MoreVertical, Pencil, Trash2, Eye, X, MessageSquare, Calendar, FileDigit, HardDrive } from 'lucide-react'
+import { Check, FileText, MoreHorizontal, Pencil, Trash2, Eye, X, MessageSquare, Calendar, FileDigit, HardDrive } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useDocuments } from '../../hooks/useDocuments'
 import { formatDate, formatFileSize } from '../../utils/formatters'

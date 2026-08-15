@@ -8,7 +8,7 @@ interface ChatLayoutProps {
 }
 
 export function ChatLayout({ children }: ChatLayoutProps) {
-  const { isMobile, sidebarCollapsed, toggleSidebar } = useUI()
+  const { isMobile, toggleSidebar } = useUI()
 
   return (
     <div className="app-shell flex h-screen w-full overflow-hidden text-fg">

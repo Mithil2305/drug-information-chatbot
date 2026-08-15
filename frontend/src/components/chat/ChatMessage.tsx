@@ -34,12 +34,10 @@ function ActionButton({
   onClick,
   icon: Icon,
   label,
-  active,
 }: {
   onClick: () => void
   icon: LucideIcon
   label: string
-  active?: boolean
 }) {
   return (
     <button
@@ -179,7 +177,6 @@ function AssistantMessage({ message, isLast }: { message: ChatMessageType; isLas
             <FollowUpList questions={followUps} onSelect={sendMessage} />
           )}
         </div>
-      </div>
     </div>
   )
 }

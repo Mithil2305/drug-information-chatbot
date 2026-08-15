@@ -5,26 +5,6 @@ import { useDocuments } from '../../hooks/useDocuments'
 import { ChatMessage } from './ChatMessage'
 import { LoadingState } from './LoadingState'
 
-const SUGGESTION_CHIPS = [
-  'What is the recommended dosage?',
-  'What are the major warnings?',
-  'What are the contraindications?',
-  'Are there any known drug interactions?',
-]
-
-function SuggestionChip({ text }: { text: string }) {
-  const { sendMessage } = useChat()
-  return (
-    <button
-      type="button"
-      onClick={() => sendMessage(text)}
-      className="rounded-lg border border-line bg-surface px-3.5 py-2 text-sm text-fg-muted transition-all hover:border-primary/40 hover:bg-surface-highlight hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-    >
-      {text}
-    </button>
-  )
-}
-
 export function ChatWindow() {
   const { messages, isLoading, sendMessage } = useChat()
   const { documents } = useDocuments()
