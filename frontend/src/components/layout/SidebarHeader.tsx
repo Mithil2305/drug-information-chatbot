@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, PanelLeftOpen, Search, X } from 'lucide-react'
 
 import { useUI } from '../../hooks/useUI'
 import { Tooltip } from '../common/Tooltip'

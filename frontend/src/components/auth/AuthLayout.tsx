@@ -1,4 +1,4 @@
-import { Moon, Sun } from 'lucide-react'
+import { Activity, Moon, Sun } from 'lucide-react'
 import { AuthBrandPanel } from './AuthBrandPanel'
 import { useTheme } from '../../hooks/useTheme'
 

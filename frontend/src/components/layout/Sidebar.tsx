@@ -20,6 +20,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   const navigate = useNavigate();
   const { documents } = useDocuments()
   const location = useLocation()
+  const { sidebarCollapsed } = useUI()
   const readyDocs = documents.filter((d) => d.status === 'ready')
   const collapsed = sidebarCollapsed
   const isCompareActive = location.pathname === '/compare'

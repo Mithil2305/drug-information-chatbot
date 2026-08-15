@@ -1,3 +1,4 @@
+import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 import type { DocumentStatus as Status } from '../../types/document'
 
 interface DocumentStatusProps {

@@ -1,3 +1,5 @@
+import { CornerDownRight } from 'lucide-react'
+
 interface FollowUpListProps {
   questions: string[]
   onSelect: (question: string) => void
