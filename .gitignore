@@ -80,3 +80,5 @@ frontend/build/
 *.sqlite3
 mysql-data/
 qdrant-storage/
+
+backup/

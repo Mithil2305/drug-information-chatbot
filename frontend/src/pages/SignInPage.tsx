@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Mail } from 'lucide-react'
+import { Mail, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { AuthLayout } from '../components/auth/AuthLayout'
+import { AuthDivider } from '../components/auth/AuthDivider'
 import { AuthInput } from '../components/auth/AuthInput'
 import { PasswordInput } from '../components/auth/PasswordInput'
-import { AuthDivider } from '../components/auth/AuthDivider'
 import { useAuth } from '../hooks/useAuth'
 
 interface FormErrors {
@@ -42,9 +42,12 @@ export default function SignInPage() {
     try {
       await login(email, password)
       toast.success('Signed in successfully')
-      navigate('/')
+      navigate('/chat')
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Authentication failed. Please verify your credentials.'
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Authentication failed. Please verify your credentials.'
       toast.error(message)
     } finally {
       setSubmitting(false)
@@ -53,16 +56,26 @@ export default function SignInPage() {
 
   return (
     <AuthLayout>
-      <div className="mx-auto w-full max-w-sm ">
-        <h1 className="mb-2 text-2xl font-semibold text-fg">Welcome back</h1>
-        <p className="mb-8 text-sm text-fg-muted">Sign in to continue using LabelProof.</p>
+      <div className="mx-auto w-full max-w-sm">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-fg-muted hover:text-primary transition-colors mb-6"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          <span>Back to Home</span>
+        </Link>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <h1 className="text-2xl font-bold tracking-tight text-primary">Welcome back</h1>
+        <p className="mt-1 mb-8 text-xs sm:text-sm text-fg-secondary">
+          Sign in to access the LabelProof clinical AI assistant.
+        </p>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <AuthInput
             id="signin-email"
-            label="Email"
+            label="Email Address"
             type="email"
-            placeholder="you@example.com"
+            placeholder="physician@hospital.org"
             icon={Mail}
             value={email}
             onChange={(e) => {
@@ -86,23 +99,12 @@ export default function SignInPage() {
             autoComplete="current-password"
           />
 
-
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={() => toast.info('Password reset coming soon')}
-              className="text-xs font-medium text-fg-muted transition-colors hover:text-fg"
-            >
-              Forgot password?
-            </button>
-          </div>
-
           <button
             type="submit"
             disabled={submitting}
-            className="mt-2 w-full rounded-lg bg-primary py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:opacity-60"
+            className="mt-2 w-full rounded-pill bg-primary py-3 text-sm font-bold text-white shadow-card transition-all hover:bg-primary-hover active:scale-[0.98] disabled:opacity-60"
           >
-            {submitting ? 'Signing in…' : 'Sign in'}
+            {submitting ? 'Signing in…' : 'Sign in to LabelProof'}
           </button>
         </form>
 
@@ -110,10 +112,10 @@ export default function SignInPage() {
           <AuthDivider />
         </div>
 
-        <p className="mt-8 text-center text-sm text-fg-muted">
+        <p className="mt-6 text-center text-xs text-fg-secondary">
           Don&apos;t have an account?{' '}
-          <Link to="/signup" className="font-medium text-primary transition-colors hover:text-ai">
-            Sign up
+          <Link to="/signup" className="font-bold text-primary transition-colors hover:text-accent underline">
+            Create an account
           </Link>
         </p>
       </div>

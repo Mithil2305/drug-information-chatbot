@@ -5,6 +5,10 @@ export interface UserProfile {
   email: string
   role: string
   created_at: string
+  name?: string
+  full_name?: string
+  username?: string
+  display_name?: string
 }
 
 export interface TokenResponse {

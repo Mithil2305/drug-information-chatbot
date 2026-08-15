@@ -1,54 +1,341 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,600&family=Manrope:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   LIGHT THEME — warm off-white, white cards, deep teal accents
+   ============================================================ */
 :root {
-  --color-background: #F8FAFC;
-  --color-surface: #FFFFFF;
-  --color-surface-highlight: #F1F5F9;
-  --color-foreground: #0F172A;
-  --color-foreground-muted: #475569;
-  --color-border: #E2E8F0;
-  --color-primary: #0F766E;
-  --color-primary-hover: #115E59;
-  --color-ai: #06B6D4;
-  --color-success: #16A34A;
-  --color-warning: #D97706;
-  --color-danger: #DC2626;
+  --color-background: #f6f5f0;
+  --color-surface: #ffffff;
+  --color-surface-warm: #f4f1e8;
+  --color-surface-highlight: #eceae3;
+  --color-foreground: #082122;
+  --color-foreground-secondary: #516261;
+  --color-foreground-muted: #7e8886;
+  --color-border: #dde2de;
+  --color-primary: #0d3d3a;
+  --color-primary-light: #125755;
+  --color-primary-hover: #0a2f2d;
+  --color-teal: #1b6260;
+  --color-accent: #0f7772;
+  --color-success: #2f7d65;
+  --color-warning: #b87925;
+  --color-danger: #b64a4a;
+  --color-info: #347a82;
+  --color-ai: #0f7772;
   --color-white: #FFFFFF;
+
+  --shadow-card: 0 1px 3px rgba(7, 24, 24, 0.05), 0 10px 28px rgba(7, 24, 24, 0.05);
+  --shadow-hover: 0 16px 42px rgba(7, 24, 24, 0.12), 0 4px 12px rgba(7, 24, 24, 0.06);
+  --shadow-subtle: 0 1px 2px rgba(7, 24, 24, 0.04);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+
+  color-scheme: light;
 }
 
+/* ============================================================
+   DARK THEME — deep charcoal / blue-green healthcare SaaS
+   ============================================================ */
 .dark {
-  --color-background: #0B1120;
-  --color-surface: #111827;
-  --color-surface-highlight: #1F2937;
-  --color-foreground: #F1F5F9;
-  --color-foreground-muted: #CBD5E1;
-  --color-border: #263449;
-  --color-primary: #0F766E;
-  --color-primary-hover: #115E59;
-  --color-ai: #06B6D4;
-  --color-success: #16A34A;
-  --color-warning: #D97706;
-  --color-danger: #DC2626;
+  --color-background: #0e1619;
+  --color-surface: #162226;
+  --color-surface-warm: #1d2c31;
+  --color-surface-highlight: #25393f;
+  --color-foreground: #f4f8f7;
+  --color-foreground-secondary: #c5d5d2;
+  --color-foreground-muted: #92a7a4;
+  --color-border: rgba(200, 225, 221, 0.22);
+  --color-primary: #38b2ac;
+  --color-primary-light: #4fd1c5;
+  --color-primary-hover: #319795;
+  --color-teal: #2c7a7b;
+  --color-accent: #319795;
+  --color-success: #38a169;
+  --color-warning: #dd6b20;
+  --color-danger: #e53e3e;
+  --color-info: #3182ce;
+  --color-ai: #319795;
   --color-white: #FFFFFF;
+
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --shadow-hover: 0 14px 36px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.22);
+  --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.2);
+
+  color-scheme: dark;
 }
 
-* {
+/* ============================================================
+   BASE RESETS
+   ============================================================ */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 html,
 body,
 #root {
-  height: 100%;
+  min-height: 100%;
 }
 
 body {
   margin: 0;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(15, 119, 114, 0.08), transparent 28%),
+    radial-gradient(circle at top right, rgba(13, 61, 58, 0.06), transparent 24%),
+    linear-gradient(180deg, var(--color-background) 0%, var(--color-background) 100%);
+  color: var(--color-foreground);
+  font-family: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 250ms ease, color 150ms ease;
+}
+
+.dark body {
+  background:
+    radial-gradient(circle at 12% -4%, rgba(49, 151, 149, 0.15), transparent 32%),
+    radial-gradient(circle at 88% 0%, rgba(44, 122, 123, 0.1), transparent 28%),
+    linear-gradient(180deg, var(--color-background) 0%, #0a0f11 100%);
+}
+
+/* ============================================================
+   TYPOGRAPHY
+   ============================================================ */
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(15, 119, 114, 0.18);
+  color: var(--color-foreground);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-foreground-muted);
+}
+
+input,
+textarea,
+select {
+  color: var(--color-foreground);
+}
+
+input[type='file']::file-selector-button {
+  border: 0;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 999px;
+  padding: 0.55rem 0.9rem;
+  margin-right: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+input[type='file']::file-selector-button:hover {
+  background: var(--color-primary-hover);
+}
+
+/* ============================================================
+   CUSTOM SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
+  transition: background 200ms;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-foreground-muted);
+}
+
+/* ============================================================
+   FOCUS RING — accessible, themed
+   ============================================================ */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ============================================================
+   TRANSITION UTILITIES
+   ============================================================ */
+.theme-transition {
+  transition: background-color 250ms ease, border-color 200ms ease, color 150ms ease, box-shadow 200ms ease;
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 300ms ease both;
+}
+
+.animate-fade-in {
+  animation: fadeIn 200ms ease both;
+}
+
+.app-shell {
+  background:
+    radial-gradient(circle at 15% 0%, rgba(15, 119, 114, 0.08), transparent 24%),
+    radial-gradient(circle at 100% 0%, rgba(13, 61, 58, 0.04), transparent 20%),
+    var(--color-background);
+}
+
+.dark .app-shell {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(77, 170, 163, 0.1), transparent 26%),
+    radial-gradient(circle at 100% 0%, rgba(36, 54, 59, 0.55), transparent 24%),
+    var(--color-background);
+}
+
+.clinical-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+
+.clinical-panel-soft {
+  background: color-mix(in srgb, var(--color-surface) 94%, var(--color-primary) 6%);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-subtle);
+}
+
+.clinical-input {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-subtle);
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.clinical-input:focus,
+.clinical-input:focus-within {
+  outline: none;
+  border-color: color-mix(in srgb, var(--color-accent) 55%, white 45%);
+  box-shadow: 0 0 0 3px rgba(15, 119, 114, 0.12);
+}
+
+.dark .clinical-input:focus,
+.dark .clinical-input:focus-within {
+  border-color: color-mix(in srgb, var(--color-accent) 70%, transparent 30%);
+  box-shadow: 0 0 0 3px rgba(77, 170, 163, 0.18);
+}
+
+.site-footer {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface-warm) 88%, var(--color-primary) 12%) 0%, var(--color-surface-warm) 100%);
+  border-top: 1px solid var(--color-border);
+}
+
+.dark .site-footer {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 92%, var(--color-teal) 8%) 0%, var(--color-background) 100%);
+}
+
+/* ============================================================
+   PROSE STYLES — for markdown content in chat
+   ============================================================ */
+.prose-chat p { margin-bottom: 0.75rem; }
+.prose-chat p:last-child { margin-bottom: 0; }
+.prose-chat ul { list-style: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
+.prose-chat ol { list-style: decimal; padding-left: 1.25rem; margin-bottom: 0.75rem; }
+.prose-chat li { margin-bottom: 0.25rem; line-height: 1.6; }
+.prose-chat strong { font-weight: 700; color: var(--color-primary); }
+.prose-chat code { font-size: 0.8em; background: var(--color-surface-highlight); padding: 0.1em 0.35em; border-radius: 4px; }
+
+/* ============================================================
+   SKELETON LOADING
+   ============================================================ */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-highlight) 25%,
+    color-mix(in srgb, var(--color-surface-highlight) 60%, var(--color-surface) 40%) 50%,
+    var(--color-surface-highlight) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 150ms ease-out both;
+}
+
+@keyframes eq-bounce {
+  0%, 100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1); }
 }
