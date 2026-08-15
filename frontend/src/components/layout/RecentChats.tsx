@@ -63,7 +63,7 @@ export function RecentChats({ collapsed }: RecentChatsProps) {
         return (
           <div
             key={c.id}
-            className={`group relative flex items-center rounded-lg transition-colors ${
+            className={`group relative flex items-center rounded-2xl transition-colors ${
               isActive ? 'bg-surface-highlight' : 'hover:bg-surface-highlight'
             }`}
           >
@@ -77,7 +77,7 @@ export function RecentChats({ collapsed }: RecentChatsProps) {
                     if (e.key === 'Escape') cancelEdit()
                   }}
                   autoFocus
-                  className="w-full rounded bg-background px-2 py-1 text-sm text-fg outline-none ring-1 ring-primary"
+                  className="clinical-input w-full px-2 py-1.5 text-sm text-fg"
                 />
                 <button
                   type="button"
@@ -101,7 +101,7 @@ export function RecentChats({ collapsed }: RecentChatsProps) {
                 <button
                   type="button"
                   onClick={() => selectConversation(c.id)}
-                    className="flex min-w-0 flex-1 items-center px-2 py-2 text-left text-sm text-fg"
+                  className="flex min-w-0 flex-1 items-center px-2 py-2 text-left text-sm text-fg"
                 >
                   <span className="truncate">{c.title}</span>
                 </button>
@@ -112,7 +112,7 @@ export function RecentChats({ collapsed }: RecentChatsProps) {
                       e.stopPropagation()
                       startEdit(c)
                     }}
-                    className="flex h-6 w-6 items-center justify-center rounded text-fg-muted hover:bg-surface hover:text-fg"
+                    className="flex h-6 w-6 items-center justify-center rounded-full text-fg-muted hover:bg-surface hover:text-fg"
                     aria-label="Rename conversation"
                     title="Rename"
                   >
@@ -124,7 +124,7 @@ export function RecentChats({ collapsed }: RecentChatsProps) {
                       e.stopPropagation()
                       deleteConversation(c.id)
                     }}
-                    className="flex h-6 w-6 items-center justify-center rounded text-fg-muted hover:bg-surface hover:text-danger"
+                    className="flex h-6 w-6 items-center justify-center rounded-full text-fg-muted hover:bg-surface hover:text-danger"
                     aria-label="Delete conversation"
                     title="Delete"
                   >

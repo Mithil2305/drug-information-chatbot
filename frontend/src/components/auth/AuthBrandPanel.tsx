@@ -3,13 +3,12 @@ import { ShieldCheck, CheckCircle2 } from 'lucide-react'
 export function AuthBrandPanel() {
   return (
     <div className="relative hidden h-full w-1/2 overflow-hidden bg-primary text-white lg:flex flex-col justify-between p-12 lg:p-16">
-      {/* Background blurs */}
-      <div className="absolute -right-20 -top-20 h-80 w-80 rounded-full bg-teal/40 blur-3xl" />
-      <div className="absolute -left-20 -bottom-20 h-80 w-80 rounded-full bg-accent/30 blur-3xl" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(15,119,114,0.28),transparent_26%)]" />
+      <div className="absolute inset-y-0 right-0 w-[65%] bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.03),transparent)]" />
 
       {/* Header */}
       <div className="relative z-10 flex items-center gap-2.5">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal text-white shadow-card">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-white shadow-card ring-1 ring-white/10">
           <ShieldCheck className="h-6 w-6 text-surface-warm" />
         </div>
         <div>
@@ -20,14 +19,14 @@ export function AuthBrandPanel() {
 
       {/* Center Value Prop */}
       <div className="relative z-10 max-w-md space-y-6">
-        <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl leading-tight">
+        <h2 className="max-w-sm text-3xl font-bold tracking-tight text-white sm:text-4xl leading-tight">
           Evidence-First Drug Information, Grounded in Official Labels.
         </h2>
         <p className="text-sm leading-relaxed text-white/80">
           Access verified pharmaceutical prescribing guidelines, dosage regimens, warnings, and adverse reactions with exact page-level citations.
         </p>
 
-        <div className="space-y-3 pt-2">
+        <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
           {[
             'FDA Prescribing Information Grounding',
             'Zero-Hallucination Safe Abstention Rules',

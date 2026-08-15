@@ -42,11 +42,9 @@ export function ChatWindow() {
   return (
     <div className="flex-1 overflow-y-auto">
       {messages.length === 0 ? (
-        /* ── EMPTY STATE ── */
         <div className="flex min-h-full flex-col items-center justify-center px-6 py-12 text-center">
-          {/* Logo mark */}
           <div className="mb-5 relative">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-white shadow-hover">
+            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-primary text-white shadow-hover">
               <ShieldCheck className="h-8 w-8 text-surface-warm" />
             </div>
             <div className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-success border-2 border-background">
@@ -79,9 +77,9 @@ export function ChatWindow() {
                   key={sug.label}
                   type="button"
                   onClick={() => sendMessage(sug.query)}
-                  className="group flex items-center gap-3 rounded-xl border border-border bg-surface p-4 text-left shadow-subtle transition-all duration-200 hover:border-primary/30 hover:shadow-card hover:-translate-y-0.5"
+                  className="group flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 text-left shadow-subtle transition-all duration-200 hover:border-primary/30 hover:shadow-card hover:-translate-y-0.5"
                 >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-highlight text-primary border border-border transition-colors group-hover:bg-primary/8 group-hover:border-primary/20">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-surface-highlight text-primary border border-border transition-colors group-hover:bg-primary/8 group-hover:border-primary/20">
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
@@ -94,7 +92,6 @@ export function ChatWindow() {
           </div>
         </div>
       ) : (
-        /* ── MESSAGE LIST ── */
         <div className="mx-auto max-w-3xl space-y-7 px-4 py-8 pb-6 sm:px-6 lg:px-8">
           {messages.map((message, index) => (
             <ChatMessage

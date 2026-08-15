@@ -23,17 +23,17 @@ export function DeleteDocumentDialog({ document, onCancel, onConfirm }: DeleteDo
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onCancel}
         aria-hidden="true"
       />
       <div
-        className="relative w-full max-w-md rounded-xl border border-line bg-surface p-6 shadow-lg"
+        className="relative w-full max-w-md rounded-3xl border border-border bg-surface p-6 shadow-hover"
         role="alertdialog"
         aria-labelledby="delete-dialog-title"
       >
         <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger/10 text-danger">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-danger/10 text-danger">
             <AlertTriangle className="h-5 w-5" aria-hidden="true" />
           </div>
           <div>
@@ -50,14 +50,14 @@ export function DeleteDocumentDialog({ document, onCancel, onConfirm }: DeleteDo
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-fg transition-colors hover:bg-surface-highlight"
+            className="rounded-pill border border-border px-4 py-2 text-sm font-medium text-fg transition-colors hover:bg-surface-highlight"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-danger/90"
+            className="rounded-pill bg-danger px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-danger/90"
           >
             Delete
           </button>

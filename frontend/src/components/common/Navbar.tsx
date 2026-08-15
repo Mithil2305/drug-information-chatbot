@@ -31,12 +31,12 @@ export function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur-md theme-transition">
+    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/92 backdrop-blur-xl theme-transition">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 lg:px-8">
 
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3 group flex-shrink-0">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white shadow-subtle transition-all duration-200 group-hover:shadow-card">
+          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary text-white shadow-subtle transition-all duration-200 group-hover:shadow-card">
             <ShieldCheck className="h-5 w-5 text-surface-warm" />
           </div>
           <div className="flex flex-col leading-none">
@@ -51,9 +51,9 @@ export function Navbar() {
             <Link
               key={link.name}
               to={link.path}
-              className={`rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-150 ${
+              className={`rounded-pill px-3.5 py-2 text-sm font-medium transition-all duration-150 ${
                 isActive(link.path)
-                  ? 'bg-surface-highlight font-semibold text-primary'
+                  ? 'bg-surface-highlight font-semibold text-primary shadow-subtle'
                   : 'text-fg-secondary hover:bg-surface-highlight hover:text-fg'
               }`}
             >
@@ -119,7 +119,7 @@ export function Navbar() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-fg transition-colors hover:bg-surface-highlight"
+            className="flex h-9 w-9 items-center justify-center rounded-2xl text-fg transition-colors hover:bg-surface-highlight"
             aria-label="Toggle menu"
             aria-expanded={mobileMenuOpen}
           >
@@ -137,7 +137,7 @@ export function Navbar() {
                 key={link.name}
                 to={link.path}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                className={`rounded-pill px-3 py-2.5 text-sm font-medium transition-colors ${
                   isActive(link.path)
                     ? 'bg-surface-highlight font-semibold text-primary'
                     : 'text-fg hover:bg-surface-highlight'

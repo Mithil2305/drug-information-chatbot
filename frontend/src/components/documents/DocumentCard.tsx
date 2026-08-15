@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Check, FileText, MoreVertical, Pencil, Trash2, Eye, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Check, FileText, MoreVertical, Pencil, Trash2, Eye, X, MessageSquare, Calendar, FileDigit, HardDrive } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useDocuments } from '../../hooks/useDocuments'
 import { formatDate, formatFileSize } from '../../utils/formatters'
@@ -9,13 +10,16 @@ import { DocumentStatus } from './DocumentStatus'
 interface DocumentCardProps {
   document: Document
   onDelete: (doc: Document) => void
+  isSelected?: boolean
 }
 
-export function DocumentCard({ document, onDelete }: DocumentCardProps) {
+export function DocumentCard({ document, onDelete, isSelected = false }: DocumentCardProps) {
   const { renameDocument } = useDocuments()
   const [menuOpen, setMenuOpen] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [name, setName] = useState(document.name)
+  const detailsHref = `/documents?doc=${encodeURIComponent(document.id)}#doc-${document.id}`
+  const chatHref = `/chat?q=${encodeURIComponent(`Tell me about ${document.name} indications, dosage, warnings, and contraindications`)}`
 
   const commitRename = () => {
     renameDocument(document.id, name)
@@ -28,9 +32,14 @@ export function DocumentCard({ document, onDelete }: DocumentCardProps) {
   }
 
   return (
-    <div className="relative flex flex-col rounded-xl border border-line bg-surface p-4 transition-colors hover:border-primary/40">
+    <div
+      id={`doc-${document.id}`}
+      className={`relative flex flex-col rounded-2xl border bg-surface p-4 transition-all hover:shadow-card ${
+        isSelected ? 'border-primary/30 shadow-card ring-1 ring-primary/10' : 'border-border hover:border-primary/30'
+      }`}
+    >
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-highlight text-primary">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-surface-highlight text-primary">
           <FileText className="h-5 w-5" aria-hidden="true" />
         </div>
         <div className="min-w-0 flex-1">
@@ -44,7 +53,7 @@ export function DocumentCard({ document, onDelete }: DocumentCardProps) {
                   if (e.key === 'Escape') cancelRename()
                 }}
                 autoFocus
-                className="w-full rounded bg-background px-2 py-1 text-sm font-medium text-fg outline-none ring-1 ring-primary"
+                className="clinical-input w-full px-2 py-1.5 text-sm font-medium"
               />
               <button
                 type="button"
@@ -68,7 +77,7 @@ export function DocumentCard({ document, onDelete }: DocumentCardProps) {
               {document.name}
             </h3>
           )}
-          <p className="truncate text-xs text-fg-muted" title={document.filename}>
+          <p className="mt-0.5 truncate text-xs text-fg-muted" title={document.filename}>
             {document.filename}
           </p>
         </div>
@@ -76,7 +85,7 @@ export function DocumentCard({ document, onDelete }: DocumentCardProps) {
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
             aria-label="Document actions"
           >
             <MoreVertical className="h-4 w-4" aria-hidden="true" />
@@ -88,13 +97,13 @@ export function DocumentCard({ document, onDelete }: DocumentCardProps) {
                 onClick={() => setMenuOpen(false)}
                 aria-hidden="true"
               />
-              <div className="absolute right-0 top-9 z-20 w-36 rounded-lg border border-line bg-surface py-1 shadow-lg">
+              <div className="absolute right-0 top-9 z-20 w-36 rounded-2xl border border-border bg-surface py-1 shadow-hover">
                 <MenuItem
                   icon={Eye}
-                  label="View"
+                  label="View details"
                   onClick={() => {
                     setMenuOpen(false)
-                    alert('PDF viewer coming soon')
+                    window.location.href = detailsHref
                   }}
                 />
                 <MenuItem
@@ -120,17 +129,59 @@ export function DocumentCard({ document, onDelete }: DocumentCardProps) {
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-between">
-        <DocumentStatus status={document.status} />
-        <span className="text-xs text-fg-muted">
-          {document.pageCount ? `${document.pageCount} pages` : '—'}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
+          <span className="h-1.5 w-1.5 rounded-full bg-success" />
+          Active
         </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+          FDA Grounded
+        </span>
+        <DocumentStatus status={document.status} />
       </div>
 
-      <div className="mt-3 flex items-center justify-between border-t border-line pt-3 text-xs text-fg-muted">
-        <span>{formatFileSize(document.fileSize)}</span>
-        <span>{formatDate(document.uploadedAt)}</span>
+      <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border pt-3 text-xs text-fg-muted sm:grid-cols-4">
+        <MetaItem icon={Calendar} label="Uploaded" value={formatDate(document.uploadedAt)} />
+        <MetaItem icon={FileDigit} label="Pages" value={document.pageCount ? `${document.pageCount}` : '—'} />
+        <MetaItem icon={HardDrive} label="File size" value={formatFileSize(document.fileSize)} />
+        <MetaItem icon={FileText} label="Status" value={document.status === 'ready' ? 'Ready' : 'Processing'} />
       </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <Link
+          to={detailsHref}
+          className="inline-flex items-center justify-center rounded-pill border border-border bg-surface px-4 py-2 text-xs font-semibold text-fg transition-colors hover:border-primary/30 hover:text-primary"
+        >
+          View Details
+        </Link>
+        <Link
+          to={chatHref}
+          className="inline-flex items-center justify-center gap-1.5 rounded-pill bg-primary px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-primary-hover"
+        >
+          <MessageSquare className="h-3.5 w-3.5" />
+          Open in AI Chat
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+function MetaItem({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: LucideIcon
+  label: string
+  value: string
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-surface/80 px-2.5 py-2">
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-fg-muted">
+        <Icon className="h-3 w-3" />
+        <span>{label}</span>
+      </div>
+      <div className="mt-1 truncate text-xs font-semibold text-fg">{value}</div>
     </div>
   )
 }

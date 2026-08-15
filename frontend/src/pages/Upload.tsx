@@ -1,3 +1,5 @@
+import { Navigate } from 'react-router-dom'
+
 export default function Upload() {
-  return <div className="p-6" />
+  return <Navigate to="/documents" replace />
 }

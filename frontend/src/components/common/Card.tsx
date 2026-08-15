@@ -18,7 +18,7 @@ export function Card({
     default: 'bg-surface border border-border text-fg',
     warm: 'bg-surface-warm border border-border/80 text-fg',
     outline: 'bg-transparent border border-border text-fg',
-    dark: 'bg-primary/90 border border-primary-light text-white',
+    dark: 'bg-primary/92 border border-primary-light text-white',
   }
 
   const base = variantStyles[variant] ?? variantStyles.default
@@ -29,7 +29,7 @@ export function Card({
 
   return (
     <div
-      className={`rounded-xl p-6 ${base} ${hoverStyles} theme-transition ${className}`}
+      className={`rounded-2xl p-6 ${base} ${hoverStyles} theme-transition ${className}`}
       {...props}
     >
       {children}

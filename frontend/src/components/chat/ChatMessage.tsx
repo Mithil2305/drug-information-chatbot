@@ -17,7 +17,7 @@ function UserMessage({ content }: { content: string }) {
   return (
     <div className="flex justify-end animate-fade-in-up" style={{ animationDelay: '0ms' }}>
       <div className="flex items-end gap-2.5 max-w-[85%] md:max-w-2xl">
-        <div className="rounded-2xl rounded-br-sm bg-primary px-5 py-3.5 text-sm text-white shadow-card">
+        <div className="rounded-3xl rounded-br-sm bg-primary px-5 py-3.5 text-sm text-white shadow-card">
           <p className="whitespace-pre-wrap leading-relaxed">{content}</p>
         </div>
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface border border-border text-fg-muted mb-0.5">
@@ -43,7 +43,7 @@ function ActionButton({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="flex h-7 w-7 items-center justify-center rounded-lg text-fg-muted transition-all duration-150 hover:bg-surface-highlight hover:text-fg"
+      className="flex h-7 w-7 items-center justify-center rounded-full text-fg-muted transition-all duration-150 hover:bg-surface-highlight hover:text-fg"
     >
       <Icon className="h-3.5 w-3.5" aria-hidden="true" />
     </button>
@@ -82,7 +82,7 @@ function AssistantMessage({ message, isLast }: { message: ChatMessageType; isLas
       style={{ animationDelay: '30ms' }}
     >
       {/* AI Avatar */}
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-white border border-primary/20 shadow-subtle mt-0.5">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-primary text-white border border-primary/20 shadow-subtle mt-0.5">
         <Bot className="h-4.5 w-4.5 h-[18px] w-[18px]" />
       </div>
 
@@ -93,7 +93,7 @@ function AssistantMessage({ message, isLast }: { message: ChatMessageType; isLas
           }`}
         >
           {/* Status Header */}
-          <div className="mb-3.5 flex items-center justify-between border-b border-border pb-3">
+            <div className="mb-3.5 flex items-center justify-between border-b border-border pb-3">
             <div className="flex items-center gap-2.5">
               <span className="text-xs font-bold text-primary">LabelProof Assistant</span>
               {isAbstaining ? (

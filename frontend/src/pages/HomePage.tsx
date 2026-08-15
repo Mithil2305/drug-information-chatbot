@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import {
   ShieldCheck,
   ArrowRight,
@@ -22,6 +23,7 @@ import { Accordion } from '../components/common/Accordion'
 import { useDocuments } from '../hooks/useDocuments'
 
 export default function HomePage() {
+  const location = useLocation()
   const { documents } = useDocuments()
   const readyDocs = documents.filter((d) => d.status === 'ready')
 
@@ -122,6 +124,20 @@ export default function HomePage() {
         'Yes. You can compare dosage, warnings, adverse reaction profiles, and indications across multiple approved drug labels in the repository simultaneously.',
     },
   ]
+
+  useEffect(() => {
+    const hash = location.hash.replace('#', '')
+    if (location.pathname !== '/' || !hash) return
+
+    const scrollToSection = () => {
+      const element = document.getElementById(hash)
+      if (!element) return
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+
+    const raf = window.requestAnimationFrame(scrollToSection)
+    return () => window.cancelAnimationFrame(raf)
+  }, [location.hash, location.pathname])
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-fg">
@@ -354,7 +370,7 @@ export default function HomePage() {
         {/* ═══════════════════════════════════════════════════
             HOW IT WORKS
             ═══════════════════════════════════════════════════ */}
-        <section id="how-it-works" className="px-5 py-16 lg:px-8 bg-surface-warm/40 border-y border-border">
+        <section id="how-it-works" className="scroll-mt-24 px-5 py-16 lg:px-8 bg-surface-warm/40 border-y border-border">
           <div className="mx-auto max-w-7xl">
             <div className="text-center max-w-2xl mx-auto mb-14">
               <p className="text-xs font-bold uppercase tracking-[0.12em] text-accent mb-2">
@@ -400,7 +416,7 @@ export default function HomePage() {
         {/* ═══════════════════════════════════════════════════
             SOURCE VERIFICATION SHOWCASE
             ═══════════════════════════════════════════════════ */}
-        <section id="verification" className="px-5 py-20 lg:px-8">
+        <section id="verification" className="scroll-mt-24 px-5 py-20 lg:px-8">
           <div className="mx-auto max-w-7xl">
             <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-2">
 
@@ -550,7 +566,7 @@ export default function HomePage() {
         {/* ═══════════════════════════════════════════════════
             FAQ
             ═══════════════════════════════════════════════════ */}
-        <section id="faq" className="px-5 py-20 lg:px-8">
+        <section id="faq" className="scroll-mt-24 px-5 py-20 lg:px-8">
           <div className="mx-auto max-w-4xl">
             <div className="text-center mb-14">
               <p className="text-xs font-bold uppercase tracking-[0.12em] text-accent mb-2">

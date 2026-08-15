@@ -17,7 +17,7 @@ export function EvidenceCard({
   return (
     <div
       onClick={onClick}
-      className={`group cursor-pointer rounded-lg border p-4 transition-all duration-200 ${
+      className={`group cursor-pointer rounded-2xl border p-4 transition-all duration-200 ${
         isSelected
           ? 'border-primary bg-surface shadow-card ring-1 ring-primary/20'
           : 'border-border bg-background hover:border-accent/40 hover:bg-surface'
@@ -25,7 +25,7 @@ export function EvidenceCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <FileText className="h-4 w-4" />
           </div>
           <div>
@@ -51,7 +51,7 @@ export function EvidenceCard({
               e.stopPropagation()
               onViewSource(citation)
             }}
-            className="flex h-6 w-6 items-center justify-center rounded-md text-fg-muted hover:bg-surface-highlight hover:text-primary transition-colors"
+            className="flex h-6 w-6 items-center justify-center rounded-full text-fg-muted hover:bg-surface-highlight hover:text-primary transition-colors"
             title="Inspect source page"
           >
             <ArrowUpRight className="h-3.5 w-3.5" />

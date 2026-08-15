@@ -8,29 +8,29 @@
    LIGHT THEME — warm off-white, white cards, deep teal accents
    ============================================================ */
 :root {
-  --color-background: #F7F6F2;
-  --color-surface: #FFFFFF;
-  --color-surface-warm: #F5F3E6;
-  --color-surface-highlight: #EAE9E3;
-  --color-foreground: #021D1D;
-  --color-foreground-secondary: #52605F;
-  --color-foreground-muted: #7B8583;
-  --color-border: #E4E5E1;
-  --color-primary: #0E3A3A;
-  --color-primary-light: #115150;
-  --color-primary-hover: #0C3232;
-  --color-teal: #1C5959;
-  --color-accent: #0F7772;
-  --color-success: #2F7D65;
-  --color-warning: #B87925;
-  --color-danger: #B64A4A;
-  --color-info: #347A82;
-  --color-ai: #0F7772;
+  --color-background: #f6f5f0;
+  --color-surface: #ffffff;
+  --color-surface-warm: #f4f1e8;
+  --color-surface-highlight: #eceae3;
+  --color-foreground: #082122;
+  --color-foreground-secondary: #516261;
+  --color-foreground-muted: #7e8886;
+  --color-border: #dde2de;
+  --color-primary: #0d3d3a;
+  --color-primary-light: #125755;
+  --color-primary-hover: #0a2f2d;
+  --color-teal: #1b6260;
+  --color-accent: #0f7772;
+  --color-success: #2f7d65;
+  --color-warning: #b87925;
+  --color-danger: #b64a4a;
+  --color-info: #347a82;
+  --color-ai: #0f7772;
   --color-white: #FFFFFF;
 
-  --shadow-card: 0 1px 4px rgba(2, 29, 29, 0.06), 0 4px 16px rgba(2, 29, 29, 0.05);
-  --shadow-hover: 0 8px 32px rgba(2, 29, 29, 0.12), 0 2px 8px rgba(2, 29, 29, 0.06);
-  --shadow-subtle: 0 1px 3px rgba(2, 29, 29, 0.04);
+  --shadow-card: 0 1px 3px rgba(7, 24, 24, 0.05), 0 10px 28px rgba(7, 24, 24, 0.05);
+  --shadow-hover: 0 16px 42px rgba(7, 24, 24, 0.12), 0 4px 12px rgba(7, 24, 24, 0.06);
+  --shadow-subtle: 0 1px 2px rgba(7, 24, 24, 0.04);
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -44,29 +44,29 @@
    DARK THEME — deep charcoal, NOT an inverted light theme
    ============================================================ */
 .dark {
-  --color-background: #0B1515;
-  --color-surface: #102222;
-  --color-surface-warm: #132B2B;
-  --color-surface-highlight: #1A3535;
-  --color-foreground: #F4F7F5;
-  --color-foreground-secondary: #A8B7B4;
-  --color-foreground-muted: #6E8280;
+  --color-background: #081212;
+  --color-surface: #102121;
+  --color-surface-warm: #122828;
+  --color-surface-highlight: #183232;
+  --color-foreground: #f4f7f6;
+  --color-foreground-secondary: #a8b6b4;
+  --color-foreground-muted: #6f8280;
   --color-border: rgba(255, 255, 255, 0.10);
-  --color-primary: #4FA9A2;
-  --color-primary-light: #5DBBB3;
-  --color-primary-hover: #44958E;
-  --color-teal: #2A7B7B;
-  --color-accent: #4FA9A2;
-  --color-success: #3DB389;
-  --color-warning: #D4963A;
-  --color-danger: #D96060;
-  --color-info: #4EB3BE;
-  --color-ai: #4FA9A2;
+  --color-primary: #58b0aa;
+  --color-primary-light: #6bc1bb;
+  --color-primary-hover: #469791;
+  --color-teal: #2d7c78;
+  --color-accent: #58b0aa;
+  --color-success: #3db389;
+  --color-warning: #d4963a;
+  --color-danger: #d96060;
+  --color-info: #4eb3be;
+  --color-ai: #58b0aa;
   --color-white: #FFFFFF;
 
-  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.30), 0 4px 16px rgba(0, 0, 0, 0.20);
-  --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.40), 0 2px 8px rgba(0, 0, 0, 0.20);
-  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.20);
+  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.28), 0 10px 28px rgba(0, 0, 0, 0.18);
+  --shadow-hover: 0 18px 42px rgba(0, 0, 0, 0.38), 0 4px 14px rgba(0, 0, 0, 0.20);
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.18);
 
   color-scheme: dark;
 }
@@ -92,7 +92,10 @@ body,
 
 body {
   margin: 0;
-  background-color: var(--color-background);
+  background:
+    radial-gradient(circle at top left, rgba(15, 119, 114, 0.08), transparent 28%),
+    radial-gradient(circle at top right, rgba(13, 61, 58, 0.06), transparent 24%),
+    linear-gradient(180deg, var(--color-background) 0%, var(--color-background) 100%);
   color: var(--color-foreground);
   font-family: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 15px;
@@ -109,6 +112,49 @@ body {
 h1, h2, h3, h4, h5, h6 {
   line-height: 1.2;
   letter-spacing: -0.01em;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(15, 119, 114, 0.18);
+  color: var(--color-foreground);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-foreground-muted);
+}
+
+input,
+textarea,
+select {
+  color: var(--color-foreground);
+}
+
+input[type='file']::file-selector-button {
+  border: 0;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 999px;
+  padding: 0.55rem 0.9rem;
+  margin-right: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+input[type='file']::file-selector-button:hover {
+  background: var(--color-primary-hover);
 }
 
 /* ============================================================
@@ -184,6 +230,40 @@ h1, h2, h3, h4, h5, h6 {
 
 .animate-fade-in {
   animation: fadeIn 200ms ease both;
+}
+
+.app-shell {
+  background:
+    radial-gradient(circle at 15% 0%, rgba(15, 119, 114, 0.08), transparent 24%),
+    radial-gradient(circle at 100% 0%, rgba(13, 61, 58, 0.04), transparent 20%),
+    var(--color-background);
+}
+
+.clinical-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+
+.clinical-panel-soft {
+  background: color-mix(in srgb, var(--color-surface) 94%, var(--color-primary) 6%);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-subtle);
+}
+
+.clinical-input {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-subtle);
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.clinical-input:focus,
+.clinical-input:focus-within {
+  outline: none;
+  border-color: color-mix(in srgb, var(--color-accent) 55%, white 45%);
+  box-shadow: 0 0 0 3px rgba(15, 119, 114, 0.12);
 }
 
 /* ============================================================

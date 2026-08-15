@@ -3,25 +3,25 @@ import { ShieldCheck, ArrowUpRight } from 'lucide-react'
 
 export function Footer() {
   return (
-    <footer className="w-full bg-primary text-white">
-      <div className="mx-auto max-w-7xl px-6 py-14 lg:px-8">
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-12">
+    <footer className="w-full border-t border-border bg-surface text-fg">
+      <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-12">
 
           {/* Brand Info */}
-          <div className="lg:col-span-4 space-y-5">
+          <div className="lg:col-span-5 space-y-5">
             <Link to="/" className="flex items-center gap-2.5 group">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal text-white shadow-card transition-transform group-hover:scale-105">
+              <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary text-white shadow-card transition-transform group-hover:scale-105">
                 <ShieldCheck className="h-5 w-5 text-surface-warm" />
               </div>
               <div className="flex flex-col leading-none">
-                <span className="text-lg font-bold tracking-tight">LabelProof</span>
-                <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/60">Clinical AI</span>
+                <span className="text-lg font-bold tracking-tight text-primary">LabelProof</span>
+                <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-accent">Clinical AI</span>
               </div>
             </Link>
-            <p className="max-w-xs text-sm leading-relaxed text-white/65">
+            <p className="max-w-xs text-sm leading-relaxed text-fg-secondary">
               Evidence-first drug information platform powered by AI. Every answer is retrieved and verified directly against FDA-approved pharmaceutical prescribing information.
             </p>
-            <div className="flex items-center gap-2 text-xs font-semibold text-white/70">
+            <div className="flex items-center gap-2 text-xs font-semibold text-fg-secondary">
               <span className="flex h-2 w-2 items-center justify-center">
                 <span className="inline-block h-2 w-2 rounded-full bg-success animate-pulse" />
               </span>
@@ -30,11 +30,9 @@ export function Footer() {
           </div>
 
           {/* Spacer */}
-          <div className="hidden lg:block lg:col-span-1" />
-
           {/* Explore */}
           <div className="lg:col-span-2">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/50 mb-4">Explore</h4>
+            <h4 className="mb-4 text-[10px] font-bold uppercase tracking-[0.12em] text-fg-muted">Explore</h4>
             <ul className="space-y-3 text-sm">
               {[
                 { label: 'Home', to: '/' },
@@ -45,7 +43,7 @@ export function Footer() {
                 <li key={item.label}>
                   <Link
                     to={item.to}
-                    className="text-white/65 transition-colors duration-150 hover:text-white"
+                    className="text-fg-secondary transition-colors duration-150 hover:text-primary"
                   >
                     {item.label}
                   </Link>
@@ -56,23 +54,23 @@ export function Footer() {
 
           {/* Resources */}
           <div className="lg:col-span-2">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/50 mb-4">Resources</h4>
+            <h4 className="mb-4 text-[10px] font-bold uppercase tracking-[0.12em] text-fg-muted">Resources</h4>
             <ul className="space-y-3 text-sm">
               <li>
-                <a href="/#how-it-works" className="text-white/65 transition-colors hover:text-white">How RAG Works</a>
+                <Link to="/#how-it-works" className="text-fg-secondary transition-colors hover:text-primary">How RAG Works</Link>
               </li>
               <li>
-                <a href="/#verification" className="text-white/65 transition-colors hover:text-white">Source Verification</a>
+                <Link to="/#verification" className="text-fg-secondary transition-colors hover:text-primary">Source Verification</Link>
               </li>
               <li>
-                <a href="/#faq" className="text-white/65 transition-colors hover:text-white">Clinical FAQ</a>
+                <Link to="/#faq" className="text-fg-secondary transition-colors hover:text-primary">Clinical FAQ</Link>
               </li>
               <li>
                 <a
                   href="http://127.0.0.1:8000/docs"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-white/65 transition-colors hover:text-white"
+                  className="inline-flex items-center gap-1 text-fg-secondary transition-colors hover:text-primary"
                 >
                   <span>Backend API</span>
                   <ArrowUpRight className="h-3 w-3" />
@@ -83,19 +81,20 @@ export function Footer() {
 
           {/* Disclaimer */}
           <div className="lg:col-span-3">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/50 mb-4">Clinical Disclaimer</h4>
-            <p className="text-xs leading-relaxed text-white/55">
+            <h4 className="mb-4 text-[10px] font-bold uppercase tracking-[0.12em] text-fg-muted">Clinical Disclaimer</h4>
+            <p className="text-xs leading-relaxed text-fg-secondary">
               LabelProof is designed for healthcare professionals, clinical researchers, and informational drug reference. Responses are synthesized from official prescribing labels and should not replace professional medical judgment.
             </p>
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-8 text-xs text-white/40 sm:flex-row">
+        <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-xs text-fg-muted sm:flex-row">
           <p>© {new Date().getFullYear()} LabelProof. Cognizant NPN Healthcare AI Initiative.</p>
-          <div className="flex gap-6">
-            <span className="cursor-pointer transition-colors hover:text-white/70">Privacy Protocol</span>
-            <span className="cursor-pointer transition-colors hover:text-white/70">Terms of Verification</span>
-            <span className="cursor-pointer transition-colors hover:text-white/70">Compliance</span>
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            <Link to="/" className="transition-colors hover:text-primary">Home</Link>
+            <Link to="/drugs" className="transition-colors hover:text-primary">Drug Library</Link>
+            <Link to="/documents" className="transition-colors hover:text-primary">Documents</Link>
+            <Link to="/chat" className="transition-colors hover:text-primary">AI Assistant</Link>
           </div>
         </div>
       </div>

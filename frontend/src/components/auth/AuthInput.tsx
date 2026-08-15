@@ -19,9 +19,9 @@ export function AuthInput({ label, icon: Icon, error, className, ...props }: Aut
         />
         <input
           {...props}
-          className={`w-full rounded-lg border bg-surface py-2.5 pl-10 pr-3 text-sm text-fg placeholder-fg-muted outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary ${
-            error ? 'border-danger' : 'border-line'
-          }`}
+          className={`clinical-input w-full py-3 pl-10 pr-3 text-sm placeholder:text-fg-muted ${
+            error ? 'border-danger focus:border-danger focus:ring-danger/10' : ''
+          } ${className ?? ''}`}
         />
       </div>
       {error && <p className="mt-1.5 text-xs text-danger">{error}</p>}

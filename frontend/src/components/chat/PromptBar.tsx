@@ -68,10 +68,10 @@ export function PromptBar() {
           e.preventDefault()
           handleSubmit()
         }}
-        className="relative flex items-end gap-3 rounded-2xl border border-border bg-surface p-3.5 shadow-card transition-all duration-200 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10"
+        className="relative flex items-end gap-3 rounded-3xl border border-border bg-surface p-3.5 shadow-card transition-all duration-200 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10"
       >
         {/* Left icon */}
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-highlight text-accent">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-surface-highlight text-accent">
           <Sparkles className="h-4 w-4" />
         </div>
 
@@ -92,7 +92,7 @@ export function PromptBar() {
         <button
           type="submit"
           disabled={!canSubmit}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-subtle transition-all duration-150 hover:bg-primary-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-subtle transition-all duration-150 hover:bg-primary-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
           aria-label="Send clinical inquiry"
         >
           {isLoading ? (

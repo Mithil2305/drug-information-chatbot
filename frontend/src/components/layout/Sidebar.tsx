@@ -28,13 +28,13 @@ export function Sidebar({ onClose }: SidebarProps) {
 
   if (collapsed) {
     return (
-      <aside className="flex h-full w-14 flex-col items-center border-r border-border bg-surface py-2">
+      <aside className="sticky top-0 flex h-screen w-14 flex-col items-center border-r border-border bg-surface py-2 shadow-subtle">
         <SidebarHeader onClose={onClose} collapsed />
         <div className="mt-2 flex flex-col items-center gap-1.5">
           <button
             type="button"
             onClick={handleNewChat}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-primary transition-colors hover:bg-surface-highlight"
+            className="flex h-9 w-9 items-center justify-center rounded-2xl text-primary transition-colors hover:bg-surface-highlight"
             aria-label="New clinical inquiry"
             title="New Chat"
           >
@@ -43,7 +43,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           <Link
             to="/drugs"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-primary"
+            className="flex h-9 w-9 items-center justify-center rounded-2xl text-fg-muted transition-colors hover:bg-surface-highlight hover:text-primary"
             aria-label="Drug Library"
             title="Drug Library"
           >
@@ -52,7 +52,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           <Link
             to="/documents"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-primary"
+            className="flex h-9 w-9 items-center justify-center rounded-2xl text-fg-muted transition-colors hover:bg-surface-highlight hover:text-primary"
             aria-label="Manage documents"
             title="Manage Documents"
           >
@@ -66,7 +66,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   }
 
   return (
-    <aside className="flex h-full w-64 flex-col border-r border-border bg-surface">
+    <aside className="sticky top-0 flex h-screen w-64 flex-col border-r border-border bg-surface shadow-subtle">
       <SidebarHeader onClose={onClose} collapsed={false} />
 
       <div className="flex flex-col gap-1.5 px-3 pt-3">
@@ -82,7 +82,7 @@ export function Sidebar({ onClose }: SidebarProps) {
         <Link
           to="/drugs"
           onClick={onClose}
-          className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold text-fg hover:bg-surface-highlight transition-colors"
+          className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-xs font-semibold text-fg hover:bg-surface-highlight transition-colors"
         >
           <div className="flex items-center gap-2">
             <BookOpen className="h-4 w-4 shrink-0 text-accent" />
@@ -96,7 +96,7 @@ export function Sidebar({ onClose }: SidebarProps) {
         <Link
           to="/documents"
           onClick={onClose}
-          className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold text-fg hover:bg-surface-highlight transition-colors"
+          className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-xs font-semibold text-fg hover:bg-surface-highlight transition-colors"
         >
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 shrink-0 text-accent" />
