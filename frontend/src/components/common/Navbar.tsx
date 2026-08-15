@@ -11,23 +11,33 @@ import {
   BookOpen,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
+import { useSectionNavigation } from '../../hooks/useSectionNavigation'
 import { ThemeToggle } from './ThemeToggle'
 
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { user, logout } = useAuth()
   const location = useLocation()
+  const { navigateToSection } = useSectionNavigation()
 
   const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'Drug Library', path: '/drugs' },
-    { name: 'How It Works', path: '/#how-it-works' },
-    { name: 'FAQ', path: '/#faq' },
+    { name: 'Home', path: '/', isSection: false },
+    { name: 'Drug Library', path: '/drugs', isSection: false },
+    { name: 'How It Works', path: '/#how-it-works', isSection: true },
+    { name: 'FAQ', path: '/#faq', isSection: true },
   ]
 
   const isActive = (path: string) => {
     if (path.startsWith('/#')) return false
     return location.pathname === path
+  }
+
+  const handleNavClick = (path: string, isSection: boolean) => {
+    setMobileMenuOpen(false)
+    if (isSection) {
+      navigateToSection(path)
+      return
+    }
   }
 
   return (
@@ -37,7 +47,7 @@ export function Navbar() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3 group flex-shrink-0">
           <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary text-white shadow-subtle transition-all duration-200 group-hover:shadow-card">
-            <ShieldCheck className="h-5 w-5 text-surface-warm" />
+            <ShieldCheck className="h-5 w-5 text-white" />
           </div>
           <div className="flex flex-col leading-none">
             <span className="text-[15px] font-bold tracking-tight text-primary">LabelProof</span>
@@ -47,19 +57,30 @@ export function Navbar() {
 
         {/* Desktop Navigation */}
         <nav className="hidden items-center gap-1 md:flex" aria-label="Main navigation">
-          {navLinks.map((link) => (
-            <Link
-              key={link.name}
-              to={link.path}
-              className={`rounded-pill px-3.5 py-2 text-sm font-medium transition-all duration-150 ${
-                isActive(link.path)
-                  ? 'bg-surface-highlight font-semibold text-primary shadow-subtle'
-                  : 'text-fg-secondary hover:bg-surface-highlight hover:text-fg'
-              }`}
-            >
-              {link.name}
-            </Link>
-          ))}
+          {navLinks.map((link) =>
+            link.isSection ? (
+              <button
+                key={link.name}
+                type="button"
+                onClick={() => navigateToSection(link.path)}
+                className="rounded-pill px-3.5 py-2 text-sm font-medium text-fg-secondary transition-all duration-150 hover:bg-surface-highlight hover:text-fg"
+              >
+                {link.name}
+              </button>
+            ) : (
+              <Link
+                key={link.name}
+                to={link.path}
+                className={`rounded-pill px-3.5 py-2 text-sm font-medium transition-all duration-150 ${
+                  isActive(link.path)
+                    ? 'bg-surface-highlight font-semibold text-primary shadow-subtle'
+                    : 'text-fg-secondary hover:bg-surface-highlight hover:text-fg'
+                }`}
+              >
+                {link.name}
+              </Link>
+            ),
+          )}
         </nav>
 
         {/* Desktop Right Actions */}
@@ -132,20 +153,31 @@ export function Navbar() {
       {mobileMenuOpen && (
         <div className="animate-fade-in border-b border-border bg-surface px-5 py-5 shadow-hover md:hidden">
           <nav className="flex flex-col gap-1" aria-label="Mobile navigation">
-            {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                to={link.path}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`rounded-pill px-3 py-2.5 text-sm font-medium transition-colors ${
-                  isActive(link.path)
-                    ? 'bg-surface-highlight font-semibold text-primary'
-                    : 'text-fg hover:bg-surface-highlight'
-                }`}
-              >
-                {link.name}
-              </Link>
-            ))}
+            {navLinks.map((link) =>
+              link.isSection ? (
+                <button
+                  key={link.name}
+                  type="button"
+                  onClick={() => handleNavClick(link.path, true)}
+                  className="rounded-pill px-3 py-2.5 text-left text-sm font-medium text-fg transition-colors hover:bg-surface-highlight"
+                >
+                  {link.name}
+                </button>
+              ) : (
+                <Link
+                  key={link.name}
+                  to={link.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`rounded-pill px-3 py-2.5 text-sm font-medium transition-colors ${
+                    isActive(link.path)
+                      ? 'bg-surface-highlight font-semibold text-primary'
+                      : 'text-fg hover:bg-surface-highlight'
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              ),
+            )}
           </nav>
 
           <div className="mt-4 flex flex-col gap-2.5 border-t border-border pt-4">

@@ -75,7 +75,7 @@ export default function DrugLibraryPage() {
           {/* Main 2-Column Content */}
           <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-12">
             {/* Left Sidebar: Drug Selection */}
-            <div className="lg:col-span-4 space-y-4">
+            <div className="lg:col-span-4 space-y-4 lg:sticky lg:top-24 lg:h-[calc(100vh-140px)] lg:overflow-y-auto pr-1">
               <div className="relative">
                 <Search className="absolute left-3.5 top-3 h-4 w-4 text-fg-muted" />
                 <input

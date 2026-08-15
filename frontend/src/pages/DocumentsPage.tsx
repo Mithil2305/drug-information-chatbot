@@ -44,12 +44,12 @@ export default function DocumentsPage() {
   }
 
   return (
-    <div className="app-shell flex min-h-screen flex-col text-fg">
+    <div className="app-shell flex h-screen flex-col text-fg overflow-hidden">
       <Navbar />
       <MobileSidebar />
 
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="hidden shrink-0 lg:block lg:sticky lg:top-0 lg:h-screen">
+      <div className="flex flex-1 overflow-hidden">
+        <div className="hidden shrink-0 lg:block lg:h-full">
           <Sidebar />
         </div>
 
@@ -73,34 +73,30 @@ export default function DocumentsPage() {
 
             <section className="pt-4 lg:pt-0">
               <div className="relative overflow-hidden rounded-3xl border border-border bg-surface p-6 shadow-card sm:p-8">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(15,119,114,0.08),transparent_38%),linear-gradient(90deg,rgba(255,255,255,0.02),transparent_40%)]" />
-                <div className="relative grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_210px] lg:items-start">
-                  <div className="space-y-3">
+                {/* Subtle light/dark radial gradient */}
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(15,119,114,0.1),transparent_45%)]" />
+                
+                {/* Low opacity subtle medicine.png background element */}
+                <div className="absolute right-0 bottom-0 top-0 w-1/3 pointer-events-none select-none overflow-hidden hidden md:block">
+                  <div className="absolute inset-0 bg-gradient-to-r from-surface to-transparent z-10 w-24" />
+                  <img
+                    src={medicineVerificationImage}
+                    alt=""
+                    className="absolute right-4 bottom-2 h-full max-h-[140px] w-auto object-contain opacity-15"
+                  />
+                </div>
+
+                <div className="relative max-w-2xl space-y-3 z-20">
                   <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent">
                     <ShieldCheck className="h-3.5 w-3.5" />
                     Pharmaceutical Reference
                   </div>
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                    <div className="max-w-2xl">
-                      <h1 className="text-3xl font-bold tracking-tight text-primary sm:text-4xl">
-                        Pharmaceutical Label Documents
-                      </h1>
-                      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-fg-secondary">
-                        Upload and manage FDA-approved prescribing information for accurate, evidence-grounded AI responses.
-                      </p>
-                    </div>
-                  </div>
-
-                  </div>
-
-                  <div className="relative justify-self-start lg:justify-self-end">
-                    <div className="pointer-events-none absolute -right-8 -top-2 h-24 w-24 rounded-full bg-teal/10 blur-2xl" aria-hidden />
-                    <img
-                      src={medicineVerificationImage}
-                      alt="Medicine verification illustration"
-                      className="relative h-20 w-auto object-contain opacity-75 sm:h-24 lg:h-28"
-                    />
-                  </div>
+                  <h1 className="text-3xl font-bold tracking-tight text-primary sm:text-4xl">
+                    Pharmaceutical Label Documents
+                  </h1>
+                  <p className="mt-2 text-sm leading-relaxed text-fg-secondary">
+                    Upload and manage FDA-approved prescribing information for accurate, evidence-grounded AI responses.
+                  </p>
                 </div>
               </div>
             </section>

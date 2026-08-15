@@ -41,32 +41,32 @@
 }
 
 /* ============================================================
-   DARK THEME — deep charcoal, NOT an inverted light theme
+   DARK THEME — deep charcoal / blue-green healthcare SaaS
    ============================================================ */
 .dark {
-  --color-background: #081212;
-  --color-surface: #102121;
-  --color-surface-warm: #122828;
-  --color-surface-highlight: #183232;
-  --color-foreground: #f4f7f6;
-  --color-foreground-secondary: #a8b6b4;
-  --color-foreground-muted: #6f8280;
-  --color-border: rgba(255, 255, 255, 0.10);
-  --color-primary: #58b0aa;
-  --color-primary-light: #6bc1bb;
-  --color-primary-hover: #469791;
-  --color-teal: #2d7c78;
-  --color-accent: #58b0aa;
-  --color-success: #3db389;
-  --color-warning: #d4963a;
-  --color-danger: #d96060;
-  --color-info: #4eb3be;
-  --color-ai: #58b0aa;
+  --color-background: #0e1619;
+  --color-surface: #162226;
+  --color-surface-warm: #1d2c31;
+  --color-surface-highlight: #25393f;
+  --color-foreground: #f4f8f7;
+  --color-foreground-secondary: #c5d5d2;
+  --color-foreground-muted: #92a7a4;
+  --color-border: rgba(200, 225, 221, 0.22);
+  --color-primary: #38b2ac;
+  --color-primary-light: #4fd1c5;
+  --color-primary-hover: #319795;
+  --color-teal: #2c7a7b;
+  --color-accent: #319795;
+  --color-success: #38a169;
+  --color-warning: #dd6b20;
+  --color-danger: #e53e3e;
+  --color-info: #3182ce;
+  --color-ai: #319795;
   --color-white: #FFFFFF;
 
-  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.28), 0 10px 28px rgba(0, 0, 0, 0.18);
-  --shadow-hover: 0 18px 42px rgba(0, 0, 0, 0.38), 0 4px 14px rgba(0, 0, 0, 0.20);
-  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.18);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --shadow-hover: 0 14px 36px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.22);
+  --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.2);
 
   color-scheme: dark;
 }
@@ -102,8 +102,14 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Smooth theme transitions */
   transition: background-color 250ms ease, color 150ms ease;
+}
+
+.dark body {
+  background:
+    radial-gradient(circle at 12% -4%, rgba(49, 151, 149, 0.15), transparent 32%),
+    radial-gradient(circle at 88% 0%, rgba(44, 122, 123, 0.1), transparent 28%),
+    linear-gradient(180deg, var(--color-background) 0%, #0a0f11 100%);
 }
 
 /* ============================================================
@@ -239,6 +245,13 @@ input[type='file']::file-selector-button:hover {
     var(--color-background);
 }
 
+.dark .app-shell {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(77, 170, 163, 0.1), transparent 26%),
+    radial-gradient(circle at 100% 0%, rgba(36, 54, 59, 0.55), transparent 24%),
+    var(--color-background);
+}
+
 .clinical-panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -264,6 +277,23 @@ input[type='file']::file-selector-button:hover {
   outline: none;
   border-color: color-mix(in srgb, var(--color-accent) 55%, white 45%);
   box-shadow: 0 0 0 3px rgba(15, 119, 114, 0.12);
+}
+
+.dark .clinical-input:focus,
+.dark .clinical-input:focus-within {
+  border-color: color-mix(in srgb, var(--color-accent) 70%, transparent 30%);
+  box-shadow: 0 0 0 3px rgba(77, 170, 163, 0.18);
+}
+
+.site-footer {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface-warm) 88%, var(--color-primary) 12%) 0%, var(--color-surface-warm) 100%);
+  border-top: 1px solid var(--color-border);
+}
+
+.dark .site-footer {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 92%, var(--color-teal) 8%) 0%, var(--color-background) 100%);
 }
 
 /* ============================================================

@@ -21,6 +21,7 @@ import { Footer } from '../components/common/Footer'
 import { Card } from '../components/common/Card'
 import { Accordion } from '../components/common/Accordion'
 import { useDocuments } from '../hooks/useDocuments'
+import { scrollToSectionWhenReady } from '../utils/scrollToSection'
 
 export default function HomePage() {
   const location = useLocation()
@@ -128,15 +129,7 @@ export default function HomePage() {
   useEffect(() => {
     const hash = location.hash.replace('#', '')
     if (location.pathname !== '/' || !hash) return
-
-    const scrollToSection = () => {
-      const element = document.getElementById(hash)
-      if (!element) return
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-
-    const raf = window.requestAnimationFrame(scrollToSection)
-    return () => window.cancelAnimationFrame(raf)
+    scrollToSectionWhenReady(hash)
   }, [location.hash, location.pathname])
 
   return (

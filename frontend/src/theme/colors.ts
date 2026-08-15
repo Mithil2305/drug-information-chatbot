@@ -13,16 +13,16 @@ export const BaseColors = {
   backgroundLight: '#F7F6F2',
   surfaceLight: '#FFFFFF',
   surfaceWarmLight: '#F5F3E6',
-  backgroundDark: '#081C1C',
-  surfaceDark: '#0E2929',
-  surfaceHighlightDark: '#153E3E',
+  backgroundDark: '#0e1619',
+  surfaceDark: '#162226',
+  surfaceHighlightDark: '#25393f',
   textPrimaryLight: '#021D1D',
   textSecondaryLight: '#52605F',
   textMutedLight: '#7B8583',
-  textPrimaryDark: '#F7F6F2',
-  textSecondaryDark: '#A0B2B0',
+  textPrimaryDark: '#f4f8f7',
+  textSecondaryDark: '#c5d5d2',
   borderLight: '#E4E5E1',
-  borderDark: '#1C4848',
+  borderDark: 'rgba(200, 225, 221, 0.22)',
 } as const
 
 export type BaseColorKey = keyof typeof BaseColors
