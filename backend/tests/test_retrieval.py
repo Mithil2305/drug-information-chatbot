@@ -4,6 +4,9 @@ from app.repositories.qdrant_repository import qdrant_repository
 
 @pytest.mark.asyncio
 async def test_qdrant_repository_init():
+    # Reset collection verified state of singleton
+    qdrant_repository._collection_verified = False
+
     # Setup mock for get_collections to return no collections
     mock_collections = MagicMock()
     mock_collections.collections = []
