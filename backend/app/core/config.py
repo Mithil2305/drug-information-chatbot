@@ -6,7 +6,8 @@ class Settings(BaseSettings):
     APP_NAME: str = "LabelProof"
     ENVIRONMENT: str = "development"
 
-    # MySQL Database Settings
+    # Database Settings
+    DATABASE_URL: Optional[str] = None
     MYSQL_HOST: str = "localhost"
     MYSQL_PORT: int = 3306
     MYSQL_DATABASE: str = "labelproof"

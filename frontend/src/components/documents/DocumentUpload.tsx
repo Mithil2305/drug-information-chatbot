@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Upload } from 'lucide-react'
+import { UploadCloud } from 'lucide-react'
 import { toast } from 'sonner'
 import { useDocuments } from '../../hooks/useDocuments'
 
@@ -12,7 +12,7 @@ export function DocumentUpload() {
     if (!files || files.length === 0) return
     const file = files[0]
     if (!file.name.toLowerCase().endsWith('.pdf')) {
-      toast.error('Only PDF files are supported')
+      toast.error('Only PDF drug label documents are supported')
       return
     }
     uploadDocument(file)
@@ -33,22 +33,45 @@ export function DocumentUpload() {
       }}
       onDragLeave={() => setDragging(false)}
       onDrop={handleDrop}
-      className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
-        dragging ? 'border-primary bg-primary/5' : 'border-line bg-surface'
+      onClick={() => inputRef.current?.click()}
+      className={`relative flex flex-col items-center justify-center rounded-[8px] bg-surface-raised p-8 sm:p-10 text-center border transition-all cursor-pointer select-none shadow-sm ${
+        dragging 
+          ? 'border-accent ring-2 ring-accent/20 bg-surface' 
+          : 'border-border hover:border-accent/40'
       }`}
     >
-      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-surface-highlight text-primary">
-        <Upload className="h-6 w-6" aria-hidden="true" />
+      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-[8px] bg-[#22D3E8]/15 text-[#22D3E8] border border-[#22D3E8]/30 shadow-sm">
+        <UploadCloud className="h-5 w-5 stroke-[2.2] text-[#22D3E8]" aria-hidden="true" />
       </div>
-      <p className="mb-1 text-sm font-medium text-fg">Drop PDF here to upload</p>
-      <p className="mb-4 text-xs text-fg-muted">Approved drug-label documents only · PDF format</p>
+
+      <h3 className="font-sans text-sm sm:text-base font-bold text-text-primary">
+        Secure Document Upload
+      </h3>
+      
+      <p className="mt-1 text-xs text-text-secondary font-sans max-w-sm">
+        Drag and drop clinical protocols, investigator brochures, or medical datasets here.
+      </p>
+
       <button
         type="button"
-        onClick={() => inputRef.current?.click()}
-        className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover"
+        onClick={(e) => {
+          e.stopPropagation()
+          inputRef.current?.click()
+        }}
+        className="mt-3.5 inline-flex items-center gap-1.5 rounded-[6px] bg-[#22D3E8] text-[#0D1220] px-4 py-1.5 font-sans text-xs font-bold hover:bg-[#38EDFF] transition-all cursor-pointer shadow-sm"
       >
-        Upload PDF
+        Browse Files
       </button>
+
+
+      <span className="mt-3 font-mono text-[10.5px] text-text-tertiary">
+        Supported formats: PDF. Max size: 200MB.
+      </span>
+
+
+
+
+
       <input
         ref={inputRef}
         type="file"
@@ -59,3 +82,10 @@ export function DocumentUpload() {
     </div>
   )
 }
+
+
+
+
+
+
+

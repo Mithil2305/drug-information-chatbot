@@ -1,11 +1,15 @@
 import { useRef, useState } from 'react'
-import { Plus, Send } from 'lucide-react'
+import { ArrowUp, Paperclip } from 'lucide-react'
+import { toast } from 'sonner'
 import { useChat } from '../../hooks/useChat'
+import { useDocuments } from '../../hooks/useDocuments'
 
 export function PromptBar() {
   const [value, setValue] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { sendMessage, isLoading } = useChat()
+  const { uploadDocument } = useDocuments()
 
   const handleSubmit = () => {
     if (isLoading || !value.trim()) return
@@ -27,61 +31,89 @@ export function PromptBar() {
     const target = e.currentTarget
     setValue(target.value)
     target.style.height = 'auto'
-    target.style.height = `${Math.min(target.scrollHeight, 200)}px`
+    target.style.height = `${Math.min(target.scrollHeight, 160)}px`
+  }
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    const file = files[0]
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      toast.error('Only PDF drug label documents are supported')
+      return
+    }
+    uploadDocument(file)
+    e.target.value = ''
   }
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault()
-        handleSubmit()
-      }}
-      className="w-full border border-line bg-surface p-3 shadow-sm rounded-2xl"
-    >
-      <div className="flex items-end gap-2">
-        <button
-          type="button"
-          onClick={() => alert('Document upload coming soon')}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
-          aria-label="Attach document"
-        >
-          <Plus className="h-5 w-5" aria-hidden="true" />
-        </button>
+    <div className="w-full flex flex-col items-center gap-2 pb-3">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          handleSubmit()
+        }}
+        className="w-full rounded-[14px] sm:rounded-full bg-surface px-4 py-2 transition-all border border-border shadow-sm focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20"
+      >
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-text-tertiary transition-colors hover:bg-surface-raised hover:text-text-primary cursor-pointer"
+            aria-label="Upload document PDF"
+            title="Upload document PDF"
+          >
+            <Paperclip className="h-4 w-4" aria-hidden="true" />
+          </button>
 
-        <textarea
-          ref={textareaRef}
-          rows={1}
-          value={value}
-          onInput={handleInput}
-          onKeyDown={handleKeyDown}
-          placeholder="Ask about this document…"
-          className="max-h-40 w-full resize-none bg-transparent px-2 py-2 text-sm text-fg placeholder-fg-muted outline-none"
-          aria-label="Message"
-        />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/pdf,.pdf"
+            className="hidden"
+            onChange={handleFileUpload}
+          />
 
-        {/* <div className="hidden shrink-0 items-center gap-1 rounded-lg border border-line bg-surface-highlight px-3 py-2 text-sm font-medium text-fg sm:flex">
-          <span>RAG-1</span>
-          <ChevronDown className="h-4 w-4 text-fg-muted" aria-hidden="true" />
-        </div> */}
+          <textarea
+            ref={textareaRef}
+            rows={1}
+            value={value}
+            onInput={handleInput}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask anything about the clinical documentation..."
+            className="max-h-36 w-full resize-none bg-transparent py-1 text-xs sm:text-sm text-text-primary placeholder:text-text-tertiary outline-none leading-relaxed font-sans border-none"
+            aria-label="Clinical Query"
+          />
 
-        {/* <button
-          type="button"
-          onClick={() => alert('Voice input coming soon')}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-highlight hover:text-fg"
-          aria-label="Use microphone"
-        >
-          <Mic className="h-5 w-5" aria-hidden="true" />
-        </button> */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Filled Circular Cyan Send button */}
+            <button
+              type="submit"
+              disabled={isLoading || !value.trim()}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#22D3E8] text-[#0D1220] font-bold transition-all hover:bg-[#38EDFF] disabled:cursor-not-allowed disabled:opacity-30 shadow-sm cursor-pointer"
+              aria-label="Send query"
+            >
+              <ArrowUp className="h-4 w-4 stroke-[3]" aria-hidden="true" />
+            </button>
+          </div>
 
-        <button
-          type="submit"
-          disabled={isLoading || !value.trim()}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
-          aria-label="Send message"
-        >
-          <Send className="h-5 w-5" aria-hidden="true" />
-        </button>
-      </div>
-    </form>
+        </div>
+      </form>
+
+      {/* Clinical verification disclaimer */}
+      <p className="text-center font-sans text-[10.5px] text-text-tertiary">
+        Clinical responses are grounded in approved drug labels with section citations.
+      </p>
+    </div>
+
   )
 }
+
+
+
+
+
+
+
+
+

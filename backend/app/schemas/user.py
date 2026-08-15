@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 class UserRegister(BaseModel):
     email: EmailStr
@@ -17,9 +17,7 @@ class UserOut(BaseModel):
     role: str
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
-        orm_mode = True  # Fallback support for older Pydantic versions
+    model_config = ConfigDict(from_attributes=True)
 
 class Token(BaseModel):
     access_token: str

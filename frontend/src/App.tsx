@@ -47,7 +47,9 @@ function App() {
                       }
                     />
                     <Route path="/signin" element={<SignInPage />} />
+                    <Route path="/login" element={<SignInPage />} />
                     <Route path="/signup" element={<SignUpPage />} />
+                    <Route path="/register" element={<SignUpPage />} />
                     <Route path="*" element={<SignInPage />} />
                   </Routes>
                   <Toaster
@@ -55,12 +57,21 @@ function App() {
                     theme="dark"
                     toastOptions={{
                       style: {
-                        background: 'var(--color-surface)',
-                        border: '1px solid var(--color-border)',
-                        color: 'var(--color-foreground)',
+                        background: '#171A21',
+                        border: '1px solid #292E38',
+                        color: '#F1F3F7',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontFamily: 'IBM Plex Sans, sans-serif',
+                        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)',
                       },
                     }}
                   />
+
+
+
+
+
                 </ChatProvider>
               </DocumentProvider>
             </ConversationProvider>
@@ -72,3 +83,4 @@ function App() {
 }
 
 export default App
+

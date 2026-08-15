@@ -1,4 +1,4 @@
-import fitz
+import pymupdf as fitz
 
 
 def extract_pdf_pages(file_path):

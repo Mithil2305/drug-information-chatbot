@@ -12,7 +12,7 @@ def test_extract_pdf_pages():
     mock_doc = MagicMock()
     mock_doc.__iter__.return_value = iter([mock_page_1, mock_page_2])
     
-    with patch("fitz.open") as mock_open:
+    with patch("app.services.pdf.extractor.fitz.open") as mock_open:
         mock_open.return_value = mock_doc
         
         pages = extract_pdf_pages("fake_path.pdf")
