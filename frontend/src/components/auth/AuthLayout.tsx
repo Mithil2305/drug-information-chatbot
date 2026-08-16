@@ -20,7 +20,7 @@ export function AuthLayout({ children, panel = true }: AuthLayoutProps) {
           </div>
         </div>
 
-        <div className="w-full max-w-[360px] mx-auto lg:mx-0 lg:max-w-none">
+        <div className="w-full max-w-[360px] overflow-auto mx-auto lg:mx-0 lg:max-w-none">
           {children}
         </div>
       </div>

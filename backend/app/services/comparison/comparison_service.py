@@ -173,13 +173,13 @@ class ComparisonService:
         results1, results2 = await asyncio.gather(
             self.search_service.search(
                 query=label,
-                top_k=3,
+                top_k=2,
                 document_ids=[drug1_id],
                 score_threshold=settings.MIN_RELEVANCE_SCORE,
             ),
             self.search_service.search(
                 query=label,
-                top_k=3,
+                top_k=2,
                 document_ids=[drug2_id],
                 score_threshold=settings.MIN_RELEVANCE_SCORE,
             ),
@@ -206,7 +206,7 @@ class ComparisonService:
         try:
             answer = self.llm_service.generate(
                 prompt,
-                max_new_tokens=256,
+                max_new_tokens=128,
                 temperature=0.1,
             )
         except Exception as exc:
@@ -233,20 +233,18 @@ class ComparisonService:
         context: str,
     ) -> str:
         return (
-            "You are MediMei, a clinical assistant. Compare one section of two drug-label documents. "
-            "Use ONLY the evidence below. Do not use outside knowledge or invent facts. "
-            "Do not infer unsupported dosage information. "
-            "Cite relevant sources using [S1], [S2], etc. Do not fabricate citations. "
-            "If the evidence does not contain information for a drug, write exactly: "
-            "'Not available in source document.' for that drug.\n\n"
+            "You are MediMei, a clinical assistant. Compare one section of two drug labels using ONLY the evidence below. "
+            "Do not use outside knowledge, do not infer unsupported dosages, and do not fabricate citations. "
+            "Cite sources with [S1], [S2], etc. Be concise: 1-2 short sentences per drug. "
+            "If the evidence lacks information for a drug, write exactly: 'Not available in source document.'\n\n"
             f"Section: {label}\n"
             f"Drug 1: {drug1_name}\n"
             f"Drug 2: {drug2_name}\n\n"
             "=== Evidence ===\n"
             f"{context}\n\n"
             "=== Answer format ===\n"
-            "DRUG1: <summary with citations>\n"
-            "DRUG2: <summary with citations>\n\n"
+            "DRUG1: <1-2 sentence summary with citations>\n"
+            "DRUG2: <1-2 sentence summary with citations>\n\n"
             "=== Answer ===\n"
         )
 
