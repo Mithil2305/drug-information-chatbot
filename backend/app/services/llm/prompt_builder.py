@@ -14,11 +14,17 @@ class PromptBuilder:
         question: str,
         evidence_context: str,
         system_instruction: Optional[str] = None,
+        memories: Optional[str] = None,
     ) -> str:
         system = system_instruction or PromptBuilder._default_system_instruction()
 
+        memories_section = ""
+        if memories and memories.strip():
+            memories_section = f"\n\n=== User Profile & Preferences (Memory) ===\n{memories.strip()}"
+
         prompt = (
-            f"{system}\n\n"
+            f"{system}"
+            f"{memories_section}\n\n"
             f"=== Evidence ===\n{evidence_context}\n\n"
             f"=== Question ===\n{question}\n\n"
             "=== Answer ===\n"
@@ -36,7 +42,8 @@ class PromptBuilder:
             overflow = len(prompt) - max_input_chars
             evidence_context = evidence_context[overflow:]
             prompt = (
-                f"{system}\n\n"
+                f"{system}"
+                f"{memories_section}\n\n"
                 f"=== Evidence (truncated) ===\n{evidence_context}\n\n"
                 f"=== Question ===\n{question}\n\n"
                 "=== Answer ===\n"

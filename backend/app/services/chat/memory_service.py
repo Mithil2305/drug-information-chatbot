@@ -52,18 +52,29 @@ class MemoryService:
             .filter(UserMemory.user_id == user_id)
             .order_by(UserMemory.created_at.desc())
         )
-        return [
-            {
-                "chunk_id": str(m.memory_id),
-                "document_id": "USER_MEMORY",
-                "document_name": "User Memory",
-                "page_no": 1,
-                "section_title": "User Profile",
-                "text": m.content or "",
-                "score": 0.1,
-            }
-            for m in result.scalars().all()
-        ]
+        records = []
+        for m in result.scalars().all():
+            if isinstance(m, str):
+                records.append({
+                    "chunk_id": "USER_MEMORY",
+                    "document_id": "USER_MEMORY",
+                    "document_name": "User Memory",
+                    "page_no": 1,
+                    "section_title": "User Profile",
+                    "text": m,
+                    "score": 0.1,
+                })
+            else:
+                records.append({
+                    "chunk_id": str(getattr(m, "memory_id", "USER_MEMORY")),
+                    "document_id": "USER_MEMORY",
+                    "document_name": "User Memory",
+                    "page_no": 1,
+                    "section_title": "User Profile",
+                    "text": getattr(m, "content", "") or "",
+                    "score": 0.1,
+                })
+        return records
 
     async def extract_and_update_memories(
         self,
@@ -86,7 +97,7 @@ class MemoryService:
             .filter(UserMemory.user_id == user_id)
         )
         existing_memories = result.scalars().all()
-        existing_memories_content = [m.content for m in existing_memories]
+        existing_memories_content = [getattr(m, "content", str(m)) for m in existing_memories]
         existing_str = "\n".join(f"- {c}" for c in existing_memories_content) if existing_memories_content else "[No memories stored yet]"
 
         # 2. Compile instructions prompt
@@ -133,13 +144,13 @@ class MemoryService:
             # Apply updates
             for content in removed_memories:
                 for m in existing_memories:
-                    if m.is_default:
+                    if getattr(m, "is_default", False):
                         continue
-                    if m.content == content:
+                    if getattr(m, "content", None) == content:
                         await db.delete(m)
             
             for content in added_memories:
-                new_mem = UserMemory(user_id=user_id, content=content)
+                new_mem = UserMemory(user_id=user_id, content=content, is_default=False)
                 db.add(new_mem)
 
             if added_memories or removed_memories:
@@ -229,21 +240,23 @@ class MemoryService:
         memories = result.scalars().all()
 
         for m in memories:
-            if m.content.startswith("Q: ") and " | A: " in m.content:
-                parts = m.content.split(" | A: ", 1)
+            m_content = getattr(m, "content", None) or (m if isinstance(m, str) else "")
+            if m_content.startswith("Q: ") and " | A: " in m_content:
+                parts = m_content.split(" | A: ", 1)
                 stored_q = parts[0][3:].strip().lower()
                 if stored_q == normalized_q:
-                    # Update existing memory with the new answer and citations
-                    m.content = memory_content
-                    m.citations = citations_json
-                    await db.commit()
+                    if hasattr(m, "content"):
+                        m.content = memory_content
+                        m.citations = citations_json
+                        await db.commit()
                     return
 
         # If not found, add a new one
         new_memory = UserMemory(
             user_id=user_id,
             content=memory_content,
-            citations=citations_json
+            citations=citations_json,
+            is_default=False
         )
         db.add(new_memory)
         await db.commit()

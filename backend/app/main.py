@@ -60,6 +60,17 @@ async def lifespan(app: FastAPI):
                 if result_cit_score.fetchone() is None:
                     await conn.execute(text("ALTER TABLE citations ADD COLUMN score FLOAT NULL"))
                     logger.info("Database: Added score column to citations table.")
+
+                # Check for citations and is_default columns on user_memories table
+                result_mem_cit = await conn.execute(text("SHOW COLUMNS FROM user_memories LIKE 'citations'"))
+                if result_mem_cit.fetchone() is None:
+                    await conn.execute(text("ALTER TABLE user_memories ADD COLUMN citations TEXT NULL"))
+                    logger.info("Database: Added citations column to user_memories table.")
+
+                result_mem_def = await conn.execute(text("SHOW COLUMNS FROM user_memories LIKE 'is_default'"))
+                if result_mem_def.fetchone() is None:
+                    await conn.execute(text("ALTER TABLE user_memories ADD COLUMN is_default BOOLEAN NOT NULL DEFAULT FALSE"))
+                    logger.info("Database: Added is_default column to user_memories table.")
             except Exception as ex:
                 logger.warning(f"Database dynamic migration warning: {ex}")
     yield

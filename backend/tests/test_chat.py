@@ -311,8 +311,10 @@ def test_post_chat_message_memory_match_with_citations(client, mock_db):
     citations_json = '[{"document_id": "doc123", "document_name": "Rinvoq.pdf", "page_no": 12, "chunk_id": "chunk_abc", "text": "dosage text", "score": 0.95, "section": "Dosage"}]'
     stored_memory = f"Q: What is the dosage of drug A? | A: The dosage is 5mg once daily. | Citations: {citations_json}"
 
-    with patch("app.api.routes.chat.memory_service.get_memories_as_string") as mock_get_memories:
+    with patch("app.api.routes.chat.memory_service.get_memories_as_string") as mock_get_memories, \
+         patch("app.api.routes.chat.memory_service.get_memories_as_records") as mock_get_records:
         mock_get_memories.return_value = f"- {stored_memory}"
+        mock_get_records.return_value = [{"text": stored_memory}]
 
         response = client.post("/api/v1/chat", json=payload)
 
