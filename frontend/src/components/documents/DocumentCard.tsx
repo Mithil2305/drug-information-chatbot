@@ -17,6 +17,7 @@ interface DocumentCardProps {
 export function DocumentCard({ document, onDelete, onView, isSelected = false }: DocumentCardProps) {
   const { renameDocument } = useDocuments()
   const [renaming, setRenaming] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [name, setName] = useState(document.name)
   const chatHref = `/chat?new=1&doc=${encodeURIComponent(document.id)}&q=${encodeURIComponent(`Tell me about ${document.name} indications, dosage, warnings, and contraindications`)}`
 

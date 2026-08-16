@@ -17,6 +17,7 @@ interface SidebarProps {
 export function Sidebar({ onClose }: SidebarProps) {
   const { clearChat } = useChat()
   const { newConversation } = useConversations()
+  const { sidebarCollapsed } = useUI()
   const navigate = useNavigate();
   useDocuments()
   const location = useLocation()

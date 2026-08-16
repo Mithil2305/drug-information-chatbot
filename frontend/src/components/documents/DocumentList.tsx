@@ -1,9 +1,7 @@
-import { useState } from 'react'
-import { Check, FileText, MoreVertical, Pencil, RefreshCw, Trash2, X } from 'lucide-react'
+import { FileText } from 'lucide-react'
 import { useDocuments } from '../../hooks/useDocuments'
-import { formatDate, formatFileSize } from '../../utils/formatters'
 import type { Document } from '../../types/document'
-import { DocumentStatus } from './DocumentStatus'
+import { DocumentCard } from './DocumentCard'
 
 interface DocumentListProps {
   onDelete: (doc: Document) => void
