@@ -18,7 +18,7 @@ export function PromptBar() {
   const controlsRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const valueRef = useRef('')
-  const { sendMessage, isLoading } = useChat()
+  const { sendMessage, isLoading, clearChat } = useChat()
   const { documents } = useDocuments()
   const [searchParams] = useSearchParams()
 
@@ -34,8 +34,16 @@ export function PromptBar() {
 
   useEffect(() => {
     const q = searchParams.get('q')
+    const doc = searchParams.get('doc')
+    const isNew = searchParams.get('new') === '1'
     if (q && !value) {
       setValue(q)
+    }
+    if (isNew) {
+      clearChat()
+    }
+    if (doc) {
+      setSelectedDocIds([doc])
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
