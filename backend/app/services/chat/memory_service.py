@@ -8,6 +8,12 @@ from app.services.llm.llm_service import LLMService
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_MEMORY_CONTENT = (
+    "If the user greets me with 'hi', 'hey', 'hello', or asks who I am "
+    "or about the chatbot, I should respond warmly and briefly introduce myself "
+    "as MediMei, a clinical assistant."
+)
+
 
 class MemoryService:
     """
@@ -127,6 +133,8 @@ class MemoryService:
             # Apply updates
             for content in removed_memories:
                 for m in existing_memories:
+                    if m.is_default:
+                        continue
                     if m.content == content:
                         await db.delete(m)
             
@@ -143,6 +151,23 @@ class MemoryService:
         except Exception as e:
             logger.error(f"Failed to extract and update memories: {e}")
             return []
+
+    async def ensure_default_memory(self, user_id: str, db: AsyncSession):
+        """Create the non-deletable greeting default memory for a user if absent."""
+        result = await db.execute(
+            select(UserMemory)
+            .filter(UserMemory.user_id == user_id)
+            .filter(UserMemory.is_default.is_(True))
+        )
+        if not result.scalar_one_or_none():
+            default = UserMemory(
+                user_id=user_id,
+                content=DEFAULT_MEMORY_CONTENT,
+                citations="[]",
+                is_default=True,
+            )
+            db.add(default)
+            await db.commit()
 
     async def save_qa_to_memory(
         self,

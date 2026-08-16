@@ -77,6 +77,11 @@ async def delete_memory(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Memory not found or does not belong to user."
         )
+    if memory.is_default:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Default greeting memory cannot be deleted."
+        )
 
     await db.delete(memory)
     await db.commit()
@@ -92,7 +97,10 @@ async def clear_memories(
     Clear all stored memories for the current user.
     """
     result = await db.execute(
-        select(UserMemory).filter(UserMemory.user_id == current_user.user_id)
+        select(UserMemory).filter(
+            UserMemory.user_id == current_user.user_id,
+            UserMemory.is_default.is_(False)
+        )
     )
     memories = result.scalars().all()
     for m in memories:

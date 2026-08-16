@@ -160,6 +160,7 @@ async def post_chat_message(
     matched_citations = []
     memories_used = []
     if current_user.memory_enabled:
+        await memory_service.ensure_default_memory(current_user.user_id, db)
         memory_records = await memory_service.get_memories_as_records(current_user.user_id, db)
         memories_used = [m["text"] for m in memory_records]
 
