@@ -3,7 +3,12 @@ import { createContext, useState, useEffect, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import type { ConversationSummary } from '../types/chat'
 import { useAuth } from '../hooks/useAuth'
-import { apiFetch } from '../api/client'
+import {
+  listSessions,
+  updateSession,
+  deleteSession,
+  toConversationSummary,
+} from '../api/sessions'
 
 interface ConversationContextValue {
   conversations: ConversationSummary[]
@@ -23,12 +28,6 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
   const { user } = useAuth()
 
-  const mapBackendSession = (sess: any): ConversationSummary => ({
-    id: sess.session_id,
-    title: sess.summary || 'New Chat',
-    updatedAt: sess.started_at,
-  })
-
   // Load conversations when user state changes
   useEffect(() => {
     if (!user) {
@@ -39,8 +38,8 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
 
     const load = async () => {
       try {
-        const res = await apiFetch<any[]>('/api/v1/sessions')
-        setConversations(res.map(mapBackendSession))
+        const res = await listSessions()
+        setConversations(res.map(toConversationSummary))
       } catch (err: any) {
         toast.error(err.message || 'Failed to load chat history')
       }
@@ -51,16 +50,21 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
 
   const selectConversation = (id: string) => setActiveConversationId(id)
 
-  const renameConversation = (id: string, title: string) => {
+  const renameConversation = async (id: string, title: string) => {
     if (!title.trim()) return
-    setConversations((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, title: title.trim() } : c)),
-    )
+    try {
+      await updateSession(id, title.trim())
+      setConversations((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, title: title.trim() } : c)),
+      )
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to rename chat')
+    }
   }
 
   const deleteConversation = async (id: string) => {
     try {
-      await apiFetch<void>(`/api/v1/sessions/${id}`, { method: 'DELETE' })
+      await deleteSession(id)
       setConversations((prev) => prev.filter((c) => c.id !== id))
       setActiveConversationId((prev) => (prev === id ? null : prev))
       toast.success('Chat deleted')

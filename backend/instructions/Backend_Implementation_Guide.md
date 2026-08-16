@@ -1,12 +1,12 @@
-# LabelProof Backend Implementation Guide
+# MediMei Backend Implementation Guide
 
-**Project:** LabelProof --- Evidence-First Drug Information Q&A Chatbot\
+**Project:** MediMei --- Evidence-First Drug Information Q&A Chatbot\
 **Backend:** Python + FastAPI\
 **AI approach:** Retrieval-Augmented Generation (RAG)\
 **Core principle:** **Question → Evidence → Answer → Validation →
 Citation → Exact PDF Page**
 
-> LabelProof is a document-grounded drug-information assistant. It is
+> MediMei is a document-grounded drug-information assistant. It is
 > not an autonomous prescriber, diagnosis engine, or replacement for a
 > qualified clinician. When the available document does not contain
 > enough evidence, the system should prefer a transparent "I don't know"
@@ -922,7 +922,7 @@ LLM memory
 Answer
 ```
 
-LabelProof uses:
+MediMei uses:
 
 ``` text
 Question
@@ -987,7 +987,7 @@ Concept:
 
 ``` text
 SYSTEM:
-You are LabelProof, a document-grounded drug information assistant.
+You are MediMei, a document-grounded drug information assistant.
 
 RULES:
 1. Use retrieved evidence for factual claims.
@@ -1301,13 +1301,13 @@ Use `.env` and never hard-code secrets.
 Example:
 
 ``` env
-APP_NAME=LabelProof
+APP_NAME=MediMei
 ENVIRONMENT=development
 
 MYSQL_HOST=localhost
 MYSQL_PORT=3306
-MYSQL_DATABASE=labelproof
-MYSQL_USER=labelproof
+MYSQL_DATABASE=MediMei
+MYSQL_USER=MediMei
 MYSQL_PASSWORD=change_me
 
 QDRANT_URL=http://localhost:6333
@@ -2028,7 +2028,7 @@ in the provided document. I don't want to guess."
 ```
 
 That combination --- **evidence + citation + abstention** --- is the
-core of LabelProof.
+core of MediMei.
 
 ------------------------------------------------------------------------
 
@@ -2104,7 +2104,7 @@ retrieval
 grounded answer
 ```
 
-Once Slice 4 works, you already have the **minimum viable LabelProof**.
+Once Slice 4 works, you already have the **minimum viable MediMei**.
 Everything else improves it.
 
 ------------------------------------------------------------------------
@@ -2151,9 +2151,9 @@ Everything else improves it.
 ## Source basis
 
 This implementation guide is based primarily on the supplied Cognizant
-Use Case 7/project-design materials and the LabelProof planning
+Use Case 7/project-design materials and the MediMei planning
 document. The project-design material defines the RAG architecture,
 seven-day delivery, technology rationale, entities, safety controls,
-testing strategy and team allocation. The LabelProof material emphasizes
+testing strategy and team allocation. The MediMei material emphasizes
 the evidence-first **ProofChain**, citation UI, safe abstention, hybrid
 retrieval, conversation memory and exact-page demo flow.

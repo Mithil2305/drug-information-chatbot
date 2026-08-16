@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
-  ShieldCheck,
   Menu,
   X,
   ArrowRight,
@@ -46,11 +45,11 @@ export function Navbar() {
 
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3 group flex-shrink-0">
-          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary text-white shadow-subtle transition-all duration-200 group-hover:shadow-card">
-            <ShieldCheck className="h-5 w-5 text-white" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-white shadow-subtle transition-all duration-200 group-hover:shadow-card">
+            <img src="/logo.png" alt="MediMei" className="h-8 w-8 object-contain" />
           </div>
           <div className="flex flex-col leading-none">
-            <span className="text-[15px] font-bold tracking-tight text-primary">LabelProof</span>
+            <span className="text-[15px] font-bold tracking-tight text-primary">MediMei</span>
             <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-accent opacity-80">Clinical AI</span>
           </div>
         </Link>

@@ -67,7 +67,7 @@ export default function SignInPage() {
 
         <h1 className="text-2xl font-bold tracking-tight text-primary">Welcome back</h1>
         <p className="mt-1 mb-8 text-xs sm:text-sm text-fg-secondary">
-          Sign in to access the LabelProof clinical AI assistant.
+          Sign in to access the MediMei clinical AI assistant.
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
@@ -104,7 +104,7 @@ export default function SignInPage() {
             disabled={submitting}
             className="mt-2 w-full rounded-pill bg-primary py-3 text-sm font-bold text-white shadow-card transition-all hover:bg-primary-hover active:scale-[0.98] disabled:opacity-60"
           >
-            {submitting ? 'Signing in…' : 'Sign in to LabelProof'}
+            {submitting ? 'Signing in…' : 'Sign in to MediMei'}
           </button>
         </form>
 

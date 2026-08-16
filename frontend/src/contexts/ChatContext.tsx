@@ -1,13 +1,15 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect, type ReactNode } from 'react'
+import { toast } from 'sonner'
 import type { ChatMessage, Citation } from '../types/chat'
 import { useConversations } from '../hooks/useConversations'
-import { getMockResponse } from '../utils/mockChatData'
+import { sendMessage as sendChatMessage } from '../api/chat'
+import { createSession, getSession, toConversationSummary } from '../api/sessions'
 
 interface ChatContextValue {
   messages: ChatMessage[]
   isLoading: boolean
-  sendMessage: (content: string) => void
+  sendMessage: (content: string, documentIds?: string[]) => void
   clearChat: () => void
   selectedCitation: Citation | null
   setSelectedCitation: (c: Citation | null) => void
@@ -20,6 +22,19 @@ export const ChatContext = createContext<ChatContextValue | null>(null)
 
 function makeId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+}
+
+function mapCitations(raw: any[] | undefined): Citation[] {
+  if (!raw) return []
+  return raw.map((c, idx) => ({
+    citationId: c.chunk_id || c.citation_id || `c-${idx}`,
+    documentId: c.document_id || '',
+    documentName: c.document_name || 'Unknown Document',
+    page: c.page_no ?? 0,
+    section: c.section_title || c.section,
+    text: c.text,
+    score: c.score,
+  }))
 }
 
 export function ChatProvider({ children }: { children: ReactNode }) {
@@ -39,10 +54,30 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
   }, [activeConversationId])
 
-  const sendMessage = (content: string) => {
+  // Load messages when a conversation is selected
+  useEffect(() => {
+    if (!activeConversationId) return
+    const load = async () => {
+      try {
+        const session = await getSession(activeConversationId)
+        const loaded: ChatMessage[] = session.messages.map((msg: any) => ({
+          id: String(msg.message_id),
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+          citations: mapCitations(msg.citations),
+          status: msg.role === 'assistant' ? 'grounded' : undefined,
+        }))
+        setMessages(loaded)
+      } catch (err: any) {
+        toast.error(err.message || 'Failed to load chat')
+      }
+    }
+    load()
+  }, [activeConversationId])
+
+  const sendMessage = async (content: string, documentIds?: string[]) => {
     if (!content.trim() || isLoading) return
 
-    // Show user message immediately
     const userMessage: ChatMessage = {
       id: makeId(),
       role: 'user',
@@ -51,38 +86,47 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     setMessages((prev) => [...prev, userMessage])
     setIsLoading(true)
 
-    // Add to recent conversations if this is the first message
-    if (!activeConversationId) {
-      const newId = makeId()
-      const newSummary = {
-        id: newId,
-        title: content.trim().slice(0, 30) + (content.trim().length > 30 ? '…' : ''),
-        updatedAt: new Date().toISOString(),
+    let sessionId = activeConversationId
+
+    if (!sessionId) {
+      try {
+        const title = content.trim().slice(0, 30) + (content.trim().length > 30 ? '…' : '')
+        const session = await createSession(title)
+        sessionId = String(session.session_id)
+        setConversations((prev) => [toConversationSummary(session), ...prev])
+        setActiveConversationId(sessionId)
+      } catch (err: any) {
+        toast.error(err.message || 'Failed to start chat session')
+        setIsLoading(false)
+        return
       }
-      setConversations((prev) => [newSummary, ...prev])
-      setActiveConversationId(newId)
     }
 
-    // Simulate AI response after delay
-    setTimeout(() => {
-      const mock = getMockResponse(content)
+    try {
+      const response = await sendChatMessage({
+        message: content.trim(),
+        session_id: sessionId,
+        document_ids: documentIds,
+      })
 
       const assistantMessage: ChatMessage = {
-        id: makeId(),
+        id: String(response.message_id),
         role: 'assistant',
-        content: mock.content,
-        citations: mock.citations,
-        followUps: mock.followUps,
-        status: 'grounded',
+        content: response.answer,
+        citations: mapCitations(response.citations),
+        status: response.grounded ? 'grounded' : 'insufficient_evidence',
       }
 
       setMessages((prev) => [...prev, assistantMessage])
       setSelectedMessageId(assistantMessage.id)
-      if (mock.citations.length > 0) {
-        setSelectedCitation(mock.citations[0])
+      if (assistantMessage.citations && assistantMessage.citations.length > 0) {
+        setSelectedCitation(assistantMessage.citations[0])
       }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to send message')
+    } finally {
       setIsLoading(false)
-    }, 1600)
+    }
   }
 
   const clearChat = () => {

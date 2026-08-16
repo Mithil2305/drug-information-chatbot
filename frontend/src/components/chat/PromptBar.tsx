@@ -62,9 +62,10 @@ export function PromptBar() {
 
   const handleSubmit = () => {
     if (!canSubmit) return
-    sendMessage(value.trim())
+    sendMessage(value.trim(), selectedDocIds)
     setValue('')
     setAttachments([])
+    setSelectedDocIds([])
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
     }

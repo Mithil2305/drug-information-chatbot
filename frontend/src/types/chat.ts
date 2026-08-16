@@ -30,6 +30,12 @@ export interface ChatResponse {
   followUps?: string[]
 }
 
+export interface ChatRequest {
+  message: string
+  session_id: string
+  document_ids?: string[]
+}
+
 export interface Conversation {
   id: string
   title: string

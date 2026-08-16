@@ -1,8 +1,8 @@
-# LabelProof Frontend — Viva & Presentation Guide
+# MediMei Frontend — Viva & Presentation Guide
 
-A practical, beginner-friendly reference covering everything implemented in the LabelProof frontend so far. Use this to prepare for your hackathon viva and demo presentation.
+A practical, beginner-friendly reference covering everything implemented in the MediMei frontend so far. Use this to prepare for your hackathon viva and demo presentation.
 
-> **LabelProof in one line:** An evidence-first drug-information RAG chatbot where every answer is grounded in approved drug-label documents and backed by citations.
+> **MediMei in one line:** An evidence-first drug-information RAG chatbot where every answer is grounded in approved drug-label documents and backed by citations.
 
 ---
 
@@ -244,9 +244,9 @@ A fixed left sidebar on desktop (`w-64`) with two modes:
 - **Collapsed:** Icon-only narrow strip (`w-14`) — same actions, just icons.
 
 Sub-components:
-- **`SidebarHeader`** — LabelProof logo, search button, collapse/expand button, close button (mobile only).
+- **`SidebarHeader`** — MediMei logo, search button, collapse/expand button, close button (mobile only).
 - **`RecentChats`** — flat list of recent conversations (sorted by most recent). Each row shows the title; hovering reveals a **three-dot menu** (⋮). Clicking opens a dropdown with **Rename** and **Delete** options. Delete triggers a **custom confirmation modal** (portal-based) showing the conversation title with Cancel/Delete buttons. Active conversation is highlighted with `bg-surface-highlight`. Inline rename uses a controlled input with Enter to save / Escape to cancel.
-- **`UserProfile`** — avatar circle ("MM"), name "Mohanapriyan M", label "LabelProof User", settings icon. Includes a **logout confirmation modal** rendered via React portal with backdrop blur.
+- **`UserProfile`** — avatar circle ("MM"), name "Mohanapriyan M", label "MediMei User", settings icon. Includes a **logout confirmation modal** rendered via React portal with backdrop blur.
 - **`GlobalSearchPanel`** — portal-based centered modal with live search across recent chats and documents. Triggered from the search button in `SidebarHeader`. Renders to `document.body` with `z-50`.
 
 ### Mobile sidebar (`MobileSidebar.tsx`)
@@ -259,7 +259,7 @@ Sub-components:
 ### Chat layout (`ChatLayout.tsx`)
 
 - Flex row: sidebar (desktop) + main content area.
-- On mobile: a top header with the LabelProof logo and a menu button that opens the mobile drawer.
+- On mobile: a top header with the MediMei logo and a menu button that opens the mobile drawer.
 - Reused by both `ChatPage` and `DocumentsPage`.
 
 ---
@@ -268,7 +268,7 @@ Sub-components:
 
 ### ChatWindow (`components/chat/ChatWindow.tsx`)
 
-- Shows an **empty-state welcome** when there are no messages: LabelProof logo, tagline, and suggestion chips ("What is the recommended dosage?", etc.). Clicking a chip sends it as a message.
+- Shows an **empty-state welcome** when there are no messages: MediMei logo, tagline, and suggestion chips ("What is the recommended dosage?", etc.). Clicking a chip sends it as a message.
 - Once messages exist, renders them in a centered `max-w-3xl` column.
 - Auto-scrolls to the bottom on new messages / loading via `useRef` + `scrollIntoView`.
 
@@ -475,15 +475,15 @@ A pure-CSS premium visual panel:
 - Blurred color blobs (`blur-3xl`)
 - Geometric shapes (rotated square, circle outline)
 - Crosshair gradient lines
-- Centered LabelProof logo + tagline: *"Trusted answers from trusted drug information."*
+- Centered MediMei logo + tagline: *"Trusted answers from trusted drug information."*
 - A small "Evidence-first, always verified" badge with a green dot
-- Footer: "© 2026 LabelProof. All rights reserved."
+- Footer: "© 2026 MediMei. All rights reserved."
 
 No external images — everything is Tailwind/CSS.
 
 ### SignInPage (`pages/SignInPage.tsx`)
 
-- LabelProof logo (mobile only, since the brand panel is hidden)
+- MediMei logo (mobile only, since the brand panel is hidden)
 - Heading: "Welcome back"
 - Email input (with mail icon, validation)
 - Password input (with show/hide eye toggle)
@@ -678,7 +678,7 @@ Here's the full journey a user takes through the frontend:
 
 ## 16. Viva Questions with Short Answers
 
-### Q: What is LabelProof?
+### Q: What is MediMei?
 **A:** An evidence-first drug-information chatbot. Users ask questions about approved drugs, and the AI answers with citations pointing to exact pages of official drug-label PDFs.
 
 ### Q: Why React + TypeScript?
@@ -752,13 +752,13 @@ Here's the full journey a user takes through the frontend:
 
 ---
 
-"LabelProof is an evidence-first drug-information chatbot. The idea is simple: when a doctor, pharmacist, or researcher asks a question about an approved drug, the answer should be grounded in the official drug-label document — with a citation pointing to the exact page. No hallucinations, no guesswork.
+"MediMei is an evidence-first drug-information chatbot. The idea is simple: when a doctor, pharmacist, or researcher asks a question about an approved drug, the answer should be grounded in the official drug-label document — with a citation pointing to the exact page. No hallucinations, no guesswork.
 
 For the frontend, we built a polished, dark, ChatGPT-style interface using **React 19, TypeScript, Vite, and Tailwind CSS**. We chose TypeScript for type safety, Vite for fast development, and Tailwind because it lets us define a semantic theme system using CSS variables — so light and dark modes switch instantly without touching any component.
 
 The app has five main screens. First, a **Sign In and Sign Up** flow with a premium two-column layout — form on the left, an animated CSS brand panel on the right that hides on mobile. Form validation is inline and real-time.
 
-After login, you land on the **Chat page**. On the left is a responsive sidebar with the LabelProof logo, a New Chat button, a Manage Documents link, a Compare Drugs link, a flat recent-chats list with inline rename and delete, and a user profile at the bottom. On mobile, this sidebar becomes a slide-in drawer.
+After login, you land on the **Chat page**. On the left is a responsive sidebar with the MediMei logo, a New Chat button, a Manage Documents link, a Compare Drugs link, a flat recent-chats list with inline rename and delete, and a user profile at the bottom. On mobile, this sidebar becomes a slide-in drawer.
 
 The chat itself supports markdown answers, a typewriter streaming effect, a loading state that says 'Searching the document,' citation badges showing the source page, a **speaker icon for text-to-speech** that reads answers aloud, a copy button, and follow-up question chips. The **prompt bar** is a composer-style input with a **+ button for file upload** (PDF/DOCX/DOC), a **folder icon to select saved documents** via a modal with search and select-all, a **mic button for voice dictation** using the Web Speech API with animated equalizer bars, and an auto-resizing textarea that sends on Enter. Selected documents appear as chips above the bar.
 

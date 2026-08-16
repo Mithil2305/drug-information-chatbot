@@ -8,4 +8,7 @@ export interface Document {
   fileSize: number
   uploadedAt: string
   pageCount?: number
+  source?: string
+  version?: string
+  isActive?: boolean
 }

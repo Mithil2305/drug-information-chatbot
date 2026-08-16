@@ -78,9 +78,9 @@ export const faqItems = [
   {
     id: 'faq-1',
     number: '01',
-    title: 'How does LabelProof guarantee answers are medically grounded?',
+    title: 'How does MediMei guarantee answers are medically grounded?',
     content:
-      'LabelProof uses an evidence-first RAG (Retrieval-Augmented Generation) pipeline. The AI generation model is strictly constrained to answer using only the verified text snippets retrieved from approved FDA prescribing documents. If no relevant source is found in the documentation, the system explicitly abstains rather than hallucinating.',
+      'MediMei uses an evidence-first RAG (Retrieval-Augmented Generation) pipeline. The AI generation model is strictly constrained to answer using only the verified text snippets retrieved from approved FDA prescribing documents. If no relevant source is found in the documentation, the system explicitly abstains rather than hallucinating.',
   },
   {
     id: 'faq-2',
@@ -99,7 +99,7 @@ export const faqItems = [
   {
     id: 'faq-4',
     number: '04',
-    title: 'Can LabelProof be used for drug comparison?',
+    title: 'Can MediMei be used for drug comparison?',
     content:
       'Yes. You can compare dosage, warnings, adverse reaction profiles, and indications across multiple approved drug labels in the repository simultaneously.',
   },

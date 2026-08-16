@@ -1,5 +1,3 @@
-import { Bot } from 'lucide-react'
-
 export function LoadingState() {
   return (
     <div className="flex items-start gap-3 animate-fade-in">

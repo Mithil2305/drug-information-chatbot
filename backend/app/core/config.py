@@ -3,13 +3,13 @@ from typing import Optional
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = "LabelProof"
+    APP_NAME: str = "MediMei"
     ENVIRONMENT: str = "development"
 
     # MySQL Database Settings
     MYSQL_HOST: str = "localhost"
     MYSQL_PORT: int = 3306
-    MYSQL_DATABASE: str = "labelproof"
+    MYSQL_DATABASE: str = "MediMei"
     MYSQL_USER: str = "root"
     MYSQL_PASSWORD: str = ""
 
@@ -20,7 +20,12 @@ class Settings(BaseSettings):
 
     # Qdrant Vector DB Settings
     QDRANT_URL: str = "http://localhost:6333"
+    QDRANT_API_KEY: Optional[str] = None
     QDRANT_COLLECTION: str = "drug_documents"
+
+    # Embedding runtime settings
+    EMBEDDING_DEVICE: Optional[str] = None  # "cuda", "cpu", or auto-detect
+    EMBEDDING_BATCH_SIZE: int = 32
 
     # Cloudflare R2 Settings
     R2_ENDPOINT_URL: Optional[str] = None
@@ -32,6 +37,14 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "BAAI/bge-m3"
     LLM_MODEL: str = "Qwen/Qwen3.5-4B"
     LLM_MODEL_PATH: Optional[str] = "data/models/llm/qwen-3.5-4B-Q4_K_M.gguf"
+
+    # Qwen generation parameters
+    LLM_DEVICE: Optional[str] = None  # "cuda", "cpu", or auto
+    LLM_N_CTX: int = 4096
+    LLM_N_GPU_LAYERS: int = -1
+    LLM_TEMPERATURE: float = 0.1
+    LLM_MAX_NEW_TOKENS: int = 512
+    LLM_MAX_INPUT_TOKENS: int = 3072
 
     # RAG Settings
     TOP_K: int = 8
