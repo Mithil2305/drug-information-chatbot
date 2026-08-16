@@ -707,6 +707,7 @@ async def view_document(
     document_id: str,
     db: AsyncSession = Depends(get_db_session)
 ):
+    import mimetypes
     result = await db.execute(
         select(Document).filter(Document.document_id == document_id)
     )
@@ -726,11 +727,22 @@ async def view_document(
     if not os.path.exists(file_path):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="PDF file not found on disk."
+            detail="Document file not found on disk."
         )
+
+    content_type, _ = mimetypes.guess_type(doc.file_name)
+    if not content_type:
+        if doc.file_name.lower().endswith(".docx"):
+            content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        elif doc.file_name.lower().endswith(".doc"):
+            content_type = "application/msword"
+        elif doc.file_name.lower().endswith(".pdf"):
+            content_type = "application/pdf"
+        else:
+            content_type = "application/octet-stream"
 
     return FileResponse(
         file_path,
-        media_type="application/pdf",
+        media_type=content_type,
         filename=doc.file_name
     )
