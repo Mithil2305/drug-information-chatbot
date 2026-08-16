@@ -100,7 +100,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         sessionId = String(session.session_id)
         setConversations((prev) => [toConversationSummary(session), ...prev])
         setActiveConversationId(sessionId)
-        // window.history.replaceState(null, '', `/chat/${sessionId}`)
+        window.history.replaceState(null, '', `/chat/${sessionId}`)
       } catch (err: any) {
         toast.error(err.message || 'Failed to start chat session')
         setIsLoading(false)
