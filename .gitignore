@@ -34,7 +34,7 @@ models/
 .paddleocr/
 .cache/
 
-reference/
+references/
 
 # --- Local Uploads & Data Artifacts ---
 data/uploads/*
