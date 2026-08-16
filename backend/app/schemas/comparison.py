@@ -40,7 +40,16 @@ class DrugInfo(BaseModel):
     page_count: int = Field(..., serialization_alias="pageCount")
 
 
+class ComparisonSummary(BaseModel):
+    total_attributes: int = Field(..., serialization_alias="totalAttributes")
+    warning_count: int = Field(..., serialization_alias="warningCount")
+    highlight_count: int = Field(..., serialization_alias="highlightCount")
+    unavailable_count: int = Field(..., serialization_alias="unavailableCount")
+    both_unavailable_count: int = Field(..., serialization_alias="bothUnavailableCount")
+
+
 class ComparisonResult(BaseModel):
     drug1: DrugInfo
     drug2: DrugInfo
     attributes: List[ComparisonAttribute]
+    summary: ComparisonSummary

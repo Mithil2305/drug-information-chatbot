@@ -145,6 +145,9 @@ def test_compare_documents_success(client, mock_db):
         assert data["drug2"]["id"] == "doc-2"
         assert data["drug1"]["pageCount"] == 10
         assert len(data["attributes"]) == 13
+        assert data["summary"]["totalAttributes"] == 13
+        assert data["summary"]["unavailableCount"] == 0
+        assert data["summary"]["bothUnavailableCount"] == 0
 
         first_attr = data["attributes"][0]
         assert first_attr["key"] == "indications"

@@ -16,6 +16,7 @@ from app.schemas.comparison import (
     ComparisonCitation,
     ComparisonRequest,
     ComparisonResult,
+    ComparisonSummary,
     DrugInfo,
 )
 from app.services.chat.citation_mapper import CitationMapper
@@ -120,10 +121,28 @@ class ComparisonService:
                 )
             )
 
+        summary = self._build_summary(attributes)
+
         return ComparisonResult(
             drug1=drug1_info,
             drug2=drug2_info,
             attributes=attributes,
+            summary=summary,
+        )
+
+    @staticmethod
+    def _build_summary(attributes: List[ComparisonAttribute]) -> ComparisonSummary:
+        all_cells = [cell for attr in attributes for cell in (attr.drug1, attr.drug2)]
+        statuses = [cell.status for cell in all_cells]
+
+        return ComparisonSummary(
+            total_attributes=len(attributes),
+            warning_count=statuses.count("warning"),
+            highlight_count=statuses.count("highlight"),
+            unavailable_count=statuses.count("unavailable"),
+            both_unavailable_count=sum(
+                1 for attr in attributes if attr.drug1.status == "unavailable" and attr.drug2.status == "unavailable"
+            ),
         )
 
     async def _build_drug_info(self, db: AsyncSession, doc: Document) -> DrugInfo:

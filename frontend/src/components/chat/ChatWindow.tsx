@@ -80,7 +80,7 @@ export function ChatWindow() {
           <img
             src="/logo.png"
             alt=""
-            className="absolute -right-20 -bottom-20 h-[440px] w-auto object-contain opacity-5 -z-9 pointer-events-none"
+            className="absolute -right-[15%] -bottom-[20%] h-[440px] w-auto object-contain opacity-[5%] -z-9 pointer-events-none"
           />
 
         </div>

@@ -143,7 +143,7 @@ export function DocumentViewerModal({ document, open, onClose }: DocumentViewerM
 
           {!loading && !error && fileType === 'docx' && html && (
             <div
-              className="h-full w-full overflow-y-auto rounded-xl border border-border bg-white p-6 text-sm text-fg text-black"
+              className="h-full w-full overflow-y-auto rounded-xl border border-border bg-white p-6 text-sm text-black"
               dangerouslySetInnerHTML={{ __html: html }}
             />
           )}

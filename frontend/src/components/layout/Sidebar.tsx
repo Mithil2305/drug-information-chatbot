@@ -94,11 +94,8 @@ export function Sidebar({ onClose }: SidebarProps) {
         >
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 shrink-0 text-accent" />
-            <span>Manage Labels</span>
+            <span>Manage Documents</span>
           </div>
-          <span className="rounded-pill bg-surface-highlight px-2 py-0.5 text-[10px] font-bold text-fg-muted">
-            PDFs
-          </span>
         </Link>
 
         <Link

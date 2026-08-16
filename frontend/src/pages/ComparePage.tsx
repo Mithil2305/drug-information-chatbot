@@ -6,6 +6,7 @@ import { ComparisonTable } from '../components/compare/ComparisonTable'
 import { ComparisonEmptyState } from '../components/compare/ComparisonEmptyState'
 import { ComparisonSkeleton } from '../components/compare/ComparisonSkeleton'
 import { ComparisonError } from '../components/compare/ComparisonError'
+import { ComparisonSummary } from '../components/compare/ComparisonSummary'
 import { useDocuments } from '../hooks/useDocuments'
 import { useChat } from '../hooks/useChat'
 import { compareDrugs } from '../services/comparisonService'
@@ -148,15 +149,8 @@ export default function ComparePage() {
             ) : error ? (
               <ComparisonError message={error} onRetry={handleRetry} />
             ) : result ? (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-primary">
-                    Comparison Results
-                  </h2>
-                  <span className="text-[11px] text-fg-muted">
-                    Based on approved source documents
-                  </span>
-                </div>
+              <div className="space-y-4">
+                <ComparisonSummary result={result} />
                 <ComparisonTable result={result} onCitationClick={handleCitationClick} />
               </div>
             ) : (
