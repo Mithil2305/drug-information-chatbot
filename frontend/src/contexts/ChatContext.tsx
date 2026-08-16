@@ -27,7 +27,7 @@ function makeId() {
 function mapCitations(raw: any[] | undefined): Citation[] {
   if (!raw) return []
   return raw.map((c, idx) => ({
-    citationId: c.chunk_id || c.citation_id || `c-${idx}`,
+    citationId: c.citation_id || c.chunk_id || `c-${idx}`,
     documentId: c.document_id || '',
     documentName: c.document_name || 'Unknown Document',
     page: c.page ?? c.page_no ?? 0,
