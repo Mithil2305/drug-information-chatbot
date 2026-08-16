@@ -746,3 +746,30 @@ async def view_document(
         media_type=content_type,
         filename=doc.file_name
     )
+
+
+# =====================================================
+# GET DOCUMENT CHUNKS / EXTRACTED TEXT
+# =====================================================
+
+@router.get("/{document_id}/chunks")
+async def get_document_chunks(
+    document_id: str,
+    db: AsyncSession = Depends(get_db_session)
+):
+    from app.models.chunk import Chunk
+    result = await db.execute(
+        select(Chunk)
+        .filter(Chunk.document_id == document_id)
+        .order_by(Chunk.page_no, Chunk.chunk_index)
+    )
+    chunks = result.scalars().all()
+    return [
+        {
+            "chunk_id": str(c.chunk_id),
+            "page_no": c.page_no or 1,
+            "section": c.section or "Document Content",
+            "text": c.chunk_text or ""
+        }
+        for c in chunks
+    ]

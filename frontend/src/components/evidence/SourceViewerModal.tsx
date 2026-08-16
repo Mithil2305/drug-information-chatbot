@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Loader2, FileText, Maximize2, Minimize2, FileX, Sparkles } from 'lucide-react'
-import { fetchDocumentFile } from '../../api/viewer'
+import { X, Loader2, FileText, Maximize2, Minimize2, Sparkles, BookOpen, Layers, CheckCircle } from 'lucide-react'
+import { fetchDocumentFile, fetchDocumentChunks, type DocumentChunkRecord } from '../../api/viewer'
 import type { Citation } from '../../types/chat'
 import type { Document } from '../../types/document'
 // @ts-ignore
@@ -28,6 +28,8 @@ export function SourceViewerModal({ citation, document, open, onClose }: SourceV
   const [error, setError] = useState<string | null>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [html, setHtml] = useState<string | null>(null)
+  const [docChunks, setDocChunks] = useState<DocumentChunkRecord[]>([])
+  const [selectedPage, setSelectedPage] = useState<number>(1)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
   const docName = document?.name || document?.filename || citation?.documentName || 'Document'
@@ -47,6 +49,8 @@ export function SourceViewerModal({ citation, document, open, onClose }: SourceV
     setError(null)
     setPdfUrl(null)
     setHtml(null)
+    setDocChunks([])
+    setSelectedPage(citation.page || 1)
 
     if (isMemory) {
       setLoading(false)
@@ -62,32 +66,48 @@ export function SourceViewerModal({ citation, document, open, onClose }: SourceV
 
     const load = async () => {
       try {
-        const blob = await fetchDocumentFile(docId)
-        if (cancelled) return
-
         if (fileType === 'pdf') {
+          const blob = await fetchDocumentFile(docId)
+          if (cancelled) return
           objectUrl = URL.createObjectURL(blob)
           setPdfUrl(objectUrl)
-        } else if (fileType === 'docx') {
-          const arrayBuffer = await blob.arrayBuffer()
-          const result = await mammoth.convertToHtml({ arrayBuffer })
-          setHtml(result.value)
         } else {
-          // Attempt mammoth conversion fallback for .doc or binary files
+          // Attempt Word HTML conversion via mammoth first
+          let mammothSucceeded = false
           try {
-            const arrayBuffer = await blob.arrayBuffer()
-            const result = await mammoth.convertToHtml({ arrayBuffer })
-            if (result.value && result.value.trim().length > 0) {
-              setHtml(result.value)
-            } else {
-              setError('Preview is not available for this file type. Please download or view in Documents.')
+            const blob = await fetchDocumentFile(docId)
+            if (!cancelled) {
+              const arrayBuffer = await blob.arrayBuffer()
+              const result = await mammoth.convertToHtml({ arrayBuffer })
+              if (result.value && result.value.trim().length > 0) {
+                setHtml(result.value)
+                mammothSucceeded = true
+              }
             }
           } catch {
-            setError('Preview is not available for legacy .doc format. Please download or convert to PDF/DOCX.')
+            mammothSucceeded = false
+          }
+
+          // If mammoth couldn't produce HTML, fetch extracted text chunks from DB
+          if (!mammothSucceeded && !cancelled) {
+            const chunks = await fetchDocumentChunks(docId)
+            if (chunks && chunks.length > 0) {
+              setDocChunks(chunks)
+            } else if (!citation.text) {
+              setError('Document preview is unavailable. Please download or reprocess the file.')
+            }
           }
         }
       } catch (err: any) {
-        if (!cancelled) setError(err?.message || 'Failed to load the source document file.')
+        if (!cancelled) {
+          // Fallback to chunks
+          const chunks = await fetchDocumentChunks(docId)
+          if (chunks && chunks.length > 0) {
+            setDocChunks(chunks)
+          } else {
+            setError(err?.message || 'Failed to load source document.')
+          }
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -99,7 +119,20 @@ export function SourceViewerModal({ citation, document, open, onClose }: SourceV
       cancelled = true
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  }, [open, citation, document, fileType])
+  }, [open, citation, document, fileType, isMemory])
+
+  // Group chunks by page number
+  const pagesMap = useMemo(() => {
+    const map = new Map<number, DocumentChunkRecord[]>()
+    for (const chunk of docChunks) {
+      const p = chunk.page_no || 1
+      if (!map.has(p)) map.set(p, [])
+      map.get(p)!.push(chunk)
+    }
+    return map
+  }, [docChunks])
+
+  const availablePages = useMemo(() => Array.from(pagesMap.keys()).sort((a, b) => a - b), [pagesMap])
 
   if (!open || !citation) return null
 
@@ -183,26 +216,12 @@ export function SourceViewerModal({ citation, document, open, onClose }: SourceV
           {loading && (
             <div className="flex h-full flex-col items-center justify-center gap-2.5 text-fg-muted">
               <Loader2 className="h-7 w-7 animate-spin text-primary" />
-              <span className="text-xs font-semibold text-fg">Rendering source document…</span>
-              <span className="text-[11px] text-fg-muted">Parsing {fileType.toUpperCase()} layout & formatting</span>
+              <span className="text-xs font-semibold text-fg">Loading source document…</span>
+              <span className="text-[11px] text-fg-muted">Rendering {fileType.toUpperCase()} content</span>
             </div>
           )}
 
-          {!loading && error && (
-            <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-fg-muted p-6">
-              <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-danger/10 text-danger">
-                <FileX className="h-6 w-6" />
-              </div>
-              <p className="max-w-md text-sm font-semibold text-danger">{error}</p>
-              {citation.text && (
-                <div className="max-w-lg mt-2 text-left rounded-2xl bg-surface p-4 border border-border">
-                  <span className="text-[10px] font-bold uppercase text-primary block mb-1">Extracted Text Content (Page {citation.page})</span>
-                  <p className="text-xs leading-relaxed text-fg">{citation.text}</p>
-                </div>
-              )}
-            </div>
-          )}
-
+          {/* PDF Viewer */}
           {!loading && !error && fileType === 'pdf' && pdfUrl && (
             <iframe
               title={docName}
@@ -211,6 +230,7 @@ export function SourceViewerModal({ citation, document, open, onClose }: SourceV
             />
           )}
 
+          {/* Word HTML Viewer */}
           {!loading && !error && html && (
             <div className="h-full w-full overflow-y-auto rounded-2xl border border-border bg-white p-8 text-black shadow-xs">
               <div className="max-w-3xl mx-auto space-y-4">
@@ -226,6 +246,89 @@ export function SourceViewerModal({ citation, document, open, onClose }: SourceV
             </div>
           )}
 
+          {/* Structured Document Pages & Sections View (for DOC / DOCX fallback) */}
+          {!loading && !html && !pdfUrl && !isMemory && (docChunks.length > 0 || citation.text) && (
+            <div className="h-full w-full flex flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-xs">
+              {/* Page Navigator Pills */}
+              {availablePages.length > 1 && (
+                <div className="flex items-center gap-1.5 border-b border-border/80 bg-surface-warm/40 px-4 py-2.5 overflow-x-auto shrink-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-fg-muted mr-1.5 flex items-center gap-1">
+                    <Layers className="h-3 w-3" />
+                    <span>Pages:</span>
+                  </span>
+                  {availablePages.map((p) => {
+                    const isCitedPage = p === citation.page
+                    const isCurrent = selectedPage === p
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setSelectedPage(p)}
+                        className={`inline-flex items-center gap-1 rounded-pill px-2.5 py-1 text-xs font-semibold transition-all ${
+                          isCurrent
+                            ? 'bg-primary text-white shadow-xs'
+                            : isCitedPage
+                            ? 'bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20'
+                            : 'bg-surface text-fg-secondary hover:bg-surface-highlight border border-border/60'
+                        }`}
+                      >
+                        <span>Page {p}</span>
+                        {isCitedPage && <CheckCircle className="h-2.5 w-2.5 text-success" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Page Content Body */}
+              <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-white text-black">
+                <div className="max-w-3xl mx-auto space-y-6">
+                  {docChunks.length > 0 ? (
+                    (pagesMap.get(selectedPage) || docChunks).map((chunk, idx) => {
+                      const isCitedChunk = chunk.text && citation.text && (chunk.text.includes(citation.text.slice(0, 30)) || citation.text.includes(chunk.text.slice(0, 30)))
+                      return (
+                        <div
+                          key={chunk.chunk_id || idx}
+                          className={`rounded-2xl p-5 transition-all ${
+                            isCitedChunk
+                              ? 'border-2 border-primary/40 bg-primary/5 shadow-xs'
+                              : 'border border-gray-200 bg-gray-50/50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between border-b border-gray-200/80 pb-2 mb-3">
+                            <div className="flex items-center gap-2">
+                              <BookOpen className="h-4 w-4 text-primary" />
+                              <span className="font-bold text-xs text-primary">{chunk.section || 'Document Section'}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[10px] font-semibold text-gray-500">
+                              <span>Page {chunk.page_no}</span>
+                              {isCitedChunk && (
+                                <span className="rounded-full bg-success/20 text-success px-2 py-0.2 font-bold">
+                                  Cited Reference
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-sm leading-relaxed text-gray-800 whitespace-pre-wrap font-serif">
+                            {chunk.text}
+                          </p>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <div className="rounded-2xl p-6 border border-gray-200 bg-gray-50">
+                      <h4 className="font-bold text-sm text-primary mb-2">Page {citation.page} — {citation.section || 'Document Excerpt'}</h4>
+                      <p className="text-sm leading-relaxed text-gray-800 whitespace-pre-wrap font-serif">
+                        {citation.text}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* User Memory Source View */}
           {!loading && !error && isMemory && (
             <div className="h-full w-full overflow-y-auto rounded-2xl border border-border bg-surface p-6 shadow-xs">
               <div className="max-w-3xl mx-auto">
