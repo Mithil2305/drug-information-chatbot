@@ -116,6 +116,47 @@ class MemoryService:
             logger.error(f"Failed to extract and update memories: {e}")
             return []
 
+    async def save_qa_to_memory(
+        self,
+        user_id: str,
+        question: str,
+        answer: str,
+        db: AsyncSession
+    ):
+        """
+        Saves a conversation turn (question and answer) directly into the user's memories.
+        Ensures no duplicate entries for the same question.
+        """
+        if not question or not answer:
+            return
+
+        normalized_q = question.strip().lower()
+
+        # Parse existing memories to find if we already have this question
+        result = await db.execute(
+            select(UserMemory)
+            .filter(UserMemory.user_id == user_id)
+        )
+        memories = result.scalars().all()
+
+        for m in memories:
+            if m.content.startswith("Q: ") and " | A: " in m.content:
+                parts = m.content.split(" | A: ", 1)
+                stored_q = parts[0][3:].strip().lower()
+                if stored_q == normalized_q:
+                    # Update existing memory with the new answer
+                    m.content = f"Q: {question.strip()} | A: {answer.strip()}"
+                    await db.commit()
+                    return
+
+        # If not found, add a new one
+        new_memory = UserMemory(
+            user_id=user_id,
+            content=f"Q: {question.strip()} | A: {answer.strip()}"
+        )
+        db.add(new_memory)
+        await db.commit()
+
 
 # Singleton service
 memory_service = MemoryService()
