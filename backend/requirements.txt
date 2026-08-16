@@ -30,6 +30,8 @@ transformers
 accelerate
 safetensors
 sentence-transformers
+gpt4all
+ctransformers
 
 # --- Vector Database ---
 qdrant-client
