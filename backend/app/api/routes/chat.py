@@ -16,7 +16,9 @@ from app.dependencies.embeddings import get_embedding_model
 from app.dependencies.qdrant import get_qdrant_client
 from app.repositories.qdrant_repository import qdrant_repository
 
-rag_service = RAGService()
+def get_rag_service() -> RAGService:
+    return RAGService()
+
 from app.dependencies.auth import get_current_user
 from app.models.user import User
 
@@ -89,7 +91,8 @@ async def post_chat_message(
     request: ChatRequest,
     db: AsyncSession = Depends(get_db_session),
     embedding_model: Any = Depends(get_embedding_model),
-    qdrant_client: Any = Depends(get_qdrant_client)
+    qdrant_client: Any = Depends(get_qdrant_client),
+    rag_service: RAGService = Depends(get_rag_service)
 ):
 
     # ---------------------------------------------------------
@@ -261,7 +264,17 @@ session_id=str(session_id),
     # 6. Build citations
     # ---------------------------------------------------------
 
-    citations = rag_result["citations"]
+    raw_citations = rag_result["citations"]
+    citations = [
+        Citation(
+            document_id=cit.get("document_id") or "",
+            document_name=cit.get("document_name") or "Unknown Document",
+            page=cit.get("page_no") or cit.get("page") or 1,
+            section=cit.get("section_title") or cit.get("section"),
+            chunk_id=cit.get("chunk_id") or ""
+        )
+        for cit in raw_citations
+    ]
 
     # ---------------------------------------------------------
     # 7. Save user message
@@ -292,7 +305,7 @@ session_id=str(session_id),
     # 9. Save citations
     # ---------------------------------------------------------
 
-    doc_ids_to_check = {cit["document_id"] for cit in citations if cit.get("document_id")}
+    doc_ids_to_check = {cit.document_id for cit in citations if cit.document_id}
     valid_doc_ids = set()
     if doc_ids_to_check:
         doc_stmt = select(Document.document_id).where(Document.document_id.in_(doc_ids_to_check))
@@ -300,7 +313,7 @@ session_id=str(session_id),
         valid_doc_ids = set(doc_res.scalars().all())
 
     for idx, cit in enumerate(citations):
-        doc_id = cit.get("document_id")
+        doc_id = cit.document_id
         if not doc_id or doc_id not in valid_doc_ids:
             logger.warning(
                 "Skipping citation save for document_id '%s' (not found in documents table).",
@@ -308,16 +321,16 @@ session_id=str(session_id),
             )
             continue
 
-        unique_cit_id = f"{assistant_msg.message_id}_{cit.get('chunk_id', idx)}_{idx}"
+        unique_cit_id = f"{assistant_msg.message_id}_{cit.chunk_id or idx}_{idx}"
         db.add(
             CitationModel(
                 citation_id=unique_cit_id,
                 message_id=assistant_msg.message_id,
                 document_id=doc_id,
-                document_name=cit.get("document_name"),
-                page_no=cit.get("page_no"),
-                chunk_id=str(cit.get("chunk_id", "")),
-                section=cit.get("section_title") or cit.get("section")
+                document_name=cit.document_name,
+                page_no=cit.page,
+                chunk_id=str(cit.chunk_id or ""),
+                section=cit.section
             )
         )
 

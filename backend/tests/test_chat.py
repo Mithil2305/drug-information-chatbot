@@ -71,7 +71,8 @@ def client(mock_db, mock_embeddings, mock_qdrant, mock_llm):
     app.dependency_overrides[get_qdrant_client] = override_qdrant
     app.dependency_overrides[get_llm_client] = override_llm
     
-    yield TestClient(app)
+    with patch("app.services.llm.llm_service.get_llm_client", return_value=mock_llm):
+        yield TestClient(app)
     
     qdrant_repository._client = old_qdrant_client
     app.dependency_overrides.pop(get_db_session, None)

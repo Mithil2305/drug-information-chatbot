@@ -32,7 +32,8 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
     name: doc.source || doc.file_name.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ').trim(),
     filename: doc.file_name,
     status: doc.status === 'completed' ? 'ready' : doc.status === 'failed' ? 'failed' : 'processing',
-    fileSize: 0, // default since backend doesn't store size
+    fileSize: doc.file_size || 0,
+    pageCount: doc.page_count || 0,
     uploadedAt: doc.created_at || new Date().toISOString(),
   })
 

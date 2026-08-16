@@ -397,6 +397,8 @@ async def upload_document(
 
     await db.refresh(new_doc)
 
+    new_doc.file_size = len(content)
+    new_doc.page_count = 0
 
     # -----------------------------------------
     # 5. Start processing
@@ -440,6 +442,18 @@ async def list_documents(
 
     documents = result.scalars().all()
 
+    from sqlalchemy import func
+    page_counts_result = await db.execute(
+        select(DocumentPage.document_id, func.count(DocumentPage.document_page_id))
+        .group_by(DocumentPage.document_id)
+    )
+    page_counts = {doc_id: count for doc_id, count in page_counts_result.all()}
+
+    for doc in documents:
+        doc.page_count = page_counts.get(doc.document_id, 0)
+        file_path = os.path.join(UPLOAD_DIR, f"{doc.document_id}_{doc.file_name}")
+        doc.file_size = os.path.getsize(file_path) if os.path.exists(file_path) else 0
+
     return [
         DocumentResponse.model_validate(doc)
         for doc in documents
@@ -473,6 +487,15 @@ async def get_document(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Document not found."
         )
+
+    from sqlalchemy import func
+    page_count_result = await db.execute(
+        select(func.count(DocumentPage.document_page_id))
+        .where(DocumentPage.document_id == document_id)
+    )
+    doc.page_count = page_count_result.scalar() or 0
+    file_path = os.path.join(UPLOAD_DIR, f"{doc.document_id}_{doc.file_name}")
+    doc.file_size = os.path.getsize(file_path) if os.path.exists(file_path) else 0
 
     return DocumentResponse.model_validate(doc)
 
@@ -630,6 +653,16 @@ async def update_document(
 
     await db.commit()
     await db.refresh(doc)
+
+    from sqlalchemy import func
+    page_count_result = await db.execute(
+        select(func.count(DocumentPage.document_page_id))
+        .where(DocumentPage.document_id == document_id)
+    )
+    doc.page_count = page_count_result.scalar() or 0
+    file_path = os.path.join(UPLOAD_DIR, f"{doc.document_id}_{doc.file_name}")
+    doc.file_size = os.path.getsize(file_path) if os.path.exists(file_path) else 0
+
     return DocumentResponse.model_validate(doc)
 
 

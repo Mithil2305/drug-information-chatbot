@@ -48,6 +48,8 @@ def test_upload_document_success(client, mock_db):
         assert data["document"]["file_name"] == "test.pdf"
         assert data["document"]["status"] == "uploaded"
         assert data["document"]["is_active"] is True
+        assert data["document"]["file_size"] == 26
+        assert data["document"]["page_count"] == 0
 
 def test_list_documents_success(client, mock_db):
     doc1 = Document(

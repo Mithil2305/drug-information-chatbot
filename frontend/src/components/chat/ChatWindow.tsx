@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { ShieldCheck, Pill, AlertTriangle, Clock, Layers } from 'lucide-react'
+import { Pill, AlertTriangle, Clock, Layers } from 'lucide-react'
 import { useChat } from '../../hooks/useChat'
 import { ChatMessage } from './ChatMessage'
 import { LoadingState } from './LoadingState'

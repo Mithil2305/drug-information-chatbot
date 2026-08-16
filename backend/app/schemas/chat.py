@@ -16,7 +16,7 @@ class ChatResponse(BaseModel):
     answer: str
     grounded: bool
     evidence_count: int
-    citations: list
+    citations: List[Citation]
 
 
 class MessageResponse(BaseModel):

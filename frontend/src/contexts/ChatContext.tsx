@@ -30,7 +30,7 @@ function mapCitations(raw: any[] | undefined): Citation[] {
     citationId: c.chunk_id || c.citation_id || `c-${idx}`,
     documentId: c.document_id || '',
     documentName: c.document_name || 'Unknown Document',
-    page: c.page_no ?? 0,
+    page: c.page ?? c.page_no ?? 0,
     section: c.section_title || c.section,
     text: c.text,
     score: c.score,

@@ -11,6 +11,8 @@ class DocumentResponse(BaseModel):
     status: str | None = None
     created_at: datetime | None = None
     is_active: bool | None = None
+    file_size: int | None = None
+    page_count: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
