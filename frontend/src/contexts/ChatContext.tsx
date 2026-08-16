@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import type { ChatMessage, Citation } from '../types/chat'
 import { useConversations } from '../hooks/useConversations'
@@ -57,6 +58,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   // Load messages when a conversation is selected
   useEffect(() => {
     if (!activeConversationId) return
+    if (isLoading) return
     const load = async () => {
       try {
         const session = await getSession(activeConversationId)
@@ -74,6 +76,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
     load()
   }, [activeConversationId])
+
+  const navigate = useNavigate()
 
   const sendMessage = async (content: string, documentIds?: string[]) => {
     if (!content.trim() || isLoading) return
@@ -95,6 +99,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         sessionId = String(session.session_id)
         setConversations((prev) => [toConversationSummary(session), ...prev])
         setActiveConversationId(sessionId)
+        navigate(`/chat/${sessionId}`, { replace: true })
       } catch (err: any) {
         toast.error(err.message || 'Failed to start chat session')
         setIsLoading(false)

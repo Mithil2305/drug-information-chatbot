@@ -10,16 +10,16 @@ import { DocumentStatus } from './DocumentStatus'
 interface DocumentCardProps {
   document: Document
   onDelete: (doc: Document) => void
+  onView?: (doc: Document) => void
   isSelected?: boolean
 }
 
-export function DocumentCard({ document, onDelete, isSelected = false }: DocumentCardProps) {
+export function DocumentCard({ document, onDelete, onView, isSelected = false }: DocumentCardProps) {
   const { renameDocument } = useDocuments()
   const [menuOpen, setMenuOpen] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [name, setName] = useState(document.name)
-  const detailsHref = `/documents?doc=${encodeURIComponent(document.id)}#doc-${document.id}`
-  const chatHref = `/chat?q=${encodeURIComponent(`Tell me about ${document.name} indications, dosage, warnings, and contraindications`)}`
+  const chatHref = `/chat?new=1&doc=${encodeURIComponent(document.id)}&q=${encodeURIComponent(`Tell me about ${document.name} indications, dosage, warnings, and contraindications`)}`
 
   const commitRename = () => {
     renameDocument(document.id, name)
@@ -112,7 +112,7 @@ export function DocumentCard({ document, onDelete, isSelected = false }: Documen
                   label="View details"
                   onClick={() => {
                     setMenuOpen(false)
-                    window.location.href = detailsHref
+                    onView?.(document)
                   }}
                 />
                 <MenuItem
@@ -158,12 +158,13 @@ export function DocumentCard({ document, onDelete, isSelected = false }: Documen
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <Link
-          to={detailsHref}
+        <button
+          type="button"
+          onClick={() => onView?.(document)}
           className="inline-flex items-center justify-center rounded-pill border border-border bg-surface px-4 py-2 text-xs font-semibold text-fg transition-colors hover:border-primary/30 hover:text-primary"
         >
           View Details
-        </Link>
+        </button>
         <Link
           to={chatHref}
           className="inline-flex items-center justify-center gap-1.5 rounded-pill bg-primary px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-primary-hover"
