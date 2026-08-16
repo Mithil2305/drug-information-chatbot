@@ -14,6 +14,18 @@ from sqlalchemy import text
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if settings.ENVIRONMENT != "test":
+        # Automatically create the database if it doesn't exist
+        try:
+            from sqlalchemy.ext.asyncio import create_async_engine as create_temp_engine
+            server_url = f"mysql+asyncmy://{settings.MYSQL_USER}:{settings.MYSQL_PASSWORD}@{settings.MYSQL_HOST}:{settings.MYSQL_PORT}/"
+            temp_engine = create_temp_engine(server_url)
+            async with temp_engine.connect() as conn:
+                await conn.execute(text(f"CREATE DATABASE IF NOT EXISTS {settings.MYSQL_DATABASE}"))
+                logger.info(f"Database: Ensured database '{settings.MYSQL_DATABASE}' exists.")
+            await temp_engine.dispose()
+        except Exception as e:
+            logger.warning(f"Database auto-creation check failed: {e}")
+
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
             
