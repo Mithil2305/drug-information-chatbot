@@ -156,12 +156,12 @@ async def post_chat_message(
     # 1.5. Fetch Memories (if enabled) & Check for Match
     # ---------------------------------------------------------
     memories_str = ""
-    memories_used = []
+    memory_records = []
     matched_citations = []
+    memories_used = []
     if current_user.memory_enabled:
-        memories_str = await memory_service.get_memories_as_string(current_user.user_id, db)
-        if memories_str:
-            memories_used = [line[2:].strip() for line in memories_str.split("\n") if line.startswith("- ")]
+        memory_records = await memory_service.get_memories_as_records(current_user.user_id, db)
+        memories_used = [m["text"] for m in memory_records]
 
         # Check if user message has a stored memory match (Q&A memory)
         matched_answer = None
@@ -424,7 +424,7 @@ async def post_chat_message(
             grounded=False,
             evidence_count=0,
             citations=[],
-            memories_used=memories_used if memories_used else None,
+            memories_used=rag_result.get("memories_used") if rag_result.get("memories_used") else (memories_used if memories_used else None),
             memories_updated=None
         )
 
@@ -459,7 +459,7 @@ async def post_chat_message(
     rag_result = await rag_service.answer_with_evidence(
         request.message,
         evidence_chunks,
-        memories=memories_str if current_user.memory_enabled else None
+        memories=memory_records if current_user.memory_enabled else None
     )
     answer_text = rag_result["answer"]
     grounded = rag_result["grounded"]
@@ -593,7 +593,7 @@ async def post_chat_message(
         evidence_count=evidence_count,
         citations=citations,
         memories_updated=memories_updated if memories_updated else None,
-        memories_used=memories_used if memories_used else None
+        memories_used=rag_result.get("memories_used") if rag_result.get("memories_used") else (memories_used if memories_used else None)
     )
 
 

@@ -32,6 +32,33 @@ class MemoryService:
             return ""
         return "\n".join(f"- {m.content}" for m in memories)
 
+    async def get_memories_as_records(
+        self,
+        user_id: str,
+        db: AsyncSession
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieve user memories in the same shape as document retrieval results
+        so they can be fed into the RAG evidence context and cited.
+        """
+        result = await db.execute(
+            select(UserMemory)
+            .filter(UserMemory.user_id == user_id)
+            .order_by(UserMemory.created_at.desc())
+        )
+        return [
+            {
+                "chunk_id": str(m.memory_id),
+                "document_id": "USER_MEMORY",
+                "document_name": "User Memory",
+                "page_no": 1,
+                "section_title": "User Profile",
+                "text": m.content or "",
+                "score": 0.1,
+            }
+            for m in result.scalars().all()
+        ]
+
     async def extract_and_update_memories(
         self,
         user_id: str,
@@ -183,13 +210,15 @@ class MemoryService:
                 if stored_q == normalized_q:
                     # Update existing memory with the new answer and citations
                     m.content = memory_content
+                    m.citations = citations_json
                     await db.commit()
                     return
 
         # If not found, add a new one
         new_memory = UserMemory(
             user_id=user_id,
-            content=memory_content
+            content=memory_content,
+            citations=citations_json
         )
         db.add(new_memory)
         await db.commit()

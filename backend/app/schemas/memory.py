@@ -15,6 +15,7 @@ class MemoryResponse(MemoryBase):
     user_id: str
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    citations: list[dict] | None = None
 
     class Config:
         from_attributes = True

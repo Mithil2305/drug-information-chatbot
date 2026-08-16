@@ -42,7 +42,7 @@ class RAGService:
         section: Optional[str] = None,
         version: Optional[str] = None,
         score_threshold: Optional[float] = None,
-        memories: Optional[str] = None,
+        memories: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """
         Orchestrate retrieval, context preparation, prompting, generation,
@@ -71,10 +71,14 @@ class RAGService:
             return self._no_evidence_response(question, retrieval_latency)
 
         # 2. Build a citation-tagged evidence context.
-        evidence_context, citation_map = self.context_builder.build(results)
+        # Include user memory records as citable sources alongside document evidence.
+        all_results = results
+        if memories:
+            all_results = all_results + memories
+        evidence_context, citation_map = self.context_builder.build(all_results)
 
         # 3. Build a grounded, injection-resistant prompt.
-        prompt = self.prompt_builder.build(question, evidence_context, memories=memories)
+        prompt = self.prompt_builder.build(question, evidence_context)
 
         # 4. Generate an answer with Qwen.
         gen_start = time.perf_counter()
@@ -98,7 +102,14 @@ class RAGService:
         # 5. Map and validate citations.
         answer, citations, invalid = self.citation_mapper.extract_citations(answer, citation_map)
 
-        validation = self.grounding_validator.validate(answer, citations, len(results))
+        # Identify which user memory sources the model actually cited.
+        memory_texts_used = [
+            c.get("text")
+            for c in citations
+            if c.get("document_id") == "USER_MEMORY" and c.get("text")
+        ]
+
+        validation = self.grounding_validator.validate(answer, citations, len(all_results))
         grounded = validation["grounded"]
 
         total_latency = time.perf_counter() - start
@@ -106,7 +117,6 @@ class RAGService:
         logger.info(
             "RAG: query='%s...' results=%d citations=%d grounded=%s total_ms=%.1f",
             question[:40],
-            len(results),
             len(citations),
             grounded,
             total_latency * 1000,
@@ -121,13 +131,14 @@ class RAGService:
             "retrieval_latency_ms": retrieval_latency * 1000,
             "generation_latency_ms": generation_latency * 1000,
             "total_latency_ms": total_latency * 1000,
+            "memories_used": memory_texts_used,
         }
 
     async def answer_with_evidence(
         self,
         question: str,
         evidence: List[Dict[str, Any]],
-        memories: Optional[str] = None,
+        memories: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """
         Generate an answer from already-retrieved evidence.
@@ -138,8 +149,11 @@ class RAGService:
 
         start = time.perf_counter()
 
-        evidence_context, citation_map = self.context_builder.build(evidence)
-        prompt = self.prompt_builder.build(question, evidence_context, memories=memories)
+        all_evidence = evidence
+        if memories:
+            all_evidence = all_evidence + memories
+        evidence_context, citation_map = self.context_builder.build(all_evidence)
+        prompt = self.prompt_builder.build(question, evidence_context)
 
         gen_start = time.perf_counter()
         try:
@@ -163,7 +177,14 @@ class RAGService:
         if invalid:
             logger.warning("Model produced invalid citation markers: %s", invalid)
 
-        validation = self.grounding_validator.validate(answer, citations, len(evidence))
+        # Identify which user memory sources the model actually cited.
+        memory_texts_used = [
+            c.get("text")
+            for c in citations
+            if c.get("document_id") == "USER_MEMORY" and c.get("text")
+        ]
+
+        validation = self.grounding_validator.validate(answer, citations, len(all_evidence))
         grounded = validation["grounded"]
 
         total_latency = time.perf_counter() - start
@@ -176,6 +197,7 @@ class RAGService:
             "sources_used": len(citations),
             "generation_latency_ms": generation_latency * 1000,
             "total_latency_ms": total_latency * 1000,
+            "memories_used": memory_texts_used,
         }
 
     @staticmethod

@@ -32,6 +32,10 @@ export function SourceViewerModal({ citation, document, open, onClose }: SourceV
 
   const docName = document?.name || document?.filename || citation?.documentName || 'Document'
   const fileType = useMemo(() => getFileType(docName), [docName])
+  const isMemory = useMemo(
+    () => citation?.documentId === 'USER_MEMORY' || citation?.documentName === 'User Memory',
+    [citation],
+  )
 
   useEffect(() => {
     if (!open || !citation) return
@@ -43,6 +47,11 @@ export function SourceViewerModal({ citation, document, open, onClose }: SourceV
     setError(null)
     setPdfUrl(null)
     setHtml(null)
+
+    if (isMemory) {
+      setLoading(false)
+      return
+    }
 
     const docId = document?.id || citation.documentId
     if (!docId) {
@@ -213,6 +222,20 @@ export function SourceViewerModal({ citation, document, open, onClose }: SourceV
                   className="prose prose-sm max-w-none leading-relaxed text-gray-800 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-gray-300 [&_th]:p-2 [&_th]:bg-gray-50 [&_td]:border [&_td]:border-gray-300 [&_td]:p-2"
                   dangerouslySetInnerHTML={{ __html: html }}
                 />
+              </div>
+            </div>
+          )}
+
+          {!loading && !error && isMemory && (
+            <div className="h-full w-full overflow-y-auto rounded-2xl border border-border bg-surface p-6 shadow-xs">
+              <div className="max-w-3xl mx-auto">
+                <span className="rounded-pill bg-accent/10 px-2.5 py-1 text-[10px] font-bold text-accent uppercase tracking-wider">
+                  User Memory Source
+                </span>
+                <h3 className="mt-3 text-base font-bold text-fg">{citation.section || 'Profile Memory'}</h3>
+                <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-fg-secondary font-serif">
+                  {citation.text}
+                </p>
               </div>
             </div>
           )}
