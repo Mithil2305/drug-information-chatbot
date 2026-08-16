@@ -311,13 +311,14 @@ async def post_chat_message(
             # Map to response schema
             response_citations = [
                 Citation(
-                    chunk_id=c.get("chunk_id") or "",
-                    document_id=c.get("document_id") or "",
-                    document_name=c.get("document_name") or "Unknown Document",
-                    page=c.get("page_no") or c.get("page") or 1,
-                    section=c.get("section"),
-                    text=c.get("text"),
-                    score=c.get("score")
+                    citation_id=str(c.get("citation_id") or c.get("chunk_id") or ""),
+                    chunk_id=str(c.get("chunk_id") or ""),
+                    document_id=str(c.get("document_id") or ""),
+                    document_name=str(c.get("document_name") or "Official Reference Document"),
+                    page=int(c.get("page_no") or c.get("page") or 1),
+                    section=c.get("section") or c.get("section_title"),
+                    text=c.get("text") or "",
+                    score=float(c.get("score")) if c.get("score") is not None else None
                 )
                 for c in matched_citations
             ]
