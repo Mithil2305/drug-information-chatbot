@@ -92,6 +92,85 @@ class _CTransformersClient:
         return {"choices": [{"text": text}]}
 
 
+class _GroqClient:
+    """Groq API client via OpenAI-compatible endpoint."""
+
+    def __init__(self, api_key: str, model: str):
+        from openai import OpenAI
+        self.client = OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
+        self.model = model
+
+    def __call__(self, prompt, **kwargs):
+        max_tokens = kwargs.get("max_tokens") or settings.LLM_MAX_NEW_TOKENS
+        temperature = kwargs.get("temperature") if kwargs.get("temperature") is not None else settings.LLM_TEMPERATURE
+        top_p = kwargs.get("top_p")
+        stop = kwargs.get("stop")
+        completion = self.client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=max_tokens,
+            temperature=temperature,
+            **({"top_p": top_p} if top_p is not None else {}),
+            **({"stop": stop} if stop else {}),
+        )
+        text = completion.choices[0].message.content
+        return {"choices": [{"text": text}]}
+
+
+class _GeminiClient:
+    """Google Gemini API client."""
+
+    def __init__(self, api_key: str, model: str):
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel(model_name=model)
+
+    def __call__(self, prompt, **kwargs):
+        from google.generativeai.types import GenerationConfig
+        max_tokens = kwargs.get("max_tokens") or settings.LLM_MAX_NEW_TOKENS
+        temperature = kwargs.get("temperature") if kwargs.get("temperature") is not None else settings.LLM_TEMPERATURE
+        top_p = kwargs.get("top_p")
+        stop = kwargs.get("stop")
+        config = GenerationConfig(
+            max_output_tokens=max_tokens,
+            temperature=temperature,
+            **({"top_p": top_p} if top_p is not None else {}),
+            **({"stop_sequences": stop} if stop else {}),
+        )
+        response = self.model.generate_content(prompt, generation_config=config)
+        try:
+            text = response.text
+        except Exception as e:
+            logger.warning("Gemini response missing text: %s", e)
+            text = str(response)
+        return {"choices": [{"text": text}]}
+
+
+class _OpenRouterClient:
+    """OpenRouter API client via OpenAI-compatible endpoint."""
+
+    def __init__(self, api_key: str, model: str):
+        from openai import OpenAI
+        self.client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
+        self.model = model
+
+    def __call__(self, prompt, **kwargs):
+        max_tokens = kwargs.get("max_tokens") or settings.LLM_MAX_NEW_TOKENS
+        temperature = kwargs.get("temperature") if kwargs.get("temperature") is not None else settings.LLM_TEMPERATURE
+        top_p = kwargs.get("top_p")
+        stop = kwargs.get("stop")
+        completion = self.client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=max_tokens,
+            temperature=temperature,
+            **({"top_p": top_p} if top_p is not None else {}),
+            **({"stop": stop} if stop else {}),
+        )
+        text = completion.choices[0].message.content
+        return {"choices": [{"text": text}]}
+
+
 def _load_local_model(model_path: str):
     """Try available GGUF loaders in order of preference."""
 
@@ -126,29 +205,76 @@ def _load_local_model(model_path: str):
     raise RuntimeError("No local GGUF loader could load the model.")
 
 
+def _build_api_client():
+    """Try API providers in the configured fallback order."""
+    reasons = []
+
+    if settings.GROQ_API_KEY:
+        try:
+            logger.info("Loading Groq client: %s", settings.GROQ_MODEL)
+            return _GroqClient(settings.GROQ_API_KEY, settings.GROQ_MODEL)
+        except Exception as e:
+            logger.warning("Groq client failed: %s", e)
+            reasons.append(f"Groq: {e}")
+    else:
+        reasons.append("Groq: no API key")
+
+    if settings.GEMINI_API_KEY:
+        try:
+            logger.info("Loading Gemini client: %s", settings.GEMINI_MODEL)
+            return _GeminiClient(settings.GEMINI_API_KEY, settings.GEMINI_MODEL)
+        except Exception as e:
+            logger.warning("Gemini client failed: %s", e)
+            reasons.append(f"Gemini: {e}")
+    else:
+        reasons.append("Gemini: no API key")
+
+    if settings.OPENROUTER_API_KEY:
+        try:
+            logger.info("Loading OpenRouter client: %s", settings.OPENROUTER_MODEL)
+            return _OpenRouterClient(settings.OPENROUTER_API_KEY, settings.OPENROUTER_MODEL)
+        except Exception as e:
+            logger.warning("OpenRouter client failed: %s", e)
+            reasons.append(f"OpenRouter: {e}")
+    else:
+        reasons.append("OpenRouter: no API key")
+
+    raise RuntimeError("No API client available: " + "; ".join(reasons))
+
+
 def get_llm_client():
     """
-    Dependency injection helper for the local LLM client.
-    Caches model loading to avoid expensive initialization on every request.
+    Dependency injection helper for the LLM client.
+    Caches the provider instance to avoid reinitializing on every request.
     """
     global _llm_instance
     if _llm_instance is not None:
         return _llm_instance
 
-    model_path = settings.LLM_MODEL_PATH
-    if not model_path or not os.path.exists(model_path):
-        logger.warning(
-            f"LLM model file not found at {model_path}. "
-            "Falling back to Mock LLM Client for local development/testing."
-        )
-        _llm_instance = _MockLLMClient("No local model file found.")
+    if settings.USE_LOCAL_LLM:
+        model_path = settings.LLM_MODEL_PATH
+        if not model_path or not os.path.exists(model_path):
+            logger.warning(
+                f"LLM model file not found at {model_path}. "
+                "Falling back to Mock LLM Client."
+            )
+            _llm_instance = _MockLLMClient("No local model file found.")
+            return _llm_instance
+
+        try:
+            _llm_instance = _load_local_model(model_path)
+            logger.info("Successfully loaded local LLM from %s", model_path)
+        except Exception as e:
+            logger.error("Failed to load local LLM: %s. Using mock client.", e)
+            _llm_instance = _MockLLMClient(f"Local model failed: {e}")
+
         return _llm_instance
 
     try:
-        _llm_instance = _load_local_model(model_path)
-        logger.info("Successfully loaded local LLM from %s", model_path)
+        _llm_instance = _build_api_client()
+        logger.info("Successfully loaded API LLM client.")
     except Exception as e:
-        logger.error("Failed to load local LLM: %s. Using mock client.", e)
-        _llm_instance = _MockLLMClient(f"Local model failed: {e}")
+        logger.error("Failed to load API LLM: %s. Using mock client.", e)
+        _llm_instance = _MockLLMClient(f"API LLM failed: {e}")
 
     return _llm_instance

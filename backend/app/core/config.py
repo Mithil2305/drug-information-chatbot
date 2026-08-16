@@ -46,6 +46,19 @@ class Settings(BaseSettings):
     LLM_MAX_NEW_TOKENS: int = 512
     LLM_MAX_INPUT_TOKENS: int = 3072
 
+    # Local vs API LLM toggle
+    USE_LOCAL_LLM: bool = False
+
+    # API Provider keys
+    GROQ_API_KEY: Optional[str] = None
+    GEMINI_API_KEY: Optional[str] = None
+    OPENROUTER_API_KEY: Optional[str] = None
+
+    # API Provider model IDs
+    GROQ_MODEL: str = "llama-3.1-8b-instant"
+    GEMINI_MODEL: str = "gemini-1.5-flash"
+    OPENROUTER_MODEL: str = "meta-llama/llama-3.1-8b-instant"
+
     # RAG Settings
     TOP_K: int = 8
     MIN_RELEVANCE_SCORE: float = 0.35

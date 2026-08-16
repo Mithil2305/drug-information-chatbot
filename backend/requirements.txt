@@ -32,6 +32,8 @@ safetensors
 sentence-transformers
 gpt4all
 ctransformers
+openai
+google-generativeai
 
 # --- Vector Database ---
 qdrant-client
