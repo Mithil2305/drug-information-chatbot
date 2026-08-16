@@ -95,7 +95,7 @@ export function UserProfile({ collapsed }: UserProfileProps) {
     return 'User'
   }, [user])
 
-  const subtitle = user?.role ? user.role.replace(/_/g, ' ') : 'LabelProof User'
+  const subtitle = user?.role ? user.role.replace(/_/g, ' ') : 'MediMei User'
   const initials = displayName
     .split(/\s+/)
     .filter(Boolean)

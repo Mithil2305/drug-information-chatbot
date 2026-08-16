@@ -6,10 +6,13 @@ import { ComparisonTable } from '../components/compare/ComparisonTable'
 import { ComparisonEmptyState } from '../components/compare/ComparisonEmptyState'
 import { ComparisonSkeleton } from '../components/compare/ComparisonSkeleton'
 import { ComparisonError } from '../components/compare/ComparisonError'
+import { ComparisonSummary } from '../components/compare/ComparisonSummary'
 import { useDocuments } from '../hooks/useDocuments'
 import { useChat } from '../hooks/useChat'
 import { compareDrugs } from '../services/comparisonService'
 import type { ComparisonResult, ComparisonCitation } from '../types/comparison'
+import medicalDocumentsImage from '../assets/documents.png';
+
 
 export default function ComparePage() {
   const { documents } = useDocuments()
@@ -85,6 +88,17 @@ export default function ComparePage() {
           <section className="pt-2 lg:pt-0">
             <div className="relative overflow-hidden rounded-3xl border border-border bg-surface p-4 shadow-card sm:p-6">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(15,119,114,0.1),transparent_45%)]" />
+
+              {/* Low opacity subtle medicine.png background element */}
+                <div className="absolute right-0 bottom-0 top-0 w-1/3 pointer-events-none select-none overflow-hidden hidden md:block">
+                  <div className="absolute inset-0 bg-gradient-to-r from-surface to-transparent z-10 w-24" />
+                  <img
+                    src={medicalDocumentsImage}
+                    alt=""
+                    className="absolute right-4 bottom-2 h-full max-h-[140px] w-auto object-contain opacity-30"
+                  />
+                </div>
+
               <div className="relative max-w-xl space-y-2 z-20">
                 <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent">
                   <ShieldCheck className="h-3.5 w-3.5" />
@@ -135,15 +149,8 @@ export default function ComparePage() {
             ) : error ? (
               <ComparisonError message={error} onRetry={handleRetry} />
             ) : result ? (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-primary">
-                    Comparison Results
-                  </h2>
-                  <span className="text-[11px] text-fg-muted">
-                    Based on approved source documents
-                  </span>
-                </div>
+              <div className="space-y-4">
+                <ComparisonSummary result={result} />
                 <ComparisonTable result={result} onCitationClick={handleCitationClick} />
               </div>
             ) : (

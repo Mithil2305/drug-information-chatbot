@@ -10,7 +10,9 @@ class DocumentResponse(BaseModel):
     version: str | None = None
     status: str | None = None
     created_at: datetime | None = None
-    is_active: bool = True
+    is_active: bool | None = None
+    file_size: int | None = None
+    page_count: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -25,4 +27,17 @@ class DocumentProcessResponse(BaseModel):
     job_id: str
     stage: str
     status: str
+    message: str
+
+
+class DocumentUpdate(BaseModel):
+    source: str | None = None
+    version: str | None = None
+    file_name: str | None = None
+
+
+class DocumentStatusResponse(BaseModel):
+    document_id: str
+    status: str | None = None
+    stage: str | None = None
     message: str

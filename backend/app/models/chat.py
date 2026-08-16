@@ -22,6 +22,8 @@ class ChatMessage(Base):
     session_id = Column(BigInteger, ForeignKey("sessions.session_id"), nullable=False)
     role = Column(String(50), nullable=False)
     content = Column(Text, nullable=False)
+    memories_updated = Column(Text, nullable=True)  # JSON-serialized list of strings
+    memories_used = Column(Text, nullable=True)  # JSON-serialized list of strings
     created_at = Column(DateTime, server_default=func.current_timestamp())
 
     # Inverse relationship to session

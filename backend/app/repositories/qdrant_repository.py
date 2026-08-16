@@ -29,6 +29,7 @@ class QdrantRepository:
         self._client = client
         self.collection_name = settings.QDRANT_COLLECTION
         self._collection_verified = False
+        self._vector_size: Optional[int] = None
 
     @property
     def client(self) -> AsyncQdrantClient:
@@ -40,11 +41,18 @@ class QdrantRepository:
             )
         return self._client
 
-    async def ensure_collection_exists(self):
+    def set_vector_size(self, vector_size: int):
+        """Set the collection vector size from the actual embedding model."""
+        self._vector_size = vector_size
+
+    async def ensure_collection_exists(self, vector_size: Optional[int] = None):
         """
         Asynchronously checks if the collection exists, creating it and configuring
         the optimized payload indexes (keyword, full-text) if missing.
         """
+        if vector_size is not None:
+            self._vector_size = vector_size
+
         if self._collection_verified:
             return
 
@@ -52,24 +60,27 @@ class QdrantRepository:
             collections = await self.client.get_collections()
             exists = any(c.name == self.collection_name for c in collections.collections)
 
+            size = self._vector_size or 1024  # Safe default until verified by the model
+
             if not exists:
                 logger.info(f"Creating Qdrant collection: {self.collection_name}")
                 await self.client.create_collection(
                     collection_name=self.collection_name,
                     vectors_config=VectorParams(
-                        size=1024,  # Dimension for BGE-M3 embeddings
+                        size=size,
                         distance=Distance.COSINE
                     )
                 )
 
-                # 1. Payload index on document_id for rapid filtering during query time
-                await self.client.create_payload_index(
-                    collection_name=self.collection_name,
-                    field_name="document_id",
-                    field_schema="keyword"
-                )
+                # Payload indexes for filtering and keyword retrieval
+                keyword_fields = ["document_id", "section", "version", "extraction_method"]
+                for field in keyword_fields:
+                    await self.client.create_payload_index(
+                        collection_name=self.collection_name,
+                        field_name=field,
+                        field_schema="keyword"
+                    )
 
-                # 2. Payload text index on chunk_text for full-text keyword retrieval matching
                 await self.client.create_payload_index(
                     collection_name=self.collection_name,
                     field_name="chunk_text",
@@ -141,10 +152,13 @@ class QdrantRepository:
                     "document_id": chunk["document_id"],
                     "document_name": chunk.get("document_name"),
                     "page_no": chunk.get("page_no"),
-                    "section": chunk.get("section"),
+                    "section": chunk.get("section") or chunk.get("section_title"),
                     "chunk_index": chunk.get("chunk_index"),
-                    "chunk_text": chunk["chunk_text"],
-                    "text": chunk["chunk_text"]  # Compatibility key
+                    "chunk_text": chunk.get("chunk_text") or chunk.get("text"),
+                    "text": chunk.get("chunk_text") or chunk.get("text"),
+                    "extraction_method": chunk.get("extraction_method"),
+                    "version": chunk.get("version"),
+                    "text_hash": chunk.get("text_hash"),
                 }
             )
             points.append(point)
@@ -158,27 +172,36 @@ class QdrantRepository:
         self,
         query_vector: List[float],
         limit: int = 5,
-        document_ids: Optional[List[str]] = None
+        document_ids: Optional[List[str]] = None,
+        section: Optional[str] = None,
+        version: Optional[str] = None,
+        score_threshold: Optional[float] = None,
     ) -> List[Any]:
-        """Perform semantic search using vector similarity in Qdrant with optional document filter."""
+        """Perform semantic search using vector similarity in Qdrant with optional filters."""
         await self.ensure_collection_exists()
 
-        query_filter = None
+        must_conditions = []
         if document_ids:
-            query_filter = Filter(
-                must=[
-                    FieldCondition(
-                        key="document_id",
-                        match=MatchAny(any=document_ids)
-                    )
-                ]
+            must_conditions.append(
+                FieldCondition(key="document_id", match=MatchAny(any=document_ids))
             )
+        if section:
+            must_conditions.append(
+                FieldCondition(key="section", match=MatchValue(value=section))
+            )
+        if version:
+            must_conditions.append(
+                FieldCondition(key="version", match=MatchValue(value=version))
+            )
+
+        query_filter = Filter(must=must_conditions) if must_conditions else None
 
         results = await self.client.query_points(
             collection_name=self.collection_name,
             query=query_vector,
             query_filter=query_filter,
-            limit=limit
+            limit=limit,
+            score_threshold=score_threshold,
         )
 
         return results.points

@@ -26,8 +26,8 @@ from app.core.logging import (
 # =====================================================================
 
 def test_settings_load():
-    assert settings.APP_NAME == "LabelProof"
-    assert settings.ENVIRONMENT in ["development", "production", "testing"]
+    assert settings.APP_NAME == "MediMei"
+    assert settings.ENVIRONMENT in ["development", "production", "testing", "test"]
     assert settings.MYSQL_PORT == 3306
 
 # =====================================================================

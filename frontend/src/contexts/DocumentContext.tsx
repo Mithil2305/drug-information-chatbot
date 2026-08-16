@@ -3,7 +3,12 @@ import { createContext, useMemo, useState, useEffect, type ReactNode } from 'rea
 import { toast } from 'sonner'
 import type { Document } from '../types/document'
 import { useAuth } from '../hooks/useAuth'
-import { fetchDocuments, uploadDocument as uploadDocumentApi, deleteDocument as deleteDocumentApi } from '../api/documents'
+import {
+  fetchDocuments,
+  uploadDocument as uploadDocumentApi,
+  deleteDocument as deleteDocumentApi,
+  updateDocument as updateDocumentApi,
+} from '../api/documents'
 
 interface DocumentContextValue {
   documents: Document[]
@@ -27,7 +32,8 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
     name: doc.source || doc.file_name.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ').trim(),
     filename: doc.file_name,
     status: doc.status === 'completed' ? 'ready' : doc.status === 'failed' ? 'failed' : 'processing',
-    fileSize: 0, // default since backend doesn't store size
+    fileSize: doc.file_size || 0,
+    pageCount: doc.page_count || 0,
     uploadedAt: doc.created_at || new Date().toISOString(),
   })
 
@@ -110,11 +116,21 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const renameDocument = (id: string, name: string) => {
+  const renameDocument = async (id: string, name: string) => {
     if (!name.trim()) return
-    setDocuments((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, name: name.trim() } : d)),
-    )
+    try {
+      const updated = await updateDocumentApi(id, name.trim())
+      setDocuments((prev) =>
+        prev.map((d) =>
+          d.id === id
+            ? { ...d, name: name.trim(), source: updated.source || d.source }
+            : d,
+        ),
+      )
+      toast.success('Document renamed')
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to rename document')
+    }
   }
 
   return (

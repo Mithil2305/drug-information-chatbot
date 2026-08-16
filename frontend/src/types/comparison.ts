@@ -26,10 +26,19 @@ export interface DrugInfo {
   pageCount?: number
 }
 
+export interface ComparisonSummary {
+  totalAttributes: number
+  warningCount: number
+  highlightCount: number
+  unavailableCount: number
+  bothUnavailableCount: number
+}
+
 export interface ComparisonResult {
   drug1: DrugInfo
   drug2: DrugInfo
   attributes: ComparisonAttribute[]
+  summary?: ComparisonSummary
 }
 
 export const COMPARISON_ATTRIBUTE_KEYS = [

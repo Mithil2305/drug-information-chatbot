@@ -1,55 +1,49 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Mail, ArrowLeft } from 'lucide-react'
+import { Mail, ArrowLeft, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { AuthLayout } from '../components/auth/AuthLayout'
 import { AuthDivider } from '../components/auth/AuthDivider'
 import { AuthInput } from '../components/auth/AuthInput'
 import { PasswordInput } from '../components/auth/PasswordInput'
 import { useAuth } from '../hooks/useAuth'
+import { validateSignIn, validateSignInField, getErrorMessage } from '../utils/authValidation'
 
 interface FormErrors {
   email?: string
   password?: string
 }
-
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-}
-
 export default function SignInPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(true)
   const [errors, setErrors] = useState<FormErrors>({})
+  const [formError, setFormError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
 
   const validate = (): boolean => {
-    const next: FormErrors = {}
-    if (!email.trim()) next.email = 'Email address is required'
-    else if (!isValidEmail(email)) next.email = 'Please enter a valid email'
-    if (!password) next.password = 'Password is required'
-    else if (password.length < 6) next.password = 'Password must be at least 6 characters'
+    const next = validateSignIn({ email, password })
     setErrors(next)
     return Object.keys(next).length === 0
   }
 
+  const handleBlur = (field: 'email' | 'password') => {
+    const message = validateSignInField(field, field === 'email' ? email : password)
+    setErrors((prev) => ({ ...prev, [field]: message ?? undefined }))
+  }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validate()) return
+    setFormError(null)
     setSubmitting(true)
     try {
       await login(email, password)
       toast.success('Signed in successfully')
       navigate('/chat')
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : 'Authentication failed. Please verify your credentials.'
-      toast.error(message)
+      setFormError(getErrorMessage(err))
     } finally {
       setSubmitting(false)
     }
@@ -68,7 +62,7 @@ export default function SignInPage() {
 
         <h1 className="text-2xl font-bold tracking-tight text-primary">Welcome back</h1>
         <p className="mt-1 mb-8 text-xs sm:text-sm text-fg-secondary">
-          Sign in to access the LabelProof clinical AI assistant.
+          Sign in to access the MediMei clinical AI assistant.
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
@@ -81,8 +75,10 @@ export default function SignInPage() {
             value={email}
             onChange={(e) => {
               setEmail(e.target.value)
+              if (formError) setFormError(null)
               if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }))
             }}
+            onBlur={() => handleBlur('email')}
             error={errors.email}
             autoComplete="email"
           />
@@ -94,18 +90,30 @@ export default function SignInPage() {
             value={password}
             onChange={(e) => {
               setPassword(e.target.value)
+              if (formError) setFormError(null)
               if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }))
             }}
+            onBlur={() => handleBlur('password')}
             error={errors.password}
             autoComplete="current-password"
           />
+
+          {formError && (
+            <div
+              className="flex items-start gap-2 rounded-xl border border-danger/20 bg-danger/5 px-3.5 py-2.5 text-sm text-danger"
+              role="alert"
+            >
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{formError}</span>
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={submitting}
             className="mt-2 w-full rounded-pill bg-primary py-3 text-sm font-bold text-white shadow-card transition-all hover:bg-primary-hover active:scale-[0.98] disabled:opacity-60"
           >
-            {submitting ? 'Signing in…' : 'Sign in to LabelProof'}
+            {submitting ? 'Signing in…' : 'Sign in to MediMei'}
           </button>
         </form>
 

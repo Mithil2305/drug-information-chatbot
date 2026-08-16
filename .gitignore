@@ -1,5 +1,5 @@
 # ==============================================================================
-# Gitignore configuration for LabelProof Project
+# Gitignore configuration for MediMei Project
 # ==============================================================================
 
 # --- System & IDEs ---
@@ -33,6 +33,8 @@ data/models/
 models/
 .paddleocr/
 .cache/
+
+references/
 
 # --- Local Uploads & Data Artifacts ---
 data/uploads/*

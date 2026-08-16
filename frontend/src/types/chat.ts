@@ -17,6 +17,8 @@ export interface ChatMessage {
   citations?: Citation[]
   followUps?: string[]
   status?: AnswerStatus
+  memoriesUpdated?: string[]
+  memoriesUsed?: string[]
 }
 
 export interface ChatResponse {
@@ -28,6 +30,14 @@ export interface ChatResponse {
   evidence_count?: number
   citations: Citation[]
   followUps?: string[]
+  memories_updated?: string[]
+  memories_used?: string[]
+}
+
+export interface ChatRequest {
+  message: string
+  session_id: string
+  document_ids?: string[]
 }
 
 export interface Conversation {

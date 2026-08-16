@@ -115,6 +115,10 @@ async def create_chunks(
 
     # 7. Index chunks in Qdrant Vector DB
     logger.info(f"Indexing {len(db_chunks)} chunks in Qdrant for document: {doc.file_name}")
+
+    # Make sure Qdrant collection is created with the real model dimension.
+    qdrant_repository.set_vector_size(embedding_service.vector_size)
+
     qdrant_chunks = []
     for chunk, emb in zip(db_chunks, embeddings):
         qdrant_chunks.append({

@@ -12,6 +12,7 @@ from fastapi import (
     BackgroundTasks,
     status
 )
+from fastapi.responses import FileResponse
 
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,7 +26,9 @@ from app.models.document_page import DocumentPage
 from app.schemas.document import (
     DocumentUploadResponse,
     DocumentResponse,
-    DocumentProcessResponse
+    DocumentProcessResponse,
+    DocumentUpdate,
+    DocumentStatusResponse,
 )
 
 from app.services.pdf.extractor import extract_pdf_pages
@@ -182,7 +185,7 @@ async def simulate_processing_task(
                     document_id=document_id,
                     page_no=page["page_no"],
                     extraction_method=page["extraction_method"],
-                    quality_score=page["quality_score"],
+                    quality_score=page.get("quality_score", 1.0),
                     text_ref=page["text"]
                 )
 
@@ -282,14 +285,15 @@ async def upload_document(
 ):
 
     # -----------------------------------------
-    # 1. Validate PDF
+    # 1. Validate file format
     # -----------------------------------------
 
-    if not file.filename.lower().endswith(".pdf"):
+    allowed_extensions = (".pdf", ".docx", ".doc")
+    if not file.filename.lower().endswith(allowed_extensions):
 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid file format. Only PDF files are supported."
+            detail="Invalid file format. Only PDF, DOCX, and DOC files are supported."
         )
 
 
@@ -394,6 +398,8 @@ async def upload_document(
 
     await db.refresh(new_doc)
 
+    new_doc.file_size = len(content)
+    new_doc.page_count = 0
 
     # -----------------------------------------
     # 5. Start processing
@@ -437,6 +443,18 @@ async def list_documents(
 
     documents = result.scalars().all()
 
+    from sqlalchemy import func
+    page_counts_result = await db.execute(
+        select(DocumentPage.document_id, func.count(DocumentPage.page_no))
+        .group_by(DocumentPage.document_id)
+    )
+    page_counts = {doc_id: count for doc_id, count in page_counts_result.all()}
+
+    for doc in documents:
+        doc.page_count = page_counts.get(doc.document_id, 0)
+        file_path = os.path.join(UPLOAD_DIR, f"{doc.document_id}_{doc.file_name}")
+        doc.file_size = os.path.getsize(file_path) if os.path.exists(file_path) else 0
+
     return [
         DocumentResponse.model_validate(doc)
         for doc in documents
@@ -470,6 +488,15 @@ async def get_document(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Document not found."
         )
+
+    from sqlalchemy import func
+    page_count_result = await db.execute(
+        select(func.count(DocumentPage.page_no))
+        .where(DocumentPage.document_id == document_id)
+    )
+    doc.page_count = page_count_result.scalar() or 0
+    file_path = os.path.join(UPLOAD_DIR, f"{doc.document_id}_{doc.file_name}")
+    doc.file_size = os.path.getsize(file_path) if os.path.exists(file_path) else 0
 
     return DocumentResponse.model_validate(doc)
 
@@ -592,3 +619,130 @@ async def delete_document(
     await db.delete(doc)
     await db.commit()
     return
+
+
+# =====================================================
+# UPDATE DOCUMENT METADATA
+# =====================================================
+
+@router.patch(
+    "/{document_id}",
+    response_model=DocumentResponse
+)
+async def update_document(
+    document_id: str,
+    update: DocumentUpdate,
+    db: AsyncSession = Depends(get_db_session)
+):
+    result = await db.execute(
+        select(Document).filter(Document.document_id == document_id)
+    )
+    doc = result.scalar_one_or_none()
+
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found."
+        )
+
+    if update.source is not None:
+        doc.source = update.source
+    if update.version is not None:
+        doc.version = update.version
+    if update.file_name is not None:
+        doc.file_name = update.file_name
+
+    await db.commit()
+    await db.refresh(doc)
+
+    from sqlalchemy import func
+    page_count_result = await db.execute(
+        select(func.count(DocumentPage.page_no))
+        .where(DocumentPage.document_id == document_id)
+    )
+    doc.page_count = page_count_result.scalar() or 0
+    file_path = os.path.join(UPLOAD_DIR, f"{doc.document_id}_{doc.file_name}")
+    doc.file_size = os.path.getsize(file_path) if os.path.exists(file_path) else 0
+
+    return DocumentResponse.model_validate(doc)
+
+
+# =====================================================
+# GET DOCUMENT STATUS
+# =====================================================
+
+@router.get(
+    "/{document_id}/status",
+    response_model=DocumentStatusResponse
+)
+async def get_document_status(
+    document_id: str,
+    db: AsyncSession = Depends(get_db_session)
+):
+    result = await db.execute(
+        select(Document).filter(Document.document_id == document_id)
+    )
+    doc = result.scalar_one_or_none()
+
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found."
+        )
+
+    return DocumentStatusResponse(
+        document_id=doc.document_id,
+        status=doc.status,
+        stage=doc.status,
+        message=f"Document is currently {doc.status}."
+    )
+
+
+# =====================================================
+# VIEW / DOWNLOAD PDF
+# =====================================================
+
+@router.get("/{document_id}/view")
+async def view_document(
+    document_id: str,
+    db: AsyncSession = Depends(get_db_session)
+):
+    import mimetypes
+    result = await db.execute(
+        select(Document).filter(Document.document_id == document_id)
+    )
+    doc = result.scalar_one_or_none()
+
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found."
+        )
+
+    file_path = os.path.join(
+        UPLOAD_DIR,
+        f"{document_id}_{doc.file_name}"
+    )
+
+    if not os.path.exists(file_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document file not found on disk."
+        )
+
+    content_type, _ = mimetypes.guess_type(doc.file_name)
+    if not content_type:
+        if doc.file_name.lower().endswith(".docx"):
+            content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        elif doc.file_name.lower().endswith(".doc"):
+            content_type = "application/msword"
+        elif doc.file_name.lower().endswith(".pdf"):
+            content_type = "application/pdf"
+        else:
+            content_type = "application/octet-stream"
+
+    return FileResponse(
+        file_path,
+        media_type=content_type,
+        filename=doc.file_name
+    )

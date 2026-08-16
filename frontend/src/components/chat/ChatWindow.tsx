@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { ShieldCheck, Pill, AlertTriangle, Clock, Layers } from 'lucide-react'
+import { Pill, AlertTriangle, Clock, Layers } from 'lucide-react'
 import { useChat } from '../../hooks/useChat'
 import { ChatMessage } from './ChatMessage'
 import { LoadingState } from './LoadingState'
@@ -38,10 +38,10 @@ export function ChatWindow() {
   return (
     <div className="flex-1 overflow-y-auto">
       {messages.length === 0 ? (
-        <div className="flex min-h-full flex-col items-center justify-center px-6 py-12 text-center">
+        <div className="flex min-h-full flex-col relative overflow-hidden items-center justify-center px-6 py-12 text-center">
           <div className="mb-5 relative">
-            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-primary text-white shadow-hover">
-              <ShieldCheck className="h-8 w-8 text-surface-warm" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-white shadow-subtle transition-all duration-200 group-hover:shadow-card">
+              <img src="/logo.png" alt="MediMei" className="h-15 w-15 object-contain" />
             </div>
             <div className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-success border-2 border-background">
               <span className="block h-2 w-2 rounded-full bg-white animate-pulse" />
@@ -49,7 +49,7 @@ export function ChatWindow() {
           </div>
 
           <h1 className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">
-            LabelProof AI Assistant
+            MediMei AI Assistant
           </h1>
 
 
@@ -75,6 +75,14 @@ export function ChatWindow() {
               )
             })}
           </div>
+
+          {/* Low opacity subtle medicine.png background element */}
+          <img
+            src="/logo.png"
+            alt=""
+            className="absolute -right-[15%] -bottom-[20%] h-[440px] w-auto object-contain opacity-[5%] -z-9 pointer-events-none"
+          />
+
         </div>
 
       ) : (
@@ -90,6 +98,8 @@ export function ChatWindow() {
           <div ref={bottomRef} aria-hidden="true" className="h-2" />
         </div>
       )}
+
+
     </div>
   )
 }

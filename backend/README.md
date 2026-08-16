@@ -1,6 +1,6 @@
-# LabelProof Backend
+# MediMei Backend
 
-FastAPI backend for **LabelProof** — an evidence-first drug-information RAG chatbot. Every answer is grounded in approved drug-label documents and backed by citations pointing to exact pages.
+FastAPI backend for **MediMei** — an evidence-first drug-information RAG chatbot. Every answer is grounded in approved drug-label documents and backed by citations pointing to exact pages.
 
 > **Status:** Authentication (register / login / me) is implemented and wired to the frontend. Document upload, chat, citations, and comparison routes are scaffolded and awaiting integration with the retrieval/LLM pipeline.
 
@@ -148,13 +148,13 @@ Create a `.env` file in the `backend/` directory (or project root) with the foll
 
 ```env
 # Application
-APP_NAME=LabelProof
+APP_NAME=MediMei
 ENVIRONMENT=development
 
 # MySQL Database
 MYSQL_HOST=localhost
 MYSQL_PORT=3306
-MYSQL_DATABASE=labelproof
+MYSQL_DATABASE=MediMei
 MYSQL_USER=root
 MYSQL_PASSWORD=your_mysql_password
 
@@ -174,7 +174,7 @@ The project uses **Alembic** for schema migrations. The migration scripts are in
 
 ```bash
 # Make sure your MySQL server is running and the database exists:
-# CREATE DATABASE labelproof;
+# CREATE DATABASE MediMei;
 
 # Run all pending migrations
 alembic upgrade head
@@ -195,6 +195,12 @@ The initial migration (`ab4774dd04e0_create_users_table`) creates the `users` ta
 ```bash
 # From the backend/ directory (with venv activated)
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+## Starting Qdrant (Docker)
+
+```bash
+docker run -p 6333:6333 -p 6034:6034 -v qdrant_storage:/qdrant/storage qdrant/qdrant
 ```
 
 The API will be available at:

@@ -11,8 +11,10 @@ export function DocumentUpload() {
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return
     const file = files[0]
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      toast.error('Only PDF drug label documents are supported')
+    const allowed = ['.pdf', '.docx', '.doc']
+    const isAllowed = allowed.some((ext) => file.name.toLowerCase().endsWith(ext))
+    if (!isAllowed) {
+      toast.error('Only PDF, DOCX, and DOC files are supported')
       return
     }
     uploadDocument(file)
@@ -45,10 +47,10 @@ export function DocumentUpload() {
 
       {/* Copy */}
       <p className="mb-1 text-sm font-semibold text-fg">
-        {dragging ? 'Drop to upload' : 'Drop PDF here'}
+        {dragging ? 'Drop to upload' : 'Drop PDF, DOCX, or DOC here'}
       </p>
       <p className="mb-5 text-xs text-fg-muted">
-        Approved drug-label documents only · PDF format
+        Approved drug-label documents only · PDF, DOCX, DOC format
       </p>
 
       {/* Button */}
@@ -57,16 +59,16 @@ export function DocumentUpload() {
         onClick={() => inputRef.current?.click()}
         className="rounded-pill bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover"
       >
-        Browse Files
+        Upload Document
       </button>
 
       <input
         ref={inputRef}
         type="file"
-        accept="application/pdf,.pdf"
+        accept=".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
         className="sr-only"
         onChange={(e) => handleFiles(e.target.files)}
-        aria-label="Select PDF file"
+        aria-label="Select PDF, DOCX, or DOC file"
       />
     </div>
   )

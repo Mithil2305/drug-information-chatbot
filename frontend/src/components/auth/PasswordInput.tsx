@@ -8,6 +8,7 @@ interface PasswordInputProps extends React.InputHTMLAttributes<HTMLInputElement>
 
 export function PasswordInput({ label, error, ...props }: PasswordInputProps) {
   const [show, setShow] = useState(false)
+  const errorId = error && props.id ? `${props.id}-error` : undefined
 
   return (
     <div>
@@ -25,6 +26,8 @@ export function PasswordInput({ label, error, ...props }: PasswordInputProps) {
         <input
           {...props}
           type={show ? 'text' : 'password'}
+          aria-invalid={!!error}
+          aria-describedby={errorId}
           className={`clinical-input w-full py-3 pl-10 pr-10 text-sm placeholder:text-fg-muted ${
             error ? 'border-danger focus:border-danger focus:ring-danger/10' : ''
           }`}
@@ -44,7 +47,7 @@ export function PasswordInput({ label, error, ...props }: PasswordInputProps) {
         </button>
       </div>
       {error && (
-        <p className="mt-1.5 text-xs text-danger" role="alert">
+        <p id={errorId} className="mt-1.5 text-xs text-danger" role="alert">
           {error}
         </p>
       )}

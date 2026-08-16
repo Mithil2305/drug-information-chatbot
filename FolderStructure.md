@@ -71,7 +71,7 @@ backend
 # 3. Root project folder structure
 
 ```text
-labelproof/
+MediMei/
 │
 ├── frontend/
 │   ├── public/
@@ -127,7 +127,7 @@ labelproof/
 # Folder structure with filename
 
 ```text
-labelproof/
+MediMei/
 │
 ├── frontend/
 │   ├── public/
