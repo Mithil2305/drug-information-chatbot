@@ -1,6 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useState, useEffect, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { createContext, useState, useEffect, useRef, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import type { ChatMessage, Citation } from '../types/chat'
 import { useConversations } from '../hooks/useConversations'
@@ -43,6 +42,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false)
   const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null)
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null)
+  const sendingRef = useRef(false)
 
   const { activeConversationId, setConversations, setActiveConversationId } = useConversations()
 
@@ -58,7 +58,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   // Load messages when a conversation is selected
   useEffect(() => {
     if (!activeConversationId) return
-    if (isLoading) return
+    if (isLoading || sendingRef.current) return
     const load = async () => {
       try {
         const session = await getSession(activeConversationId)
@@ -77,10 +77,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     load()
   }, [activeConversationId])
 
-  const navigate = useNavigate()
-
   const sendMessage = async (content: string, documentIds?: string[]) => {
     if (!content.trim() || isLoading) return
+    sendingRef.current = true
 
     const userMessage: ChatMessage = {
       id: makeId(),
@@ -99,7 +98,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         sessionId = String(session.session_id)
         setConversations((prev) => [toConversationSummary(session), ...prev])
         setActiveConversationId(sessionId)
-        navigate(`/chat/${sessionId}`, { replace: true })
+        window.history.replaceState(null, '', `/chat/${sessionId}`)
       } catch (err: any) {
         toast.error(err.message || 'Failed to start chat session')
         setIsLoading(false)
@@ -131,6 +130,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       toast.error(err.message || 'Failed to send message')
     } finally {
       setIsLoading(false)
+      sendingRef.current = false
     }
   }
 
