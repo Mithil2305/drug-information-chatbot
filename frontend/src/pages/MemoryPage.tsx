@@ -8,7 +8,8 @@ import {
   Loader2,
   Trash,
   Check,
-  AlertTriangle
+  AlertTriangle,
+  FileText
 } from 'lucide-react'
 import { ChatLayout } from '../components/layout/ChatLayout'
 import { useAuth } from '../contexts/AuthContext'
@@ -21,6 +22,44 @@ import {
 } from '../api/memories'
 import type { UserMemory } from '../api/memories'
 import { toast } from 'sonner'
+
+interface ParsedQA {
+  isQA: true
+  question: string
+  answer: string
+  citations: any[]
+}
+
+interface ParsedPlain {
+  isQA: false
+  content: string
+}
+
+type ParsedMemory = ParsedQA | ParsedPlain
+
+function parseMemoryContent(content: string): ParsedMemory {
+  if (content.startsWith("Q: ") && content.includes(" | A: ")) {
+    const qIndex = 3
+    const aIndex = content.indexOf(" | A: ")
+    const question = content.substring(qIndex, aIndex).trim()
+    const rest = content.substring(aIndex + 6).trim()
+
+    const cIndex = rest.indexOf(" | Citations: ")
+    if (cIndex !== -1) {
+      const answer = rest.substring(0, cIndex).trim()
+      const citationsJson = rest.substring(cIndex + 14).trim()
+      try {
+        const citations = JSON.parse(citationsJson)
+        return { isQA: true, question, answer, citations }
+      } catch {
+        return { isQA: true, question, answer, citations: [] }
+      }
+    } else {
+      return { isQA: true, question, answer: rest, citations: [] }
+    }
+  }
+  return { isQA: false, content }
+}
 
 export default function MemoryPage() {
   const { user, updateUser } = useAuth()
@@ -302,29 +341,81 @@ export default function MemoryPage() {
                     </p>
                   </div>
                 ) : (
-                  filteredMemories.map((m) => (
-                    <div
-                      key={m.memory_id}
-                      className="group flex items-start justify-between gap-4 rounded-2xl border border-border bg-surface p-3.5 hover:shadow-subtle transition-all duration-200 animate-fade-in-up"
-                    >
-                      <div className="flex items-start gap-2.5 min-w-0">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-xl bg-primary/5 text-primary shrink-0 mt-0.5">
-                          <Check className="h-3 w-3" />
-                        </div>
-                        <p className="text-xs leading-relaxed text-fg break-words font-medium">
-                          {m.content}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteMemory(m.memory_id)}
-                        type="button"
-                        className="opacity-0 group-hover:opacity-100 flex h-7 w-7 items-center justify-center rounded-lg text-fg-muted hover:bg-danger/10 hover:text-danger transition-all duration-200 focus:opacity-100"
-                        aria-label="Delete preference"
+                  filteredMemories.map((m) => {
+                    const parsed = parseMemoryContent(m.content)
+
+                    return (
+                      <div
+                        key={m.memory_id}
+                        className="group flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 hover:shadow-subtle hover:border-primary/20 transition-all duration-200 animate-fade-in-up"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ))
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            {parsed.isQA ? (
+                              <div className="space-y-2.5">
+                                {/* Question */}
+                                <div className="flex items-start gap-2">
+                                  <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-primary/10 text-[10px] font-bold text-primary shrink-0 mt-0.5">
+                                    Q
+                                  </span>
+                                  <h4 className="text-xs font-bold text-fg leading-relaxed break-words">
+                                    {parsed.question}
+                                  </h4>
+                                </div>
+                                
+                                {/* Answer */}
+                                <div className="flex items-start gap-2 pl-7 border-l-2 border-border/60">
+                                  <p className="text-xs leading-relaxed text-fg-muted break-words whitespace-pre-wrap">
+                                    {parsed.answer}
+                                  </p>
+                                </div>
+
+                                {/* Citations */}
+                                {parsed.citations && parsed.citations.length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5 pt-1 pl-7">
+                                    {parsed.citations.map((c: any, cIdx: number) => (
+                                      <span 
+                                        key={cIdx} 
+                                        title={c.text || ''}
+                                        className="inline-flex items-center gap-1.5 rounded bg-surface-highlight px-2 py-0.5 text-[10px] font-medium text-fg-muted border border-border/80"
+                                      >
+                                        <FileText className="h-3 w-3 text-accent shrink-0" />
+                                        <span className="truncate max-w-[150px]">
+                                          {c.document_name || 'Document'}
+                                        </span>
+                                        <span className="opacity-60 text-[9px]">
+                                          (p. {c.page_no ?? c.page ?? 1})
+                                        </span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex items-start gap-2.5">
+                                <div className="flex h-5 w-5 items-center justify-center rounded-lg bg-primary/5 text-primary shrink-0 mt-0.5">
+                                  <Check className="h-3 w-3" />
+                                </div>
+                                <p className="text-xs leading-relaxed text-fg break-words font-medium">
+                                  {(parsed as ParsedPlain).content}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Delete Button */}
+                          <button
+                            onClick={() => handleDeleteMemory(m.memory_id)}
+                            type="button"
+                            className="opacity-0 group-hover:opacity-100 flex h-7 w-7 items-center justify-center rounded-lg text-fg-muted hover:bg-danger/10 hover:text-danger transition-all duration-200 focus:opacity-100 shrink-0 self-start"
+                            aria-label="Delete preference"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })
                 )}
               </div>
             </div>
