@@ -502,15 +502,12 @@ async def get_chat_session(
                 citations=[
                     Citation(
                         citation_id=cit.citation_id,
-Citation(
                         document_id=cit.document_id,
                         document_name=cit.document_name or "Unknown Document",
                         page=cit.page_no,
                         section=cit.section,
                         chunk_id=cit.chunk_id,
-
                         text=cit.text,
-
                         score=cit.score,
                     )
                     for cit in msg.citations
@@ -559,15 +556,12 @@ async def get_session_messages(
             citations=[
                 Citation(
                     citation_id=cit.citation_id,
-Citation(
                     document_id=cit.document_id,
                     document_name=cit.document_name or "Unknown Document",
                     page=cit.page_no,
                     section=cit.section,
                     chunk_id=cit.chunk_id,
-
                     text=cit.text,
-
                     score=cit.score,
                 )
                 for cit in msg.citations
@@ -623,15 +617,12 @@ async def update_chat_session(
                 citations=[
                     Citation(
                         citation_id=cit.citation_id,
-Citation(
                         document_id=cit.document_id,
                         document_name=cit.document_name or "Unknown Document",
                         page=cit.page_no,
                         section=cit.section,
                         chunk_id=cit.chunk_id,
-
                         text=cit.text,
-
                         score=cit.score,
                     )
                     for cit in msg.citations
