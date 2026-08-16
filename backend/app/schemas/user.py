@@ -19,7 +19,6 @@ class UserOut(BaseModel):
 
     class Config:
         from_attributes = True
-        orm_mode = True  # Fallback support for older Pydantic versions
 
 class Token(BaseModel):
     access_token: str

@@ -48,6 +48,17 @@ async def lifespan(app: FastAPI):
                 if result_usd.fetchone() is None:
                     await conn.execute(text("ALTER TABLE messages ADD COLUMN memories_used TEXT NULL"))
                     logger.info("Database: Added memories_used column to messages table.")
+
+                # Check for text and score columns on citations table
+                result_cit_text = await conn.execute(text("SHOW COLUMNS FROM citations LIKE 'text'"))
+                if result_cit_text.fetchone() is None:
+                    await conn.execute(text("ALTER TABLE citations ADD COLUMN text TEXT NULL"))
+                    logger.info("Database: Added text column to citations table.")
+
+                result_cit_score = await conn.execute(text("SHOW COLUMNS FROM citations LIKE 'score'"))
+                if result_cit_score.fetchone() is None:
+                    await conn.execute(text("ALTER TABLE citations ADD COLUMN score FLOAT NULL"))
+                    logger.info("Database: Added score column to citations table.")
             except Exception as ex:
                 logger.warning(f"Database dynamic migration warning: {ex}")
     yield
@@ -67,7 +78,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Set CORS origins (explicit origins required for credentialed requests)
+# Set CORS origins (explicit origins and regex required for credentialed requests)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -77,7 +88,10 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5174",
         "http://127.0.0.1:5175",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
     ],
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:[0-9]+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

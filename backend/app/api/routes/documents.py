@@ -445,7 +445,7 @@ async def list_documents(
 
     from sqlalchemy import func
     page_counts_result = await db.execute(
-        select(DocumentPage.document_id, func.count(DocumentPage.document_page_id))
+        select(DocumentPage.document_id, func.count(DocumentPage.page_no))
         .group_by(DocumentPage.document_id)
     )
     page_counts = {doc_id: count for doc_id, count in page_counts_result.all()}
@@ -491,7 +491,7 @@ async def get_document(
 
     from sqlalchemy import func
     page_count_result = await db.execute(
-        select(func.count(DocumentPage.document_page_id))
+        select(func.count(DocumentPage.page_no))
         .where(DocumentPage.document_id == document_id)
     )
     doc.page_count = page_count_result.scalar() or 0
@@ -657,7 +657,7 @@ async def update_document(
 
     from sqlalchemy import func
     page_count_result = await db.execute(
-        select(func.count(DocumentPage.document_page_id))
+        select(func.count(DocumentPage.page_no))
         .where(DocumentPage.document_id == document_id)
     )
     doc.page_count = page_count_result.scalar() or 0
