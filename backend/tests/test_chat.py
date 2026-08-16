@@ -234,3 +234,61 @@ def test_get_session_messages_success(client, mock_db):
     data = response.json()
     assert len(data) == 1
     assert data[0]["content"] == "Hello"
+
+
+def test_post_chat_message_memory_match_exact(client, mock_db):
+    session = ChatSession(session_id=1, user_id=10, started_at=datetime.utcnow(), summary="")
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = session
+    mock_db.execute.return_value = mock_result
+
+    payload = {
+        "session_id": "1",
+        "message": "What is the dosage of drug A?",
+        "document_ids": []
+    }
+
+    with patch("app.api.routes.chat.memory_service.get_memories_as_string") as mock_get_memories:
+        mock_get_memories.return_value = "- Q: What is the dosage of drug A? | A: The dosage is 5mg once daily."
+
+        response = client.post("/api/v1/chat", json=payload)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["answer"] == "The dosage is 5mg once daily."
+        assert data["grounded"] is True
+        assert data["memories_used"] == ["Q: What is the dosage of drug A? | A: The dosage is 5mg once daily."]
+
+
+def test_post_chat_message_memory_match_semantic(client, mock_db, mock_embeddings):
+    session = ChatSession(session_id=1, user_id=10, started_at=datetime.utcnow(), summary="")
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = session
+    mock_db.execute.return_value = mock_result
+
+    payload = {
+        "session_id": "1",
+        "message": "what is the dose of drug A?",
+        "document_ids": []
+    }
+
+    # Mock embeddings.encode:
+    # first call is for the user's query: returns [1.0, 0.0]
+    # second call is for the stored questions in B: returns [[0.99, 0.05]]
+    mock_embeddings.encode.side_effect = [
+        [1.0, 0.0],
+        [[0.99, 0.05]]
+    ]
+
+    with patch("app.api.routes.chat.memory_service.get_memories_as_string") as mock_get_memories:
+        mock_get_memories.return_value = "- Q: What is the dosage of drug A? | A: The dosage is 5mg once daily."
+
+        response = client.post("/api/v1/chat", json=payload)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["answer"] == "The dosage is 5mg once daily."
+        assert data["grounded"] is True
+        assert data["memories_used"] == ["Q: What is the dosage of drug A? | A: The dosage is 5mg once daily."]

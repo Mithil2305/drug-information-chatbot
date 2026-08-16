@@ -147,3 +147,49 @@ def test_toggle_memory_endpoint(client, mock_db):
     data = response.json()
     assert data["memory_enabled"] is False
     mock_db.commit.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_memory_service_save_qa_to_memory(mock_db):
+    service = MemoryService()
+
+    # Mock DB execute result (empty at first)
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = []
+    mock_db.execute = AsyncMock(return_value=mock_result)
+
+    await service.save_qa_to_memory(
+        user_id="test-user",
+        question="What is the dosage of drug A?",
+        answer="The dose is 5mg daily.",
+        db=mock_db
+    )
+
+    # Should call db.add with a new UserMemory
+    assert mock_db.add.call_count == 1
+    added_mem = mock_db.add.call_args[0][0]
+    assert isinstance(added_mem, UserMemory)
+    assert added_mem.content == "Q: What is the dosage of drug A? | A: The dose is 5mg daily."
+    mock_db.commit.assert_called_once()
+
+    # Reset mock and test updating existing
+    mock_db.add.reset_mock()
+    mock_db.commit.reset_mock()
+
+    existing_mem = UserMemory(
+        user_id="test-user",
+        content="Q: What is the dosage of drug A? | A: Old dose 10mg."
+    )
+    mock_result.scalars.return_value.all.return_value = [existing_mem]
+
+    await service.save_qa_to_memory(
+        user_id="test-user",
+        question="What is the dosage of drug A?",
+        answer="The dose is 5mg daily.",
+        db=mock_db
+    )
+
+    # Should update existing instead of calling db.add
+    assert mock_db.add.call_count == 0
+    assert existing_mem.content == "Q: What is the dosage of drug A? | A: The dose is 5mg daily."
+    mock_db.commit.assert_called_once()

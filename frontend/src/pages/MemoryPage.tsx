@@ -120,43 +120,43 @@ export default function MemoryPage() {
         <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
           
           {/* Header Dashboard Banner */}
-          <section className="relative overflow-hidden rounded-3xl border border-border bg-surface p-6 shadow-card">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(15,119,114,0.08),transparent_40%)]" />
-            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="space-y-2 max-w-xl">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent">
-                  <Brain className="h-4 w-4" />
-                  Personalization Engine
+          <section className="relative overflow-hidden rounded-2xl border border-border bg-surface p-5 shadow-card">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(15,119,114,0.06),transparent_40%)]" />
+            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1 max-w-lg">
+                <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-accent">
+                  <Brain className="h-3.5 w-3.5" />
+                  Memory Manager
                 </div>
-                <h1 className="text-2xl font-bold tracking-tight text-primary">
-                  AI Memory Manager
+                <h1 className="text-xl font-bold tracking-tight text-primary">
+                  Customize your experience
                 </h1>
-                <p className="text-sm leading-relaxed text-fg-secondary">
-                  MediMei learns from your preferences, instructions, and professional context dynamically. Stored facts are injected into subsequent queries to provide custom, grounded answers.
+                <p className="text-xs leading-relaxed text-fg-secondary">
+                  Teach MediMei your role, preferred tone, or formatting style. Stored preferences are automatically applied to your future chat answers.
                 </p>
               </div>
 
               {/* High-End Feature Toggle Switch */}
-              <div className="flex items-center gap-3 shrink-0 self-start md:self-center bg-surface-highlight/40 rounded-2xl p-3 border border-border/60">
+              <div className="flex items-center gap-3 shrink-0 bg-surface-highlight/40 rounded-xl p-2.5 border border-border/60">
                 <div className="text-right">
                   <span className="block text-xs font-bold text-fg">AI Memory</span>
                   <span className="text-[10px] text-fg-muted block">
-                    {memoryEnabled ? 'Enabled & Active' : 'Paused'}
+                    {memoryEnabled ? 'Enabled' : 'Paused'}
                   </span>
                 </div>
                 <button
                   onClick={handleToggleMemory}
                   disabled={toggling}
                   type="button"
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                     memoryEnabled ? 'bg-primary' : 'bg-border'
                   }`}
                   role="switch"
                   aria-checked={memoryEnabled}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      memoryEnabled ? 'translate-x-5' : 'translate-x-0'
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      memoryEnabled ? 'translate-x-4' : 'translate-x-0'
                     }`}
                   />
                 </button>
@@ -331,12 +331,12 @@ export default function MemoryPage() {
           </div>
 
           {/* Grounding and Safety Context Explanation banner */}
-          <section className="rounded-2xl border border-border/80 bg-surface-highlight/20 p-4 flex gap-3 text-xs leading-relaxed text-fg-muted">
-            <Info className="h-4.5 w-4.5 text-primary shrink-0 mt-0.5" />
+          <section className="rounded-xl border border-border bg-surface-highlight/10 p-3.5 flex gap-2.5 text-xs text-fg-muted">
+            <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-fg mb-0.5">Clinical Accuracy Guardrails</p>
+              <p className="font-semibold text-fg mb-0.5">Clinical Safety Guardrail</p>
               <p>
-                To maintain clinical safety, user preferences are treated strictly as guidance parameters (e.g. style, roles, formatting). Stored memories are strictly prevented from overriding clinical facts, dosages, frequencies, or warnings retrieved from original medical documents.
+                Preferences guide format and style only. They will never override verified clinical facts, dosages, or warnings from the original medical documents.
               </p>
             </div>
           </section>

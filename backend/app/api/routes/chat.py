@@ -131,7 +131,7 @@ async def post_chat_message(
         )
 
     # ---------------------------------------------------------
-    # 1.5. Fetch Memories (if enabled)
+    # 1.5. Fetch Memories (if enabled) & Check for Match
     # ---------------------------------------------------------
     memories_str = ""
     memories_used = []
@@ -139,6 +139,94 @@ async def post_chat_message(
         memories_str = await memory_service.get_memories_as_string(current_user.user_id, db)
         if memories_str:
             memories_used = [line[2:].strip() for line in memories_str.split("\n") if line.startswith("- ")]
+
+        # Check if user message has a stored memory match (Q&A memory)
+        matched_answer = None
+        matched_memory_content = None
+
+        # A. Case-insensitive exact match
+        query_clean = request.message.strip().lower()
+        for m_content in memories_used:
+            if m_content.startswith("Q: ") and " | A: " in m_content:
+                parts = m_content.split(" | A: ", 1)
+                stored_q = parts[0][3:].strip()
+                stored_a = parts[1].strip()
+                if stored_q.lower() == query_clean:
+                    matched_answer = stored_a
+                    matched_memory_content = m_content
+                    break
+
+        # B. Semantic match (cosine similarity using embedding model)
+        if not matched_answer and memories_used:
+            stored_pairs = []
+            for m_content in memories_used:
+                if m_content.startswith("Q: ") and " | A: " in m_content:
+                    parts = m_content.split(" | A: ", 1)
+                    stored_pairs.append((parts[0][3:].strip(), parts[1].strip(), m_content))
+
+            if stored_pairs:
+                try:
+                    import numpy as np
+                    # Encode current query
+                    raw_vec = embedding_model.encode(request.message)
+                    query_vector = np.array(raw_vec.tolist() if hasattr(raw_vec, "tolist") else list(raw_vec))
+
+                    # Encode all stored queries
+                    stored_qs = [pair[0] for pair in stored_pairs]
+                    stored_vecs = embedding_model.encode(stored_qs)
+
+                    best_score = -1.0
+                    best_index = -1
+
+                    for idx, raw_stored_vec in enumerate(stored_vecs):
+                        stored_vector = np.array(raw_stored_vec.tolist() if hasattr(raw_stored_vec, "tolist") else list(raw_stored_vec))
+
+                        # Cosine similarity
+                        dot_product = np.dot(query_vector, stored_vector)
+                        norm_q = np.linalg.norm(query_vector)
+                        norm_s = np.linalg.norm(stored_vector)
+                        if norm_q > 0 and norm_s > 0:
+                            score = float(dot_product / (norm_q * norm_s))
+                            if score > best_score:
+                                best_score = score
+                                best_index = idx
+
+                    # Threshold: 0.88
+                    if best_index != -1 and best_score >= 0.88:
+                        matched_answer = stored_pairs[best_index][1]
+                        matched_memory_content = stored_pairs[best_index][2]
+                        logger.info(f"Semantic memory match found (score: {best_score:.4f}) for question: '{request.message}'")
+                except Exception as ex:
+                    logger.warning(f"Failed semantic memory matching: {ex}")
+
+        # If a match was found, return immediately
+        if matched_answer is not None:
+            user_msg = ChatMessage(
+                session_id=session_id,
+                role="user",
+                content=request.message
+            )
+            assistant_msg = ChatMessage(
+                session_id=session_id,
+                role="assistant",
+                content=matched_answer,
+                memories_used=json.dumps([matched_memory_content])
+            )
+            db.add(user_msg)
+            db.add(assistant_msg)
+            await db.commit()
+            await db.refresh(assistant_msg)
+
+            return ChatResponse(
+                message_id=str(assistant_msg.message_id),
+                session_id=str(session_id),
+                answer=matched_answer,
+                grounded=True,
+                evidence_count=0,
+                citations=[],
+                memories_used=[matched_memory_content],
+                memories_updated=None
+            )
 
     # ---------------------------------------------------------
     # 2. Retrieve evidence from Qdrant
@@ -288,6 +376,16 @@ async def post_chat_message(
             assistant_message=answer_text,
             db=db
         )
+        # Also store the exact Q&A turn into memory
+        await memory_service.save_qa_to_memory(
+            user_id=current_user.user_id,
+            question=request.message,
+            answer=answer_text,
+            db=db
+        )
+        # Add the stored Q&A to the list of memories updated for the UI notification
+        qa_memory_str = f"Q: {request.message.strip()} | A: {answer_text.strip()}"
+        memories_updated.append(qa_memory_str)
 
     # ---------------------------------------------------------
     # 6. Build citations
