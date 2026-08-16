@@ -169,7 +169,7 @@ async def test_memory_service_save_qa_to_memory(mock_db):
     assert mock_db.add.call_count == 1
     added_mem = mock_db.add.call_args[0][0]
     assert isinstance(added_mem, UserMemory)
-    assert added_mem.content == "Q: What is the dosage of drug A? | A: The dose is 5mg daily."
+    assert added_mem.content == 'Q: What is the dosage of drug A? | A: The dose is 5mg daily. | Citations: []'
     mock_db.commit.assert_called_once()
 
     # Reset mock and test updating existing
@@ -178,7 +178,7 @@ async def test_memory_service_save_qa_to_memory(mock_db):
 
     existing_mem = UserMemory(
         user_id="test-user",
-        content="Q: What is the dosage of drug A? | A: Old dose 10mg."
+        content="Q: What is the dosage of drug A? | A: Old dose 10mg. | Citations: []"
     )
     mock_result.scalars.return_value.all.return_value = [existing_mem]
 
@@ -191,5 +191,36 @@ async def test_memory_service_save_qa_to_memory(mock_db):
 
     # Should update existing instead of calling db.add
     assert mock_db.add.call_count == 0
-    assert existing_mem.content == "Q: What is the dosage of drug A? | A: The dose is 5mg daily."
+    assert existing_mem.content == 'Q: What is the dosage of drug A? | A: The dose is 5mg daily. | Citations: []'
+    mock_db.commit.assert_called_once()
+
+    # Test with actual citations
+    mock_db.add.reset_mock()
+    mock_db.commit.reset_mock()
+    mock_result.scalars.return_value.all.return_value = []
+
+    citations = [
+        {
+            "document_id": "doc123",
+            "document_name": "Rinvoq.pdf",
+            "page": 12,
+            "section": "Dosage",
+            "text": "Dosage info text",
+            "score": 0.95
+        }
+    ]
+
+    await service.save_qa_to_memory(
+        user_id="test-user",
+        question="What is the dosage of drug A?",
+        answer="The dose is 5mg daily.",
+        db=mock_db,
+        citations=citations
+    )
+
+    assert mock_db.add.call_count == 1
+    added_mem = mock_db.add.call_args[0][0]
+    assert "Citations:" in added_mem.content
+    assert "Rinvoq.pdf" in added_mem.content
+    assert "doc123" in added_mem.content
     mock_db.commit.assert_called_once()

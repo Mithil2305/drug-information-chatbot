@@ -292,3 +292,38 @@ def test_post_chat_message_memory_match_semantic(client, mock_db, mock_embedding
         assert data["answer"] == "The dosage is 5mg once daily."
         assert data["grounded"] is True
         assert data["memories_used"] == ["Q: What is the dosage of drug A? | A: The dosage is 5mg once daily."]
+
+
+def test_post_chat_message_memory_match_with_citations(client, mock_db):
+    session = ChatSession(session_id=1, user_id=10, started_at=datetime.utcnow(), summary="")
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = session
+    mock_result.scalars.return_value.all.return_value = ["doc123"]
+    mock_db.execute.return_value = mock_result
+
+    payload = {
+        "session_id": "1",
+        "message": "What is the dosage of drug A?",
+        "document_ids": []
+    }
+
+    citations_json = '[{"document_id": "doc123", "document_name": "Rinvoq.pdf", "page_no": 12, "chunk_id": "chunk_abc", "text": "dosage text", "score": 0.95, "section": "Dosage"}]'
+    stored_memory = f"Q: What is the dosage of drug A? | A: The dosage is 5mg once daily. | Citations: {citations_json}"
+
+    with patch("app.api.routes.chat.memory_service.get_memories_as_string") as mock_get_memories:
+        mock_get_memories.return_value = f"- {stored_memory}"
+
+        response = client.post("/api/v1/chat", json=payload)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["answer"] == "The dosage is 5mg once daily."
+        assert data["grounded"] is True
+        assert data["memories_used"] == [stored_memory]
+
+        # Verify citations are returned in the response
+        assert len(data["citations"]) == 1
+        assert data["citations"][0]["document_name"] == "Rinvoq.pdf"
+        assert data["citations"][0]["page"] == 12
+        assert data["citations"][0]["text"] == "dosage text"

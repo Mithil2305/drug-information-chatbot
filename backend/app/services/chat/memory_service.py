@@ -1,5 +1,6 @@
 import logging
-from typing import List, Any
+import json
+from typing import List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.models.memory import UserMemory
@@ -121,16 +122,52 @@ class MemoryService:
         user_id: str,
         question: str,
         answer: str,
-        db: AsyncSession
+        db: AsyncSession,
+        citations: List[Dict[str, Any]] = None
     ):
         """
-        Saves a conversation turn (question and answer) directly into the user's memories.
+        Saves a conversation turn (question and answer) directly into the user's memories,
+        including sources and citations.
         Ensures no duplicate entries for the same question.
         """
         if not question or not answer:
             return
 
         normalized_q = question.strip().lower()
+
+        # Build clean citation list
+        cit_list = []
+        if citations:
+            for cit in citations:
+                # cit can be Citation model or dictionary
+                if hasattr(cit, "dict") or hasattr(cit, "model_dump"):
+                    c_dict = cit.model_dump() if hasattr(cit, "model_dump") else cit.dict()
+                elif isinstance(cit, dict):
+                    c_dict = cit
+                else:
+                    # SQLAlchemy/Pydantic class fallback
+                    c_dict = {
+                        "document_id": getattr(cit, "document_id", ""),
+                        "document_name": getattr(cit, "document_name", "Unknown Document"),
+                        "page_no": getattr(cit, "page_no", getattr(cit, "page", 1)),
+                        "chunk_id": getattr(cit, "chunk_id", ""),
+                        "text": getattr(cit, "text", ""),
+                        "score": getattr(cit, "score", None),
+                        "section": getattr(cit, "section", "")
+                    }
+                
+                cit_list.append({
+                    "document_id": c_dict.get("document_id") or "",
+                    "document_name": c_dict.get("document_name") or "Unknown Document",
+                    "page_no": c_dict.get("page_no") or c_dict.get("page") or 1,
+                    "chunk_id": c_dict.get("chunk_id") or "",
+                    "text": c_dict.get("text") or "",
+                    "score": c_dict.get("score"),
+                    "section": c_dict.get("section")
+                })
+
+        citations_json = json.dumps(cit_list)
+        memory_content = f"Q: {question.strip()} | A: {answer.strip()} | Citations: {citations_json}"
 
         # Parse existing memories to find if we already have this question
         result = await db.execute(
@@ -144,15 +181,15 @@ class MemoryService:
                 parts = m.content.split(" | A: ", 1)
                 stored_q = parts[0][3:].strip().lower()
                 if stored_q == normalized_q:
-                    # Update existing memory with the new answer
-                    m.content = f"Q: {question.strip()} | A: {answer.strip()}"
+                    # Update existing memory with the new answer and citations
+                    m.content = memory_content
                     await db.commit()
                     return
 
         # If not found, add a new one
         new_memory = UserMemory(
             user_id=user_id,
-            content=f"Q: {question.strip()} | A: {answer.strip()}"
+            content=memory_content
         )
         db.add(new_memory)
         await db.commit()

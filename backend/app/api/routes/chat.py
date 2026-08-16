@@ -157,6 +157,7 @@ async def post_chat_message(
     # ---------------------------------------------------------
     memories_str = ""
     memories_used = []
+    matched_citations = []
     if current_user.memory_enabled:
         memories_str = await memory_service.get_memories_as_string(current_user.user_id, db)
         if memories_str:
@@ -172,10 +173,24 @@ async def post_chat_message(
             if m_content.startswith("Q: ") and " | A: " in m_content:
                 parts = m_content.split(" | A: ", 1)
                 stored_q = parts[0][3:].strip()
-                stored_a = parts[1].strip()
+                rest = parts[1].strip()
+                
+                # Split off Citations if present
+                stored_a = rest
+                citations_json = None
+                if " | Citations: " in rest:
+                    a_parts = rest.split(" | Citations: ", 1)
+                    stored_a = a_parts[0].strip()
+                    citations_json = a_parts[1].strip()
+
                 if stored_q.lower() == query_clean:
                     matched_answer = stored_a
                     matched_memory_content = m_content
+                    if citations_json:
+                        try:
+                            matched_citations = json.loads(citations_json)
+                        except Exception:
+                            matched_citations = []
                     break
 
         # B. Semantic match (cosine similarity using embedding model)
@@ -184,7 +199,17 @@ async def post_chat_message(
             for m_content in memories_used:
                 if m_content.startswith("Q: ") and " | A: " in m_content:
                     parts = m_content.split(" | A: ", 1)
-                    stored_pairs.append((parts[0][3:].strip(), parts[1].strip(), m_content))
+                    stored_q = parts[0][3:].strip()
+                    rest = parts[1].strip()
+                    
+                    stored_a = rest
+                    citations_json = None
+                    if " | Citations: " in rest:
+                        a_parts = rest.split(" | Citations: ", 1)
+                        stored_a = a_parts[0].strip()
+                        citations_json = a_parts[1].strip()
+                        
+                    stored_pairs.append((stored_q, stored_a, m_content, citations_json))
 
             if stored_pairs:
                 try:
@@ -217,6 +242,12 @@ async def post_chat_message(
                     if best_index != -1 and best_score >= 0.88:
                         matched_answer = stored_pairs[best_index][1]
                         matched_memory_content = stored_pairs[best_index][2]
+                        citations_json = stored_pairs[best_index][3]
+                        if citations_json:
+                            try:
+                                matched_citations = json.loads(citations_json)
+                            except Exception:
+                                matched_citations = []
                         logger.info(f"Semantic memory match found (score: {best_score:.4f}) for question: '{request.message}'")
                 except Exception as ex:
                     logger.warning(f"Failed semantic memory matching: {ex}")
@@ -236,16 +267,61 @@ async def post_chat_message(
             )
             db.add(user_msg)
             db.add(assistant_msg)
+            await db.flush()
+
+            # Save parsed citations to database
+            if matched_citations:
+                doc_ids_to_check = {cit.get("document_id") for cit in matched_citations if cit.get("document_id")}
+                valid_doc_ids = set()
+                if doc_ids_to_check:
+                    doc_stmt = select(Document.document_id).where(Document.document_id.in_(doc_ids_to_check))
+                    doc_res = await db.execute(doc_stmt)
+                    valid_doc_ids = set(doc_res.scalars().all())
+                
+                for idx, cit in enumerate(matched_citations):
+                    doc_id = cit.get("document_id")
+                    if not doc_id or doc_id not in valid_doc_ids:
+                        continue
+                    
+                    unique_cit_id = f"{assistant_msg.message_id}_{cit.get('chunk_id') or idx}_{idx}"
+                    db.add(
+                        CitationModel(
+                            citation_id=unique_cit_id,
+                            message_id=assistant_msg.message_id,
+                            document_id=doc_id,
+                            document_name=cit.get("document_name") or "Unknown Document",
+                            page_no=cit.get("page_no") or cit.get("page") or 1,
+                            chunk_id=str(cit.get("chunk_id") or ""),
+                            text=cit.get("text") or "",
+                            score=cit.get("score"),
+                            section=cit.get("section")
+                        )
+                    )
+
             await db.commit()
             await db.refresh(assistant_msg)
+
+            # Map to response schema
+            response_citations = [
+                Citation(
+                    chunk_id=c.get("chunk_id") or "",
+                    document_id=c.get("document_id") or "",
+                    document_name=c.get("document_name") or "Unknown Document",
+                    page=c.get("page_no") or c.get("page") or 1,
+                    section=c.get("section"),
+                    text=c.get("text"),
+                    score=c.get("score")
+                )
+                for c in matched_citations
+            ]
 
             return ChatResponse(
                 message_id=str(assistant_msg.message_id),
                 session_id=str(session_id),
                 answer=matched_answer,
                 grounded=True,
-                evidence_count=0,
-                citations=[],
+                evidence_count=len(response_citations),
+                citations=response_citations,
                 memories_used=[matched_memory_content],
                 memories_updated=None
             )
@@ -400,11 +476,12 @@ async def post_chat_message(
             assistant_message=answer_text,
             db=db
         )
-        # Also store the exact Q&A turn into memory
+        # Also store the exact Q&A turn into memory along with citations
         await memory_service.save_qa_to_memory(
             user_id=current_user.user_id,
             question=request.message,
             answer=answer_text,
+            citations=rag_result.get("citations") or [],
             db=db
         )
         # Add the stored Q&A to the list of memories updated for the UI notification
