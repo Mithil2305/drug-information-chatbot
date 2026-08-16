@@ -14,6 +14,7 @@ from app.schemas.evidence import Citation
 from app.services.chat.rag_service import RAGService
 from app.dependencies.embeddings import get_embedding_model
 from app.dependencies.qdrant import get_qdrant_client
+from app.repositories.qdrant_repository import qdrant_repository
 
 rag_service = RAGService()
 from app.dependencies.auth import get_current_user
@@ -131,24 +132,13 @@ async def post_chat_message(
 
     try:
 
-        query_vector = embedding_model.encode(request.message)
+        query_vector = embedding_model.encode(request.message).tolist()
 
-        from qdrant_client.http import models as qmodels
-
-        search_result = await qdrant_client.search(
-            collection_name=settings.QDRANT_COLLECTION,
+        search_result = await qdrant_repository.search(
             query_vector=query_vector,
             limit=settings.TOP_K,
-            query_filter=qmodels.Filter(
-                must=[
-                    qmodels.FieldCondition(
-                        key="document_id",
-                        match=qmodels.MatchAny(
-                            any=request.document_ids
-                        )
-                    )
-                ]
-            )
+            document_ids=request.document_ids,
+            score_threshold=settings.MIN_RELEVANCE_SCORE,
         )
 
         for point in search_result:

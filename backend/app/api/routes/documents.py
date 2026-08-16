@@ -185,7 +185,7 @@ async def simulate_processing_task(
                     document_id=document_id,
                     page_no=page["page_no"],
                     extraction_method=page["extraction_method"],
-                    quality_score=page["quality_score"],
+                    quality_score=page.get("quality_score", 1.0),
                     text_ref=page["text"]
                 )
 
