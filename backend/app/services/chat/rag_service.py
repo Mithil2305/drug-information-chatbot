@@ -42,6 +42,7 @@ class RAGService:
         section: Optional[str] = None,
         version: Optional[str] = None,
         score_threshold: Optional[float] = None,
+        memories: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Orchestrate retrieval, context preparation, prompting, generation,
@@ -73,7 +74,7 @@ class RAGService:
         evidence_context, citation_map = self.context_builder.build(results)
 
         # 3. Build a grounded, injection-resistant prompt.
-        prompt = self.prompt_builder.build(question, evidence_context)
+        prompt = self.prompt_builder.build(question, evidence_context, memories=memories)
 
         # 4. Generate an answer with Qwen.
         gen_start = time.perf_counter()
@@ -126,6 +127,7 @@ class RAGService:
         self,
         question: str,
         evidence: List[Dict[str, Any]],
+        memories: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Generate an answer from already-retrieved evidence.
@@ -137,7 +139,7 @@ class RAGService:
         start = time.perf_counter()
 
         evidence_context, citation_map = self.context_builder.build(evidence)
-        prompt = self.prompt_builder.build(question, evidence_context)
+        prompt = self.prompt_builder.build(question, evidence_context, memories=memories)
 
         gen_start = time.perf_counter()
         try:

@@ -7,7 +7,8 @@ from app.core.config import settings
 from app.db.database import Base, engine
 
 # Import all models so Base.metadata knows about every table
-from app.models import user, document, chat, chunk, citation, document_page
+from app.models import user, document, chat, chunk, citation, document_page, memory
+from sqlalchemy import text
 
 
 @asynccontextmanager
@@ -15,6 +16,28 @@ async def lifespan(app: FastAPI):
     if settings.ENVIRONMENT != "test":
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            
+            # Dynamic check/migration for memory_enabled column on users table
+            try:
+                result = await conn.execute(text("SHOW COLUMNS FROM users LIKE 'memory_enabled'"))
+                column_exists = result.fetchone() is not None
+                if not column_exists:
+                    await conn.execute(text("ALTER TABLE users ADD COLUMN memory_enabled BOOLEAN NOT NULL DEFAULT TRUE"))
+                    logger.info("Database: Added memory_enabled column to users table.")
+                
+                # Check for memories_updated column on messages table
+                result_up = await conn.execute(text("SHOW COLUMNS FROM messages LIKE 'memories_updated'"))
+                if result_up.fetchone() is None:
+                    await conn.execute(text("ALTER TABLE messages ADD COLUMN memories_updated TEXT NULL"))
+                    logger.info("Database: Added memories_updated column to messages table.")
+                
+                # Check for memories_used column on messages table
+                result_usd = await conn.execute(text("SHOW COLUMNS FROM messages LIKE 'memories_used'"))
+                if result_usd.fetchone() is None:
+                    await conn.execute(text("ALTER TABLE messages ADD COLUMN memories_used TEXT NULL"))
+                    logger.info("Database: Added memories_used column to messages table.")
+            except Exception as ex:
+                logger.warning(f"Database dynamic migration warning: {ex}")
     yield
 
 

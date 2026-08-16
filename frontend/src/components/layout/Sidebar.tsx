@@ -1,4 +1,4 @@
-import { FileText, Plus, GitCompareArrows } from 'lucide-react'
+import { FileText, Plus, GitCompareArrows, Brain } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useChat } from '../../hooks/useChat'
 import { useConversations } from '../../hooks/useConversations'
@@ -65,6 +65,16 @@ export function Sidebar({ onClose }: SidebarProps) {
           >
             <GitCompareArrows className="h-5 w-5" />
           </Link>
+
+          <Link
+            to="/memories"
+            onClick={onClose}
+            className={`flex h-9 w-9 items-center justify-center rounded-2xl transition-colors hover:bg-surface-highlight ${location.pathname === '/memories' ? 'bg-surface-highlight text-primary' : 'text-fg-muted hover:text-primary'}`}
+            aria-label="AI Memory"
+            title="AI Memory"
+          >
+            <Brain className="h-5 w-5" />
+          </Link>
         </div>
         <div className="mt-4 flex-1" />
         <ThemeToggle size="sm" />
@@ -108,6 +118,15 @@ export function Sidebar({ onClose }: SidebarProps) {
         >
           <GitCompareArrows className="h-4 w-4 shrink-0 text-accent" />
           <span>Compare Drugs</span>
+        </Link>
+
+        <Link
+          to="/memories"
+          onClick={onClose}
+          className={`flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors ${location.pathname === '/memories' ? 'bg-surface-highlight text-primary' : 'text-fg hover:bg-surface-highlight'}`}
+        >
+          <Brain className="h-4 w-4 shrink-0 text-accent" />
+          <span>AI Personalization</span>
         </Link>
       </div>
 

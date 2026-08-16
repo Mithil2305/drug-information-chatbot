@@ -17,6 +17,8 @@ class ChatResponse(BaseModel):
     grounded: bool
     evidence_count: int
     citations: List[Citation]
+    memories_updated: List[str] | None = None
+    memories_used: List[str] | None = None
 
 
 class MessageResponse(BaseModel):
@@ -26,6 +28,8 @@ class MessageResponse(BaseModel):
     content: str
     timestamp: datetime | None = None
     citations: List[Citation] = []
+    memories_updated: List[str] | None = None
+    memories_used: List[str] | None = None
 
 
 class SessionResponse(BaseModel):

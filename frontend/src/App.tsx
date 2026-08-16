@@ -13,6 +13,7 @@ import DocumentsPage from './pages/DocumentsPage'
 import ComparePage from './pages/ComparePage'
 import SignInPage from './pages/SignInPage'
 import SignUpPage from './pages/SignUpPage'
+import MemoryPage from './pages/MemoryPage'
 import { useTheme } from './hooks/useTheme'
 
 function ThemedToaster() {
@@ -100,6 +101,16 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <ComparePage />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    {/* Protected AI Memory personalization */}
+                    <Route
+                      path="/memories"
+                      element={
+                        <ProtectedRoute>
+                          <MemoryPage />
                         </ProtectedRoute>
                       }
                     />

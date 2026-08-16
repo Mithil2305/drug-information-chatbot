@@ -1,6 +1,6 @@
 import { useCallback, useState, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { Check, Copy, FileText, Sparkles, AlertCircle, Volume2, Square } from 'lucide-react'
+import { Check, Copy, FileText, Sparkles, AlertCircle, Volume2, Square, Brain } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useChat } from '../../hooks/useChat'
 import type { ChatMessage as ChatMessageType } from '../../types/chat'
@@ -157,6 +157,38 @@ function AssistantMessage({ message, isLast }: { message: ChatMessageType; isLas
             <StreamingText content={message.content} onComplete={onComplete} />
           )}
         </div>
+
+        {/* Memory Updates/Uses notifications */}
+        {!isStreaming && ((message.memoriesUsed && message.memoriesUsed.length > 0) || (message.memoriesUpdated && message.memoriesUpdated.length > 0)) && (
+          <div className="mt-3.5 space-y-2 border-t border-border/40 pt-3">
+            {message.memoriesUsed && message.memoriesUsed.length > 0 && (
+              <div className="flex items-start gap-2 text-xs text-primary bg-primary/5 rounded-xl px-3 py-2 border border-primary/10">
+                <Brain className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold text-[10px] uppercase tracking-wider block text-primary/80 mb-0.5">Used Profile Info</span>
+                  <ul className="list-disc pl-4 space-y-0.5 text-fg-muted">
+                    {message.memoriesUsed.map((mem, idx) => (
+                      <li key={idx}>{mem}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+            {message.memoriesUpdated && message.memoriesUpdated.length > 0 && (
+              <div className="flex items-start gap-2 text-xs text-accent bg-accent/5 rounded-xl px-3 py-2 border border-accent/10">
+                <Brain className="h-3.5 w-3.5 text-accent shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold text-[10px] uppercase tracking-wider block text-accent/80 mb-0.5">Memory Saved</span>
+                  <ul className="list-disc pl-4 space-y-0.5 text-fg-muted">
+                    {message.memoriesUpdated.map((mem, idx) => (
+                      <li key={idx}>{mem}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Citation Badges */}
         {!isStreaming && citations.length > 0 && (

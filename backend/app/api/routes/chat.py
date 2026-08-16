@@ -1,4 +1,5 @@
 import logging
+import json
 from typing import List, Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -15,6 +16,7 @@ from app.services.chat.rag_service import RAGService
 from app.dependencies.embeddings import get_embedding_model
 from app.dependencies.qdrant import get_qdrant_client
 from app.repositories.qdrant_repository import qdrant_repository
+from app.services.chat.memory_service import memory_service
 
 def get_rag_service() -> RAGService:
     return RAGService()
@@ -92,7 +94,8 @@ async def post_chat_message(
     db: AsyncSession = Depends(get_db_session),
     embedding_model: Any = Depends(get_embedding_model),
     qdrant_client: Any = Depends(get_qdrant_client),
-    rag_service: RAGService = Depends(get_rag_service)
+    rag_service: RAGService = Depends(get_rag_service),
+    current_user: User = Depends(get_current_user)
 ):
 
     # ---------------------------------------------------------
@@ -126,6 +129,16 @@ async def post_chat_message(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Session not found."
         )
+
+    # ---------------------------------------------------------
+    # 1.5. Fetch Memories (if enabled)
+    # ---------------------------------------------------------
+    memories_str = ""
+    memories_used = []
+    if current_user.memory_enabled:
+        memories_str = await memory_service.get_memories_as_string(current_user.user_id, db)
+        if memories_str:
+            memories_used = [line[2:].strip() for line in memories_str.split("\n") if line.startswith("- ")]
 
     # ---------------------------------------------------------
     # 2. Retrieve evidence from Qdrant
@@ -205,7 +218,8 @@ async def post_chat_message(
         assistant_msg = ChatMessage(
             session_id=session_id,
             role="assistant",
-            content=abstaining_answer
+            content=abstaining_answer,
+            memories_used=json.dumps(memories_used) if memories_used else None
         )
 
         db.add(user_msg)
@@ -217,11 +231,13 @@ async def post_chat_message(
 
         return ChatResponse(
             message_id=str(assistant_msg.message_id),
-session_id=str(session_id),
+            session_id=str(session_id),
             answer=abstaining_answer,
             grounded=False,
             evidence_count=0,
-            citations=[]
+            citations=[],
+            memories_used=memories_used if memories_used else None,
+            memories_updated=None
         )
 
     # ---------------------------------------------------------
@@ -255,10 +271,23 @@ session_id=str(session_id),
     rag_result = await rag_service.answer_with_evidence(
         request.message,
         evidence_chunks,
+        memories=memories_str if current_user.memory_enabled else None
     )
     answer_text = rag_result["answer"]
     grounded = rag_result["grounded"]
     evidence_count = rag_result["sources_used"]
+
+    # ---------------------------------------------------------
+    # 5.5. Extract & Update Memories (if enabled)
+    # ---------------------------------------------------------
+    memories_updated = []
+    if current_user.memory_enabled and answer_text:
+        memories_updated = await memory_service.extract_and_update_memories(
+            user_id=current_user.user_id,
+            user_message=request.message,
+            assistant_message=answer_text,
+            db=db
+        )
 
     # ---------------------------------------------------------
     # 6. Build citations
@@ -293,7 +322,9 @@ session_id=str(session_id),
     assistant_msg = ChatMessage(
         session_id=session_id,
         role="assistant",
-        content=answer_text
+        content=answer_text,
+        memories_updated=json.dumps(memories_updated) if memories_updated else None,
+        memories_used=json.dumps(memories_used) if memories_used else None
     )
 
     db.add(user_msg)
@@ -351,7 +382,9 @@ session_id=str(session_id),
         answer=answer_text,
         grounded=grounded,
         evidence_count=evidence_count,
-        citations=citations
+        citations=citations,
+        memories_updated=memories_updated if memories_updated else None,
+        memories_used=memories_used if memories_used else None
     )
 
 
@@ -418,7 +451,9 @@ async def list_chat_sessions(
                             chunk_id=cit.chunk_id
                         )
                         for cit in msg.citations
-                    ]
+                    ],
+                    memories_updated=json.loads(msg.memories_updated) if msg.memories_updated else None,
+                    memories_used=json.loads(msg.memories_used) if msg.memories_used else None
                 )
                 for msg in session.messages
             ]
@@ -500,7 +535,9 @@ async def get_chat_session(
                         chunk_id=cit.chunk_id
                     )
                     for cit in msg.citations
-                ]
+                ],
+                memories_updated=json.loads(msg.memories_updated) if msg.memories_updated else None,
+                memories_used=json.loads(msg.memories_used) if msg.memories_used else None
             )
             for msg in session.messages
         ]
@@ -551,7 +588,9 @@ async def get_session_messages(
                     chunk_id=cit.chunk_id
                 )
                 for cit in msg.citations
-            ]
+            ],
+            memories_updated=json.loads(msg.memories_updated) if msg.memories_updated else None,
+            memories_used=json.loads(msg.memories_used) if msg.memories_used else None
         )
         for msg in session.messages
     ]
@@ -609,7 +648,9 @@ async def update_chat_session(
                         chunk_id=cit.chunk_id
                     )
                     for cit in msg.citations
-                ]
+                ],
+                memories_updated=json.loads(msg.memories_updated) if msg.memories_updated else None,
+                memories_used=json.loads(msg.memories_used) if msg.memories_used else None
             )
             for msg in session.messages
         ]

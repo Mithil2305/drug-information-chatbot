@@ -14,8 +14,17 @@ class PromptBuilder:
         question: str,
         evidence_context: str,
         system_instruction: Optional[str] = None,
+        memories: Optional[str] = None,
     ) -> str:
         system = system_instruction or PromptBuilder._default_system_instruction()
+        if memories:
+            system += (
+                "\n\n=== User Profile & Preferences (Memory) ===\n"
+                "The following facts and preferences are saved about the user. "
+                "Respect these preferences for formatting and style, and use them for user context (e.g. specialized medical background), "
+                "but DO NOT use them as clinical evidence. All clinical facts must come ONLY from the Evidence section below:\n"
+                f"{memories}"
+            )
 
         prompt = (
             f"{system}\n\n"

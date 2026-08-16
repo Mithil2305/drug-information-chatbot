@@ -65,11 +65,16 @@ def client(mock_db, mock_embeddings, mock_qdrant, mock_llm):
         return mock_qdrant
     def override_llm():
         return mock_llm
-        
+    from app.dependencies.auth import get_current_user
+    from app.models.user import User
+    
     app.dependency_overrides[get_db_session] = override_db
     app.dependency_overrides[get_embedding_model] = override_embeddings
     app.dependency_overrides[get_qdrant_client] = override_qdrant
     app.dependency_overrides[get_llm_client] = override_llm
+    app.dependency_overrides[get_current_user] = lambda: User(
+        user_id="test-user-id", email="test@example.com", hashed_password="x", role="user", memory_enabled=True
+    )
     
     with patch("app.services.llm.llm_service.get_llm_client", return_value=mock_llm):
         yield TestClient(app)
@@ -79,6 +84,7 @@ def client(mock_db, mock_embeddings, mock_qdrant, mock_llm):
     app.dependency_overrides.pop(get_embedding_model, None)
     app.dependency_overrides.pop(get_qdrant_client, None)
     app.dependency_overrides.pop(get_llm_client, None)
+    app.dependency_overrides.pop(get_current_user, None)
 
 # =====================================================================
 # POST CHAT TESTS

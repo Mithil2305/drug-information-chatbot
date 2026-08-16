@@ -66,6 +66,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           content: msg.content,
           citations: mapCitations(msg.citations),
           status: msg.role === 'assistant' ? 'grounded' : undefined,
+          memoriesUpdated: msg.memories_updated || undefined,
+          memoriesUsed: msg.memories_used || undefined,
         }))
         setMessages(loaded)
       } catch (err: any) {
@@ -115,6 +117,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         content: response.answer,
         citations: mapCitations(response.citations),
         status: response.grounded ? 'grounded' : 'insufficient_evidence',
+        memoriesUpdated: response.memories_updated || undefined,
+        memoriesUsed: response.memories_used || undefined,
       }
 
       setMessages((prev) => [...prev, assistantMessage])
