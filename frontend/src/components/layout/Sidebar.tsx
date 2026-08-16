@@ -123,7 +123,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           className={`flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors ${location.pathname === '/memories' ? 'bg-surface-highlight text-primary' : 'text-fg hover:bg-surface-highlight'}`}
         >
           <Brain className="h-4 w-4 shrink-0 text-accent" />
-          <span>AI Personalization</span>
+          <span>Memory</span>
         </Link>
       </div>
 

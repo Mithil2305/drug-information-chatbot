@@ -8,10 +8,9 @@ import {
   Loader2,
   Trash,
   Check,
-  AlertTriangle,
-  ArrowLeft
+  AlertTriangle
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { ChatLayout } from '../components/layout/ChatLayout'
 import { useAuth } from '../contexts/AuthContext'
 import {
   getMemoriesRequest,
@@ -116,30 +115,8 @@ export default function MemoryPage() {
   const memoryEnabled = user?.memory_enabled ?? true
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-fg">
-      {/* Top Header */}
-      <header className="sticky top-0 z-30 border-b border-border bg-surface/80 backdrop-blur-md px-4 py-3.5 shadow-subtle">
-        <div className="mx-auto max-w-4xl flex items-center justify-between">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 text-xs font-bold text-fg-muted hover:bg-surface-highlight hover:text-fg transition-all"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to Chat
-          </Link>
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-2xl bg-primary text-white">
-              <Brain className="h-4 w-4" />
-            </div>
-            <span className="text-[13px] font-bold tracking-tight text-fg">
-              MediMei Memory Hub
-            </span>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto">
+    <ChatLayout>
+      <div className="flex-1 overflow-y-auto bg-background">
         <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
           
           {/* Header Dashboard Banner */}
@@ -366,6 +343,6 @@ export default function MemoryPage() {
 
         </div>
       </div>
-    </div>
+    </ChatLayout>
   )
 }
