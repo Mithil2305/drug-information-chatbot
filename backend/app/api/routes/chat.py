@@ -300,7 +300,9 @@ async def post_chat_message(
             document_name=cit.get("document_name") or "Unknown Document",
             page=cit.get("page_no") or cit.get("page") or 1,
             section=cit.get("section_title") or cit.get("section"),
-            chunk_id=cit.get("chunk_id") or ""
+            chunk_id=cit.get("chunk_id") or "",
+            text=cit.get("text") or cit.get("chunk_text"),
+            score=cit.get("score")
         )
         for cit in raw_citations
     ]
@@ -353,6 +355,7 @@ async def post_chat_message(
             continue
 
         unique_cit_id = f"{assistant_msg.message_id}_{cit.chunk_id or idx}_{idx}"
+        cit.citation_id = unique_cit_id
         db.add(
             CitationModel(
                 citation_id=unique_cit_id,
@@ -361,6 +364,8 @@ async def post_chat_message(
                 document_name=cit.document_name,
                 page_no=cit.page,
                 chunk_id=str(cit.chunk_id or ""),
+                text=cit.text,
+                score=cit.score,
                 section=cit.section
             )
         )
@@ -444,11 +449,14 @@ async def list_chat_sessions(
                     timestamp=msg.created_at,
                     citations=[
                         Citation(
+                            citation_id=cit.citation_id,
                             document_id=cit.document_id,
                             document_name=cit.document_name or "Unknown Document",
                             page=cit.page_no,
                             section=cit.section,
-                            chunk_id=cit.chunk_id
+                            chunk_id=cit.chunk_id,
+                            text=cit.text,
+                            score=cit.score
                         )
                         for cit in msg.citations
                     ],
@@ -528,11 +536,14 @@ async def get_chat_session(
                 timestamp=msg.created_at,
                 citations=[
                     Citation(
+                        citation_id=cit.citation_id,
                         document_id=cit.document_id,
                         document_name=cit.document_name or "Unknown Document",
                         page=cit.page_no,
                         section=cit.section,
-                        chunk_id=cit.chunk_id
+                        chunk_id=cit.chunk_id,
+                        text=cit.text,
+                        score=cit.score,
                     )
                     for cit in msg.citations
                 ],
@@ -581,11 +592,14 @@ async def get_session_messages(
             timestamp=msg.created_at,
             citations=[
                 Citation(
+                    citation_id=cit.citation_id,
                     document_id=cit.document_id,
                     document_name=cit.document_name or "Unknown Document",
                     page=cit.page_no,
                     section=cit.section,
-                    chunk_id=cit.chunk_id
+                    chunk_id=cit.chunk_id,
+                    text=cit.text,
+                    score=cit.score,
                 )
                 for cit in msg.citations
             ],
@@ -641,11 +655,14 @@ async def update_chat_session(
                 timestamp=msg.created_at,
                 citations=[
                     Citation(
+                        citation_id=cit.citation_id,
                         document_id=cit.document_id,
                         document_name=cit.document_name or "Unknown Document",
                         page=cit.page_no,
                         section=cit.section,
-                        chunk_id=cit.chunk_id
+                        chunk_id=cit.chunk_id,
+                        text=cit.text,
+                        score=cit.score,
                     )
                     for cit in msg.citations
                 ],
