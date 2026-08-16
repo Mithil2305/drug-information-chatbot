@@ -108,7 +108,8 @@ class EvidenceValidator:
             "]\n\n"
             f"Clinical Evidence:\n{evidence_context}\n"
             f"Claims to check:\n{numbered_claims}\n"
-            "JSON Output:"
+            "JSON Output:\n"
+            "<think>\n\n</think>\n"
         )
 
         try:
@@ -119,6 +120,9 @@ class EvidenceValidator:
                 response_text = llm_response["choices"][0]["text"].strip()
             else:
                 response_text = str(llm_response).strip()
+
+            if "</think>" in response_text:
+                response_text = response_text.split("</think>")[-1].strip()
 
             # Attempt JSON parse
             # Find the starting [ and ending ] in case of conversational wrapper

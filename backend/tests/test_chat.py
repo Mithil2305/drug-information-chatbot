@@ -38,6 +38,7 @@ def mock_qdrant():
     }
     
     mock.search.return_value = [mock_point]
+    mock.query_points.return_value = MagicMock(points=[mock_point])
     return mock
 
 @pytest.fixture
@@ -45,18 +46,22 @@ def mock_llm():
     mock = MagicMock()
     mock.return_value = {
         "choices": [
-            {"text": "The recommended dose of Rinvoq is 15 mg."}
+            {"text": "The recommended dose of Rinvoq is 15 mg. [S1]"}
         ]
     }
     return mock
 
 @pytest.fixture
 def client(mock_db, mock_embeddings, mock_qdrant, mock_llm):
+    from app.repositories.qdrant_repository import qdrant_repository
+    old_qdrant_client = qdrant_repository._client
+    qdrant_repository._client = mock_qdrant
+
     async def override_db():
         yield mock_db
     def override_embeddings():
         return mock_embeddings
-    def override_qdrant():
+    async def override_qdrant():
         return mock_qdrant
     def override_llm():
         return mock_llm
@@ -68,6 +73,7 @@ def client(mock_db, mock_embeddings, mock_qdrant, mock_llm):
     
     yield TestClient(app)
     
+    qdrant_repository._client = old_qdrant_client
     app.dependency_overrides.pop(get_db_session, None)
     app.dependency_overrides.pop(get_embedding_model, None)
     app.dependency_overrides.pop(get_qdrant_client, None)
@@ -130,7 +136,7 @@ def test_post_chat_message_success(client, mock_db, mock_llm):
     assert response.status_code == 200
     data = response.json()
     assert data["session_id"] == "1"
-    assert data["answer"] == "The recommended dose of Rinvoq is 15 mg."
+    assert data["answer"] == "The recommended dose of Rinvoq is 15 mg. [S1]"
     assert data["grounded"] is True
     assert len(data["citations"]) == 1
     assert data["citations"][0]["chunk_id"] == "chunk-123"
@@ -138,6 +144,7 @@ def test_post_chat_message_success(client, mock_db, mock_llm):
 def test_post_chat_message_abstain(client, mock_db, mock_qdrant):
     # Mock empty search results
     mock_qdrant.search.return_value = []
+    mock_qdrant.query_points.return_value = MagicMock(points=[])
     
     payload = {
         "session_id": "1",

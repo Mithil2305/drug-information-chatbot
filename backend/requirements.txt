@@ -1,3 +1,4 @@
+--extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
 
 # Note: As per Backend_Implementation_Guide.md, versions are not frozen here 
 # to allow validation against the target Python/CUDA environment first.
@@ -32,6 +33,7 @@ safetensors
 sentence-transformers
 gpt4all
 ctransformers
+llama-cpp-python
 
 # --- Vector Database ---
 qdrant-client

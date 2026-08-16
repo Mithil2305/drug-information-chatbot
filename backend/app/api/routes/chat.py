@@ -132,7 +132,8 @@ async def post_chat_message(
 
     try:
 
-        query_vector = embedding_model.encode(request.message).tolist()
+        raw_vec = embedding_model.encode(request.message)
+        query_vector = raw_vec.tolist() if hasattr(raw_vec, "tolist") else list(raw_vec)
 
         search_result = await qdrant_repository.search(
             query_vector=query_vector,
@@ -291,23 +292,41 @@ session_id=str(session_id),
     # 9. Save citations
     # ---------------------------------------------------------
 
-    for cit in citations:
+    doc_ids_to_check = {cit["document_id"] for cit in citations if cit.get("document_id")}
+    valid_doc_ids = set()
+    if doc_ids_to_check:
+        doc_stmt = select(Document.document_id).where(Document.document_id.in_(doc_ids_to_check))
+        doc_res = await db.execute(doc_stmt)
+        valid_doc_ids = set(doc_res.scalars().all())
 
+    for idx, cit in enumerate(citations):
+        doc_id = cit.get("document_id")
+        if not doc_id or doc_id not in valid_doc_ids:
+            logger.warning(
+                "Skipping citation save for document_id '%s' (not found in documents table).",
+                doc_id
+            )
+            continue
+
+        unique_cit_id = f"{assistant_msg.message_id}_{cit.get('chunk_id', idx)}_{idx}"
         db.add(
             CitationModel(
-                citation_id=str(cit["chunk_id"]),
+                citation_id=unique_cit_id,
                 message_id=assistant_msg.message_id,
-                document_id=cit["document_id"],
+                document_id=doc_id,
                 document_name=cit.get("document_name"),
                 page_no=cit.get("page_no"),
-                chunk_id=cit["chunk_id"],
+                chunk_id=str(cit.get("chunk_id", "")),
                 section=cit.get("section_title") or cit.get("section")
             )
         )
 
-    await db.commit()
-
-    await db.refresh(assistant_msg)
+    try:
+        await db.commit()
+        await db.refresh(assistant_msg)
+    except Exception as e:
+        logger.error("Error committing message citations: %s", e)
+        await db.rollback()
 
     # ---------------------------------------------------------
     # 10. Return response

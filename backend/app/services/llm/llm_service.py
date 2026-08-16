@@ -38,19 +38,29 @@ class LLMService:
             )
             prompt = prompt[:max_input_chars]
 
+        gen_kwargs = {}
+        if max_new_tokens is not None:
+            gen_kwargs["max_tokens"] = max_new_tokens
+        if temperature is not None:
+            gen_kwargs["temperature"] = temperature
+        if top_p is not None:
+            gen_kwargs["top_p"] = top_p
+        if stop is not None:
+            gen_kwargs["stop"] = stop
+
         try:
             response = self.client(
                 prompt,
-                max_tokens=max_new_tokens,
-                temperature=temperature,
-                top_p=top_p,
-                stop=stop,
+                **gen_kwargs,
             )
 
             if isinstance(response, dict):
                 text = response["choices"][0]["text"].strip()
             else:
                 text = str(response).strip()
+
+            if "</think>" in text:
+                text = text.split("</think>")[-1].strip()
 
             return text
         except Exception as exc:

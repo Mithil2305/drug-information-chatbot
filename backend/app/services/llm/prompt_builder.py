@@ -22,6 +22,7 @@ class PromptBuilder:
             f"=== Evidence ===\n{evidence_context}\n\n"
             f"=== Question ===\n{question}\n\n"
             "=== Answer ===\n"
+            "<think>\n\n</think>\n"
         )
 
         # Rough guard against passing the input context window.
@@ -39,6 +40,7 @@ class PromptBuilder:
                 f"=== Evidence (truncated) ===\n{evidence_context}\n\n"
                 f"=== Question ===\n{question}\n\n"
                 "=== Answer ===\n"
+                "<think>\n\n</think>\n"
             )
 
         return prompt
