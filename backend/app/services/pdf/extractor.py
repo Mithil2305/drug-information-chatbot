@@ -14,9 +14,9 @@ async def extract_pdf_pages(
     document_id: Optional[str] = None,
     task_id: Optional[str] = None,
 ) -> List[dict]:
-    """Extract one PageRecord-style dict per page using PyMuPDF.
+    """Extract page content using PyMuPDF, falling back to PaddleOCR when quality is low.
 
-    Extraction is offloaded to worker threads page-by-page so that
+    Extraction and OCR are offloaded to worker threads page-by-page so that
     cancellation can be checked between pages.
     """
     pages = []
@@ -24,6 +24,12 @@ async def extract_pdf_pages(
     try:
         await task_manager.raise_if_cancelled(task_id)
         doc = await asyncio.to_thread(fitz.open, file_path)
+
+        from app.services.pdf.quality_checker import QualityChecker
+        from app.services.pdf.ocr import OCRService
+
+        quality_checker = QualityChecker()
+        ocr_service = OCRService(use_gpu=True)
 
         for page_no, page in enumerate(doc, start=1):
             await task_manager.raise_if_cancelled(task_id)
@@ -39,11 +45,62 @@ async def extract_pdf_pages(
             page_width = rect.width
             page_height = rect.height
 
+            # Run quality check on PyMuPDF extracted text
+            page_record_raw = {
+                "text": text,
+                "page_width": page_width,
+                "page_height": page_height,
+            }
+            quality_report = quality_checker.check(page_record_raw)
+            quality_score = quality_report["quality_score"]
+            extraction_method = "pymupdf"
+
+            # Check if fallback OCR is needed
+            if quality_report["needs_ocr"]:
+                logger.info(
+                    "Page %s needs OCR fallback (character count: %s, word count: %s, garble ratio: %s, quality score: %s)",
+                    page_no,
+                    quality_report["char_count"],
+                    quality_report["word_count"],
+                    quality_report["garble_ratio"],
+                    quality_score,
+                )
+
+                # Run OCR fallback in a background thread
+                ocr_result = await asyncio.to_thread(
+                    ocr_service.ocr_page, page, page_no, document_id
+                )
+
+                # If OCR successfully extracted text, update it
+                if (
+                    ocr_result.get("text") is not None
+                    and ocr_result.get("extraction_method") not in ("paddleocr_unavailable", "paddleocr_failed")
+                ):
+                    text = ocr_result["text"].strip()
+                    extraction_method = "paddleocr"
+
+                    # Recompute quality score after OCR
+                    ocr_page_record = {
+                        "text": text,
+                        "page_width": page_width,
+                        "page_height": page_height,
+                    }
+                    new_quality_report = quality_checker.check(ocr_page_record)
+                    quality_score = new_quality_report["quality_score"]
+                    logger.info("OCR completed for page %s. New quality score: %s", page_no, quality_score)
+                else:
+                    logger.warning(
+                        "OCR fallback failed or was unavailable for page %s (method: %s). Keeping PyMuPDF text.",
+                        page_no,
+                        ocr_result.get("extraction_method"),
+                    )
+
             pages.append({
                 "document_id": document_id,
                 "page_no": page_no,
                 "text": text,
-                "extraction_method": "pymupdf",
+                "extraction_method": extraction_method,
+                "quality_score": quality_score,
                 "image_count": image_count,
                 "page_width": page_width,
                 "page_height": page_height,
@@ -58,4 +115,4 @@ async def extract_pdf_pages(
             except Exception:
                 pass
 
-    return pages
+    return pages

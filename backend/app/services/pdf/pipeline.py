@@ -12,7 +12,7 @@ from app.services.pdf.section_detector import SectionDetector
 logger = logging.getLogger(__name__)
 
 
-def process_pdf(
+async def process_pdf(
     file_path: str,
     document_id: str,
     chunk_size: int = 1000,
@@ -31,12 +31,10 @@ def process_pdf(
     if not Path(file_path).is_file():
         raise FileNotFoundError(f"PDF not found: {file_path}")
 
-    quality = QualityChecker(quality_config)
-    ocr = OCRService()
     section = SectionDetector()
 
     try:
-        raw_pages = extract_pdf_pages(file_path, document_id)
+        raw_pages = await extract_pdf_pages(file_path, document_id)
     except Exception as exc:
         logger.error("Failed to extract PDF %s: %s", file_path, exc)
         return {
@@ -55,30 +53,9 @@ def process_pdf(
 
     for page in raw_pages:
         try:
-            quality_report = quality.check(page)
-            page.update(quality_report)
-
             text = page["text"]
             method = page["extraction_method"]
-            ocr_confidence: Optional[float] = None
-
-            if quality_report["needs_ocr"]:
-                ocr_result = ocr.ocr_page(
-                    page=None,
-                    page_no=page["page_no"],
-                    document_id=document_id,
-                )
-                if ocr_result.get("text") is not None:
-                    text = ocr_result["text"]
-                    method = ocr_result["extraction_method"]
-                    ocr_confidence = ocr_result.get("confidence")
-                else:
-                    # OCR unavailable: do not silently succeed.
-                    errors.append({
-                        "page_no": page["page_no"],
-                        "error_code": "OCR_FAILED",
-                        "error": "OCR fallback not available",
-                    })
+            quality_score = page.get("quality_score", 1.0)
 
             cleaned = clean_text(text)
             current_section = section.detect(cleaned, current_section)
@@ -94,8 +71,8 @@ def process_pdf(
                 "page_width": page["page_width"],
                 "page_height": page["page_height"],
                 "section_title": current_section,
-                "quality_score": quality_report["quality_score"],
-                "ocr_confidence": ocr_confidence,
+                "quality_score": quality_score,
+                "ocr_confidence": None,
             })
         except Exception as exc:
             logger.error(
@@ -119,3 +96,4 @@ def process_pdf(
         "chunks": chunks,
         "errors": errors,
     }
+

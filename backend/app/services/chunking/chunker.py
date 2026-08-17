@@ -65,6 +65,10 @@ async def create_chunks(
         .order_by(DocumentPage.page_no)
     )
     pages = result.scalars().all()
+    page_quality_map = {
+        page.page_no: (page.quality_score if page.quality_score is not None else 1.0)
+        for page in pages
+    }
 
     if not pages:
         logger.warning(f"No pages found for document {document_id}.")
@@ -145,7 +149,8 @@ async def create_chunks(
             "section": chunk.section,
             "chunk_index": chunk.chunk_index,
             "chunk_text": chunk.chunk_text,
-            "embedding": emb
+            "embedding": emb,
+            "quality_score": page_quality_map.get(chunk.page_no, 1.0)
         })
 
     try:

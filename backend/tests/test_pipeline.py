@@ -5,6 +5,9 @@ import tempfile
 from app.services.pdf.pipeline import process_pdf
 
 
+import pytest
+
+
 def _create_test_pdf() -> str:
     doc = fitz.open()
     p1 = doc.new_page()
@@ -20,10 +23,11 @@ def _create_test_pdf() -> str:
     return path
 
 
-def test_pipeline_end_to_end():
+@pytest.mark.asyncio
+async def test_pipeline_end_to_end():
     path = _create_test_pdf()
     try:
-        result = process_pdf(path, "doc-001")
+        result = await process_pdf(path, "doc-001")
         assert result["success"] is True
         assert result["document_id"] == "doc-001"
         assert len(result["pages"]) == 2
