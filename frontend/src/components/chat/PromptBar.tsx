@@ -16,7 +16,6 @@ export function PromptBar() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const measureRef = useRef<HTMLSpanElement>(null)
   const controlsRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const valueRef = useRef('')
   const { sendMessage, isLoading, clearChat } = useChat()
   const { documents } = useDocuments()
@@ -88,14 +87,6 @@ export function PromptBar() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setValue(e.target.value)
-  }
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files) return
-    const names = Array.from(files).map((f) => f.name)
-    setAttachments((prev) => [...prev, ...names])
-    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const removeAttachment = (index: number) => {

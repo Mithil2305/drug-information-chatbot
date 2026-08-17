@@ -1,13 +1,12 @@
 import { useCallback, useState, useRef } from 'react'
-import ReactMarkdown from 'react-markdown'
 import { Check, Copy, FileText, Sparkles, AlertCircle, Volume2, Square, Brain, ChevronDown, ChevronUp } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useChat } from '../../hooks/useChat'
-import type { ChatMessage as ChatMessageType } from '../../types/chat'
+import type { ChatMessage as ChatMessageType, Citation } from '../../types/chat'
 import { CitationBadge } from './CitationBadge'
 import { FollowUpList } from './FollowUpList'
 import { StreamingText } from './StreamingText'
-import { EvidencePanel } from '../evidence/EvidencePanel'
+import { MarkdownResponse } from '../common/MarkdownResponse'
 
 interface ChatMessageProps {
   message: ChatMessageType
@@ -136,12 +135,10 @@ function ActionButton({
   onClick,
   icon: Icon,
   label,
-  active,
 }: {
   onClick: () => void
   icon: LucideIcon
   label: string
-  active?: boolean
 }) {
   return (
     <button
@@ -169,12 +166,20 @@ function AssistantMessage({
   const [copied, setCopied] = useState(false)
   const [speaking, setSpeaking] = useState(false)
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
-  const { sendMessage, setSelectedMessageId } = useChat()
+  const { sendMessage, setSelectedMessageId, setSelectedCitation } = useChat()
   const onComplete = useCallback(() => setDone(true), [])
   const isStreaming = isLast && !done
 
   const citations = message.citations ?? []
   const followUps = message.followUps ?? []
+
+  const handleCitationClick = useCallback(
+    (citation: unknown) => {
+      setSelectedCitation(citation as Citation)
+      onOpenEvidence?.()
+    },
+    [setSelectedCitation, onOpenEvidence],
+  )
 
   const handleCopy = async () => {
     try {
@@ -187,7 +192,15 @@ function AssistantMessage({
   }
 
   const stripMarkdown = (text: string) =>
-    text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/__/g, '').replace(/`/g, '').replace(/#{1,6}\s/g, '').replace(/\[(.*?)\]\(.*?\)/g, '$1')
+    text
+      .replace(/<[^>]*>/g, '')
+      .replace(/\[(S\d+|\d+)\]/gi, '')
+      .replace(/\*\*/g, '')
+      .replace(/\*/g, '')
+      .replace(/__/g, '')
+      .replace(/`/g, '')
+      .replace(/#{1,6}\s/g, '')
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1')
 
   const handleSpeak = () => {
     if (speaking) {
@@ -222,11 +235,8 @@ function AssistantMessage({
       className="flex items-start gap-3 animate-fade-in-up"
       style={{ animationDelay: '30ms' }}
     >
-
       <div className="min-w-0 flex-1">
-        <div
-          className={`max-w-3xl transition-all duration-200 `}
-        >
+        <div className="max-w-3xl transition-all duration-200">
           {/* Status Header */}
           <div className="mb-3.5 flex items-center justify-between border-b border-border pb-3">
             <div className="flex items-center gap-2.5">
@@ -255,21 +265,18 @@ function AssistantMessage({
 
           {/* Answer Text */}
           {!isStreaming ? (
-            <div className="prose-chat text-sm leading-relaxed text-fg">
-              <ReactMarkdown
-                components={{
-                  p: ({ children }) => <p className="mb-2.5 last:mb-0 leading-relaxed">{children}</p>,
-                  strong: ({ children }) => <strong className="font-bold text-primary">{children}</strong>,
-                  ul: ({ children }) => <ul className="mb-2.5 list-disc pl-5 space-y-1">{children}</ul>,
-                  ol: ({ children }) => <ol className="mb-2.5 list-decimal pl-5 space-y-1">{children}</ol>,
-                  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-                }}
-              >
-                {message.content}
-              </ReactMarkdown>
-            </div>
+            <MarkdownResponse
+              content={message.content}
+              citations={citations}
+              onCitationClick={handleCitationClick}
+            />
           ) : (
-            <StreamingText content={message.content} onComplete={onComplete} />
+            <StreamingText
+              content={message.content}
+              citations={citations}
+              onCitationClick={handleCitationClick}
+              onComplete={onComplete}
+            />
           )}
         </div>
 

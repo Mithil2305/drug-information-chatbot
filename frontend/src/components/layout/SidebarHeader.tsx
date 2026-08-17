@@ -1,4 +1,4 @@
-import { ChevronLeft, PanelLeftClose, PanelLeftOpen, Search, X } from 'lucide-react'
+import { PanelLeftClose, PanelLeftOpen, Search, X } from 'lucide-react'
 
 import { useUI } from '../../hooks/useUI'
 import { Tooltip } from '../common/Tooltip'

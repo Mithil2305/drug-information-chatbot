@@ -206,7 +206,7 @@ class ComparisonService:
         try:
             answer = self.llm_service.generate(
                 prompt,
-                max_new_tokens=128,
+                max_new_tokens=512,
                 temperature=0.1,
             )
         except Exception as exc:
@@ -243,13 +243,19 @@ class ComparisonService:
             "=== Evidence ===\n"
             f"{context}\n\n"
             "=== Answer format ===\n"
-            "DRUG1: <1-2 sentence summary with citations>\n"
-            "DRUG2: <1-2 sentence summary with citations>\n\n"
+            "DRUG1: [summary of drug 1 with citations]\n"
+            "DRUG2: [summary of drug 2 with citations]\n\n"
             "=== Answer ===\n"
         )
 
     @staticmethod
     def _split_answer(answer: str) -> Tuple[str, str]:
+        # Strip any think blocks or reasoning
+        if "</think>" in answer:
+            answer = answer.split("</think>")[-1].strip()
+        elif "<think>" in answer:
+            answer = answer.split("<think>")[0].strip()
+
         answer = answer.strip()
 
         drug1_match = re.search(
@@ -280,7 +286,13 @@ class ComparisonService:
             drug1 = drug1_match.group(1).strip() if drug1_match else ""
             drug2 = drug2_match.group(1).strip() if drug2_match else ""
 
-        return drug1, drug2
+        # Clean any remaining placeholder artifacts
+        def clean_placeholder(t: str) -> str:
+            t = re.sub(r"^<[^>]+sentence[^>]*>\s*", "", t, flags=re.IGNORECASE)
+            t = re.sub(r"^\[summary of drug \d+ with citations\]\s*", "", t, flags=re.IGNORECASE)
+            return t.strip()
+
+        return clean_placeholder(drug1), clean_placeholder(drug2)
 
     def _build_cell(
         self,

@@ -61,6 +61,8 @@ class LLMService:
 
             if "</think>" in text:
                 text = text.split("</think>")[-1].strip()
+            elif "<think>" in text:
+                text = text.split("<think>")[0].strip()
 
             return text
         except Exception as exc:

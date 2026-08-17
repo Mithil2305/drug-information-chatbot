@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Upload, UploadCloud } from 'lucide-react'
+import { Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { useDocuments } from '../../hooks/useDocuments'
 
