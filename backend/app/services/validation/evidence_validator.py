@@ -100,6 +100,7 @@ class EvidenceValidator:
             "System: You are an expert medical information auditor. Your job is to verify if claims are directly supported by clinical evidence.\n"
             "Analyze each numbered claim below against the provided clinical evidence.\n"
             "For each claim, output whether it is supported (true/false) and a brief reason.\n"
+            "Important: A claim is supported if it is semantically equivalent, paraphrased, or logically implied by the evidence. Do not require exact word matches. However, clinical values like dosages, frequencies, and specific safety hazards must be accurate.\n"
             "Format your output ONLY as a valid JSON list of objects.\n\n"
             "Example JSON Output Format:\n"
             "[\n"

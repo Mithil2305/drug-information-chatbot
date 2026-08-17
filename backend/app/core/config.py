@@ -49,7 +49,7 @@ class Settings(BaseSettings):
 
     # RAG Settings
     TOP_K: int = 8
-    MIN_RELEVANCE_SCORE: float = 0.35
+    MIN_RELEVANCE_SCORE: float = 0.20
     MAX_UPLOAD_SIZE_MB: int = 50
 
     # Pydantic Settings Config

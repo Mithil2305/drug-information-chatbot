@@ -245,12 +245,12 @@ async def _post_chat_message_impl(
                 try:
                     import numpy as np
                     # Encode current query
-                    raw_vec = embedding_model.encode(request.message)
+                    raw_vec = embedding_model.encode(request.message, normalize_embeddings=True)
                     query_vector = np.array(raw_vec.tolist() if hasattr(raw_vec, "tolist") else list(raw_vec))
 
                     # Encode all stored queries
                     stored_qs = [pair[0] for pair in stored_pairs]
-                    stored_vecs = embedding_model.encode(stored_qs)
+                    stored_vecs = embedding_model.encode(stored_qs, normalize_embeddings=True)
 
                     best_score = -1.0
                     best_index = -1
@@ -365,7 +365,7 @@ async def _post_chat_message_impl(
 
     try:
 
-        raw_vec = embedding_model.encode(request.message)
+        raw_vec = embedding_model.encode(request.message, normalize_embeddings=True)
         query_vector = raw_vec.tolist() if hasattr(raw_vec, "tolist") else list(raw_vec)
 
         search_result = await qdrant_repository.search(
