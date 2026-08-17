@@ -151,15 +151,27 @@ async def simulate_processing_task(
             # 4. Extract PDF pages
             # -----------------------------------------
 
-            pages = extract_pdf_pages(file_path)
+            try:
+                pages = await extract_pdf_pages(
+                    file_path,
+                    document_id=document_id,
+                    task_id=task_id,
+                )
+            except Exception as exc:
+                logger.error("PDF extraction failed: %s", exc)
+                raise
 
             await task_manager.raise_if_cancelled(task_id)
 
             if not pages:
-
-                raise ValueError(
-                    "No pages were extracted from the PDF."
+                logger.warning(
+                    "No pages were extracted from %s; completing with empty document.",
+                    file_path,
                 )
+                doc.status = "completed"
+                doc.page_count = 0
+                await db.commit()
+                return
 
             logger.info(
                 f"Extracted {len(pages)} pages."
@@ -236,6 +248,7 @@ async def simulate_processing_task(
             # -----------------------------------------
 
             doc.status = "completed"
+            doc.page_count = len(pages)
 
             await db.commit()
 

@@ -264,12 +264,15 @@ class ComparisonService:
         await task_manager.raise_if_cancelled(task_id)
 
         try:
-            answer = self.llm_service.generate(
+            answer = await self.llm_service.generate_async(
                 prompt,
+                task_id=task_id,
                 max_new_tokens=min(512, 128 * len(evidence)),
                 temperature=0.1,
             )
             await task_manager.raise_if_cancelled(task_id)
+        except TaskCancelledError:
+            raise
         except Exception as exc:
             logger.warning("LLM batch generation failed: %s", exc)
             return [

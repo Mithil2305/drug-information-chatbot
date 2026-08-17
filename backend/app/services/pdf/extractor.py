@@ -1,25 +1,43 @@
+import asyncio
 import logging
 from typing import List, Optional
 
 import fitz
 
+from app.core.task_manager import task_manager
+
 logger = logging.getLogger(__name__)
 
 
-def extract_pdf_pages(
+async def extract_pdf_pages(
     file_path: str,
     document_id: Optional[str] = None,
+    task_id: Optional[str] = None,
 ) -> List[dict]:
-    """Extract one PageRecord-style dict per page using PyMuPDF."""
+    """Extract one PageRecord-style dict per page using PyMuPDF.
+
+    Extraction is offloaded to worker threads page-by-page so that
+    cancellation can be checked between pages.
+    """
     pages = []
     doc = None
     try:
-        doc = fitz.open(file_path)
+        await task_manager.raise_if_cancelled(task_id)
+        doc = await asyncio.to_thread(fitz.open, file_path)
+
         for page_no, page in enumerate(doc, start=1):
-            text = page.get_text("text").strip()
-            image_count = len(page.get_images(full=True))
-            page_width = page.rect.width
-            page_height = page.rect.height
+            await task_manager.raise_if_cancelled(task_id)
+
+            text, images, rect = await asyncio.gather(
+                asyncio.to_thread(page.get_text, "text"),
+                asyncio.to_thread(page.get_images, full=True),
+                asyncio.to_thread(lambda p: p.rect, page),
+            )
+
+            text = (text or "").strip()
+            image_count = len(images or [])
+            page_width = rect.width
+            page_height = rect.height
 
             pages.append({
                 "document_id": document_id,
@@ -35,6 +53,9 @@ def extract_pdf_pages(
         raise
     finally:
         if doc is not None:
-            doc.close()
+            try:
+                await asyncio.to_thread(doc.close)
+            except Exception:
+                pass
 
     return pages

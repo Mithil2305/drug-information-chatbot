@@ -103,8 +103,9 @@ def test_compare_documents_success(client, mock_db):
     original_batch_size = comparison_service.batch_size
     comparison_service.batch_size = 1
 
-    original_generate = comparison_service.llm_service.generate
-    comparison_service.llm_service.generate = MagicMock(
+    from unittest.mock import AsyncMock
+    original_generate_async = comparison_service.llm_service.generate_async
+    comparison_service.llm_service.generate_async = AsyncMock(
         return_value=(
             "DRUG1: Treatment of moderately to severely active rheumatoid arthritis. [S1]\n"
             "DRUG2: Treatment of moderate-to-severe plaque psoriasis. [S1]"
@@ -157,7 +158,7 @@ def test_compare_documents_success(client, mock_db):
         assert "rheumatoid" in first_attr["drug1"]["content"].lower()
         assert "psoriasis" in first_attr["drug2"]["content"].lower()
     finally:
-        comparison_service.llm_service.generate = original_generate
+        comparison_service.llm_service.generate_async = original_generate_async
         comparison_service.search_service.search = original_search
         comparison_service.batch_size = original_batch_size
 

@@ -87,8 +87,10 @@ class RAGService:
         await task_manager.raise_if_cancelled(task_id)
         gen_start = time.perf_counter()
         try:
-            answer = self.llm_service.generate(prompt)
+            answer = await self.llm_service.generate_async(prompt, task_id=task_id)
             await task_manager.raise_if_cancelled(task_id)
+        except TaskCancelledError:
+            raise
         except Exception as exc:
             logger.error("LLM generation failed: %s", exc)
             return {
@@ -165,8 +167,10 @@ class RAGService:
         await task_manager.raise_if_cancelled(task_id)
         gen_start = time.perf_counter()
         try:
-            answer = self.llm_service.generate(prompt)
+            answer = await self.llm_service.generate_async(prompt, task_id=task_id)
             await task_manager.raise_if_cancelled(task_id)
+        except TaskCancelledError:
+            raise
         except Exception as exc:
             logger.error("LLM generation failed: %s", exc)
             return {
