@@ -34,6 +34,7 @@ class OCRService:
                 self._ocr = PaddleOCR(
                     lang="en",
                     device=device_str,
+                    max_side_limit=5000,
                 )
                 logger.info("PaddleOCR 3.x initialized successfully with device=%s", device_str)
             except Exception as inner_exc:
@@ -44,6 +45,7 @@ class OCRService:
                     lang="en",
                     use_gpu=use_gpu and has_gpu,
                     show_log=False,
+                    max_side_limit=5000,
                 )
                 logger.info("PaddleOCR legacy initialized successfully")
         except Exception as exc:
