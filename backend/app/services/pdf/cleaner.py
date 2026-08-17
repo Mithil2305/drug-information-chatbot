@@ -48,6 +48,10 @@ def clean_text(text: str) -> str:
     # Keep alphanumeric characters, whitespace, standard punctuation, and medical units/symbols (degree, micro, greek letters).
     text = re.sub(r'[^\w\s.,;:!?%/\-_()\[\]+*=<>°µαβ]', '', text)
 
+    # Collapse horizontal whitespace runs to a single space, and trim lines.
+    text = _HSPACE_RUN.sub(" ", text)
+    text = "\n".join(line.strip() for line in text.split("\n"))
+
     # 5. Stop word removal
     lines = text.split("\n")
     cleaned_lines = []
@@ -55,6 +59,8 @@ def clean_text(text: str) -> str:
         words = line.split(" ")
         cleaned_words = []
         for word in words:
+            if not word:
+                continue
             # Normalize word to check against stop words list
             norm_word = re.sub(r'[^a-z0-9]', '', word)
             if norm_word in MEDICAL_SAFE_STOP_WORDS:
@@ -63,13 +69,7 @@ def clean_text(text: str) -> str:
         cleaned_lines.append(" ".join(cleaned_words))
     text = "\n".join(cleaned_lines)
 
-    # 6. Collapse horizontal whitespace runs to a single space.
-    text = _HSPACE_RUN.sub(" ", text)
-
-    # 7. Trim spaces at the start/end of each line.
-    text = "\n".join(line.strip() for line in text.split("\n"))
-
-    # 8. Collapse 3+ consecutive blank lines to a double blank line.
+    # 6. Collapse 3+ consecutive blank lines to a double blank line.
     text = _MULTIPLE_BREAKS.sub("\n\n", text)
 
     return text.strip()

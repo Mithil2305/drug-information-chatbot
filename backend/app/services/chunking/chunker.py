@@ -8,6 +8,7 @@ from app.models.chunk import Chunk
 from app.models.document import Document
 from app.services.embeddings.embedding_service import embedding_service
 from app.repositories.qdrant_repository import qdrant_repository
+from app.services.pdf.cleaner import clean_text
 from app.core.task_manager import task_manager, TaskCancelledError
 
 logger = logging.getLogger(__name__)
@@ -87,10 +88,11 @@ async def create_chunks(
     # 4. Perform text chunking on each page
     total_chunks = 0
     for page in pages:
-        if not page.text_ref:
+        cleaned_text = clean_text(page.text_ref)
+        if not cleaned_text:
             continue
 
-        page_chunks = split_text(page.text_ref)
+        page_chunks = split_text(cleaned_text)
 
         for index, text in enumerate(page_chunks):
             chunk = Chunk(

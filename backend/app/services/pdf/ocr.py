@@ -1,3 +1,8 @@
+try:
+    import torch
+except ImportError:
+    pass
+
 import logging
 import os
 from pathlib import Path

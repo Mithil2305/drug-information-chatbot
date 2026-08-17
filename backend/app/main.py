@@ -1,3 +1,8 @@
+try:
+    import torch
+except ImportError:
+    pass
+
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, status, Request
