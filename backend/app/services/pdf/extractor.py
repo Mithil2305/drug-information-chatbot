@@ -55,8 +55,8 @@ async def extract_pdf_pages(
             quality_score = quality_report["quality_score"]
             extraction_method = "pymupdf"
 
-            # Check if fallback OCR is needed
-            if quality_report["needs_ocr"]:
+            # Check if fallback OCR is needed (either poor text quality or images exist)
+            if quality_report["needs_ocr"] or image_count > 0:
                 logger.info(
                     "Page %s needs OCR fallback (character count: %s, word count: %s, garble ratio: %s, quality score: %s)",
                     page_no,
