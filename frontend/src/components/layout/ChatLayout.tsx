@@ -26,8 +26,8 @@ export function ChatLayout({ children, title }: ChatLayoutProps) {
         {isMobile && (
           <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-3 shadow-subtle">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-primary text-white">
-                <span className="text-sm font-bold">L</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-primary text-white shadow-subtle transition-all duration-200 group-hover:shadow-card">
+                <img src="/logo.png" alt="MediMei" className="h-8 w-8 object-contain" />
               </div>
               <span className="text-[15px] font-semibold tracking-tight text-fg">
                 MediMei

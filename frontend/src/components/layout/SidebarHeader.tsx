@@ -1,4 +1,4 @@
-import { ChevronLeft, PanelLeftOpen, Search, X } from 'lucide-react'
+import { ChevronLeft, PanelLeftClose, PanelLeftOpen, Search, X } from 'lucide-react'
 
 import { useUI } from '../../hooks/useUI'
 import { Tooltip } from '../common/Tooltip'
@@ -65,7 +65,7 @@ export function SidebarHeader({ onClose, collapsed }: SidebarHeaderProps) {
           aria-label="Collapse sidebar"
           title="Collapse sidebar"
         >
-          <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
+          <PanelLeftClose className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
 
         {onClose && (

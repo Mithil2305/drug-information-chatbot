@@ -7,7 +7,7 @@ interface CitationBadgeProps {
   onClick?: () => void
 }
 
-export function CitationBadge({ citation }: CitationBadgeProps) {
+export function CitationBadge({ citation, onClick }: CitationBadgeProps) {
   const { setSelectedCitation, selectedCitation } = useChat()
   const isSelected = selectedCitation?.citationId === citation.citationId
 
@@ -17,7 +17,10 @@ export function CitationBadge({ citation }: CitationBadgeProps) {
   return (
     <button
       type="button"
-      onClick={() => setSelectedCitation(citation)}
+      onClick={() => {
+        setSelectedCitation(citation)
+        onClick?.()
+      }}
       className={`group inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-xs font-medium transition-all duration-200 shadow-xs cursor-pointer ${
         isSelected
           ? 'border-primary bg-primary text-white shadow-subtle'

@@ -12,6 +12,7 @@ import { EvidencePanel } from '../evidence/EvidencePanel'
 interface ChatMessageProps {
   message: ChatMessageType
   isLast: boolean
+  onOpenEvidence?: () => void
 }
 
 /* ── Collapsible Profile Info ─────────────────────────────────────── */
@@ -155,7 +156,15 @@ function ActionButton({
   )
 }
 
-function AssistantMessage({ message, isLast }: { message: ChatMessageType; isLast: boolean }) {
+function AssistantMessage({
+  message,
+  isLast,
+  onOpenEvidence,
+}: {
+  message: ChatMessageType
+  isLast: boolean
+  onOpenEvidence?: () => void
+}) {
   const [done, setDone] = useState(!isLast)
   const [copied, setCopied] = useState(false)
   const [speaking, setSpeaking] = useState(false)
@@ -284,7 +293,11 @@ function AssistantMessage({ message, isLast }: { message: ChatMessageType; isLas
             </p>
             <div className="flex flex-wrap gap-2" role="list" aria-label="Citations">
               {citations.map((c) => (
-                <CitationBadge key={c.citationId} citation={c} />
+                <CitationBadge
+                  key={c.citationId}
+                  citation={c}
+                  onClick={onOpenEvidence}
+                />
               ))}
             </div>
           </div>
@@ -326,11 +339,11 @@ function AssistantMessage({ message, isLast }: { message: ChatMessageType; isLas
 }
 
 /* ── Exported Component ──────────────────────────────────────── */
-export function ChatMessage({ message, isLast }: ChatMessageProps) {
+export function ChatMessage({ message, isLast, onOpenEvidence }: ChatMessageProps) {
   if (message.role === 'user') {
     return <UserMessage content={message.content} />
   }
-  return <AssistantMessage message={message} isLast={isLast} />
+  return <AssistantMessage message={message} isLast={isLast} onOpenEvidence={onOpenEvidence} />
 }
 
 export default ChatMessage

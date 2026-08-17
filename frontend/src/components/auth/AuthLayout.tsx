@@ -8,14 +8,14 @@ interface AuthLayoutProps {
 }
 
 export function AuthLayout({ children, panel = true }: AuthLayoutProps) {
-  const { theme, toggleTheme } = useTheme()
+  // const { theme, toggleTheme } = useTheme()
 
   return (
     <div className="app-shell flex min-h-screen w-full lg:h-screen lg:overflow-hidden">
       <div className="flex w-full flex-col justify-center px-6 py-10 sm:px-10 lg:w-1/2 lg:px-14 xl:px-24">
         <div className="mb-8 flex items-center gap-2 lg:hidden">
-          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary text-white shadow-card">
-            <Activity className="h-5 w-5" aria-hidden="true" />
+           <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-primary text-white shadow-subtle transition-all duration-200 group-hover:shadow-card">
+            <img src="/logo.png" alt="MediMei" className="h-8 w-8 object-contain" />
           </div>
           <div className="leading-none">
             <div className="text-lg font-semibold text-fg">MediMei</div>

@@ -4,7 +4,11 @@ import { useChat } from '../../hooks/useChat'
 import { ChatMessage } from './ChatMessage'
 import { LoadingState } from './LoadingState'
 
-export function ChatWindow() {
+interface ChatWindowProps {
+  onOpenEvidence?: () => void
+}
+
+export function ChatWindow({ onOpenEvidence }: ChatWindowProps) {
   const { messages, isLoading, sendMessage } = useChat()
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -92,6 +96,7 @@ export function ChatWindow() {
               key={message.id}
               message={message}
               isLast={index === messages.length - 1}
+              onOpenEvidence={onOpenEvidence}
             />
           ))}
           {isLoading && <LoadingState />}

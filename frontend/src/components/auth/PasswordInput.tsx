@@ -20,7 +20,7 @@ export function PasswordInput({ label, error, ...props }: PasswordInputProps) {
       </label>
       <div className="relative">
         <Lock
-          className="pointer-events-none absolute left-3 h-4 w-4 text-text-tertiary"
+          className="pointer-events-none absolute top-1/2 -translate-y-1/2 left-3 h-4 w-4 text-text-tertiary"
           aria-hidden="true"
         />
         <input
