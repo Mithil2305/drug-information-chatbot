@@ -120,14 +120,14 @@ export function SavedComparisonsPanel({
       {/* Search Input Bar */}
       <div className="border-b border-border/80 p-3 bg-surface-warm/30">
         <div className="relative flex items-center">
-          <Search className="absolute left-3 h-3.5 w-3.5 text-fg-muted pointer-events-none" />
+          {!searchQuery && (<Search className="absolute right-3 h-3.5 w-3.5 text-fg-muted pointer-events-none" />)}
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by drug name or title…"
             aria-label="Search saved comparisons"
-            className="w-full rounded-xl border border-border bg-surface pl-8.5 pr-8 py-2 text-xs text-fg placeholder:text-fg-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+            className="w-full rounded-xl border border-border bg-surface pl-10 pr-8 py-2 text-xs text-fg placeholder:text-fg-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
           />
           {searchQuery && (
             <button
@@ -179,11 +179,10 @@ export function SavedComparisonsPanel({
               <div
                 key={item.id}
                 onClick={() => onSelectComparison(item)}
-                className={`group relative rounded-2xl border p-3.5 transition-all duration-200 cursor-pointer shadow-xs ${
-                  isActive
-                    ? 'border-primary bg-primary/5 shadow-subtle ring-1 ring-primary/20'
-                    : 'border-border bg-surface hover:border-primary/50 hover:bg-surface-highlight/40 hover:shadow-card'
-                }`}
+                className={`group relative rounded-2xl border p-3.5 transition-all duration-200 cursor-pointer shadow-xs ${isActive
+                  ? 'border-primary bg-primary/5 shadow-subtle ring-1 ring-primary/20'
+                  : 'border-border bg-surface hover:border-primary/50 hover:bg-surface-highlight/40 hover:shadow-card'
+                  }`}
               >
                 {/* Top Row: Title or Edit Input */}
                 <div className="flex items-start justify-between gap-2">
