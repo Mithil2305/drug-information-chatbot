@@ -9,6 +9,13 @@ from app.dependencies.llm import get_llm_client
 logger = logging.getLogger(__name__)
 
 
+def _safe_next(iterator):
+    try:
+        return next(iterator)
+    except StopIteration:
+        return None
+
+
 class LLMService:
     """
     Service that wraps the Qwen LLM client (llama_cpp or mock fallback).
@@ -110,10 +117,12 @@ class LLMService:
                 try:
                     while True:
                         await task_manager.raise_if_cancelled(task_id)
-                        token = await asyncio.to_thread(next, response)
+                        token = await asyncio.to_thread(_safe_next, response)
+                        if token is None:
+                            break
                         text_parts.append(self._token_text(token))
-                except StopIteration:
-                    pass
+                except Exception as exc:
+                    logger.debug("Exception in streaming loop: %s", exc)
                 return "".join(text_parts)
         except (TypeError, ValueError, AttributeError) as exc:
             logger.debug("LLM streaming not supported by client: %s", exc)
