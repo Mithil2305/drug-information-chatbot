@@ -41,13 +41,13 @@ interface StatItemProps {
 
 function StatItem({ icon: Icon, label, value, colorClass }: StatItemProps) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-3">
-      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface ${colorClass}`}>
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-4">
+      {/* <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-xl bg-surface ${colorClass}`}>
         <Icon className="h-4 w-4" />
-      </div>
+      </div> */}
       <div>
         <p className="text-[11px] font-bold uppercase tracking-wider text-fg-muted">{label}</p>
-        <p className="text-xl font-extrabold text-fg">{value}</p>
+        <p className="text-lg font-extrabold text-fg">{value}</p>
       </div>
     </div>
   )

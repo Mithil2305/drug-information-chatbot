@@ -24,6 +24,7 @@ import {
 } from '../api/memories'
 import type { UserMemory } from '../api/memories'
 import { MarkdownResponse } from '../components/common/MarkdownResponse'
+import { DeleteConfirmModal } from '../components/common/DeleteConfirmModal'
 import { toast } from 'sonner'
 
 interface MemoryCitation {
@@ -82,7 +83,7 @@ function MemoryItemCard({
   onDelete,
 }: {
   memory: UserMemory
-  onDelete: (id: string) => void
+  onDelete: (memory: UserMemory) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const parsed = parseMemoryContent(memory.content)
@@ -197,7 +198,7 @@ function MemoryItemCard({
                     <button
                       type="button"
                       onClick={() => setExpanded((prev) => !prev)}
-                      className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:text-accent transition-colors"
+                      className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:text-accent transition-colors cursor-pointer"
                     >
                       <span>{expanded ? 'Show less' : 'Show full details'}</span>
                       {expanded ? (
@@ -215,9 +216,9 @@ function MemoryItemCard({
 
         {/* Delete Button */}
         <button
-          onClick={() => onDelete(memory.memory_id)}
+          onClick={() => onDelete(memory)}
           type="button"
-          className="opacity-0 group-hover:opacity-100 flex h-7 w-7 items-center justify-center rounded-lg text-fg-muted hover:bg-danger/10 hover:text-danger transition-all duration-200 focus:opacity-100 shrink-0 self-start"
+          className="opacity-0 group-hover:opacity-100 flex h-7 w-7 items-center justify-center rounded-lg text-fg-muted hover:bg-danger/10 hover:text-danger transition-all duration-200 focus:opacity-100 shrink-0 self-start cursor-pointer"
           aria-label="Delete preference"
           title="Delete memory"
         >
@@ -236,7 +237,9 @@ export default function MemoryPage() {
   const [newMemoryText, setNewMemoryText] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [toggling, setToggling] = useState(false)
-  const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [pendingDeleteMemory, setPendingDeleteMemory] = useState<UserMemory | null>(null)
+  const [showClearConfirmModal, setShowClearConfirmModal] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   // Fetch memories on mount
   const fetchMemories = useCallback(async () => {
@@ -294,27 +297,35 @@ export default function MemoryPage() {
   }
 
   // Delete specific memory
-  const handleDeleteMemory = async (id: string) => {
+  const handleConfirmDeleteMemory = async () => {
+    if (!pendingDeleteMemory) return
+    setDeleting(true)
     try {
-      await deleteMemoryRequest(id)
-      setMemories((prev) => prev.filter((m) => m.memory_id !== id))
+      await deleteMemoryRequest(pendingDeleteMemory.memory_id)
+      setMemories((prev) => prev.filter((m) => m.memory_id !== pendingDeleteMemory.memory_id))
       toast.success('Memory deleted')
+      setPendingDeleteMemory(null)
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to delete memory'
       toast.error(errorMsg)
+    } finally {
+      setDeleting(false)
     }
   }
 
   // Clear all memories
-  const handleClearAll = async () => {
+  const handleConfirmClearAll = async () => {
+    setDeleting(true)
     try {
       await clearMemoriesRequest()
       setMemories([])
-      setShowClearConfirm(false)
+      setShowClearConfirmModal(false)
       toast.success('All memories cleared')
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to clear memories'
       toast.error(errorMsg)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -459,33 +470,14 @@ export default function MemoryPage() {
 
                 {/* Clear All Dialog Trigger */}
                 {memories.length > 0 && (
-                  <div className="relative shrink-0 w-full sm:w-auto">
-                    {showClearConfirm ? (
-                      <div className="flex items-center gap-2 bg-surface border border-danger/30 rounded-xl p-1 animate-fade-in">
-                        <span className="text-[10px] font-bold text-danger px-2">Are you sure?</span>
-                        <button
-                          onClick={handleClearAll}
-                          className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-danger text-white hover:bg-danger-hover transition-colors"
-                        >
-                          Yes, clear
-                        </button>
-                        <button
-                          onClick={() => setShowClearConfirm(false)}
-                          className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-surface-highlight text-fg hover:bg-border transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setShowClearConfirm(true)}
-                        className="w-full sm:w-auto flex items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 py-2 text-xs font-bold text-danger hover:bg-danger/5 transition-colors"
-                      >
-                        <Trash className="h-3.5 w-3.5" />
-                        Clear All Memories
-                      </button>
-                    )}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowClearConfirmModal(true)}
+                    className="w-full sm:w-auto flex items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 py-2 text-xs font-bold text-danger hover:bg-danger/5 transition-colors cursor-pointer"
+                  >
+                    <Trash className="h-3.5 w-3.5" />
+                    Clear All Memories
+                  </button>
                 )}
               </div>
 
@@ -513,7 +505,7 @@ export default function MemoryPage() {
                     <MemoryItemCard
                       key={m.memory_id}
                       memory={m}
-                      onDelete={handleDeleteMemory}
+                      onDelete={(mem) => setPendingDeleteMemory(mem)}
                     />
                   ))
                 )}
@@ -533,6 +525,57 @@ export default function MemoryPage() {
           </section>
         </div>
       </div>
+
+      {/* Delete Single Memory Modal */}
+      {(() => {
+        const parsedPending = pendingDeleteMemory
+          ? parseMemoryContent(pendingDeleteMemory.content)
+          : null
+
+        return (
+          <DeleteConfirmModal
+            open={!!pendingDeleteMemory}
+            title="Delete memory preference?"
+            subtitle="This action cannot be undone."
+            itemTitle={
+              parsedPending
+                ? parsedPending.isQA
+                  ? `Q: ${parsedPending.question}`
+                  : (parsedPending as ParsedPlain).content
+                : undefined
+            }
+            itemSubtitle={
+              parsedPending && parsedPending.isQA ? (
+                <span className="line-clamp-2">{parsedPending.answer}</span>
+              ) : undefined
+            }
+            description="Are you sure you want to delete this preference? It will no longer guide or personalize MediMei's responses."
+            confirmText="Delete Memory"
+            cancelText="Cancel"
+            loading={deleting}
+            onConfirm={handleConfirmDeleteMemory}
+            onCancel={() => {
+              if (!deleting) setPendingDeleteMemory(null)
+            }}
+          />
+        )
+      })()}
+
+      {/* Clear All Memories Modal */}
+      <DeleteConfirmModal
+        open={showClearConfirmModal}
+        title="Clear all memories?"
+        subtitle="This action cannot be undone."
+        itemTitle={`All ${memories.length} saved memories and preferences`}
+        description="Are you sure you want to wipe all stored user preferences, conversational memories, and custom rules? MediMei will reset to default answering style."
+        confirmText="Clear All Memories"
+        cancelText="Cancel"
+        loading={deleting}
+        onConfirm={handleConfirmClearAll}
+        onCancel={() => {
+          if (!deleting) setShowClearConfirmModal(false)
+        }}
+      />
     </ChatLayout>
   )
 }

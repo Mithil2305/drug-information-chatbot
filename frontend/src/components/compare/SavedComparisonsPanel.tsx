@@ -11,6 +11,7 @@ import {
   Layers,
   ChevronRight,
 } from 'lucide-react'
+import { DeleteConfirmModal } from '../common/DeleteConfirmModal'
 import type { SavedComparison } from '../../types/comparison'
 
 interface SavedComparisonsPanelProps {
@@ -33,6 +34,7 @@ export function SavedComparisonsPanel({
   const [searchQuery, setSearchQuery] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitleValue, setEditTitleValue] = useState('')
+  const [pendingDelete, setPendingDelete] = useState<SavedComparison | null>(null)
 
   // Filter comparisons based on search query
   const filteredList = useMemo(() => {
@@ -65,9 +67,15 @@ export function SavedComparisonsPanel({
     setEditingId(null)
   }
 
-  const handleDelete = (e: React.MouseEvent, id: string) => {
+  const handleDeleteClick = (e: React.MouseEvent, item: SavedComparison) => {
     e.stopPropagation()
-    onDeleteComparison(id)
+    setPendingDelete(item)
+  }
+
+  const handleConfirmDelete = () => {
+    if (!pendingDelete) return
+    onDeleteComparison(pendingDelete.id)
+    setPendingDelete(null)
   }
 
   const formatDate = (isoString: string) => {
@@ -234,9 +242,9 @@ export function SavedComparisonsPanel({
                         </button>
                         <button
                           type="button"
-                          onClick={(e) => handleDelete(e, item.id)}
+                          onClick={(e) => handleDeleteClick(e, item)}
                           title="Delete comparison"
-                          className="flex h-6 w-6 items-center justify-center rounded-lg text-fg-muted hover:bg-danger/10 hover:text-danger transition-colors"
+                          className="flex h-6 w-6 items-center justify-center rounded-lg text-fg-muted hover:bg-danger/10 hover:text-danger transition-colors cursor-pointer"
                         >
                           <Trash2 className="h-3 w-3" />
                         </button>
@@ -289,6 +297,26 @@ export function SavedComparisonsPanel({
           })
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        open={!!pendingDelete}
+        title="Delete comparison?"
+        subtitle="This action cannot be undone."
+        itemTitle={pendingDelete?.title}
+        itemSubtitle={
+          pendingDelete ? (
+            <span className="font-semibold text-primary">
+              {pendingDelete.drug1Name} <span className="text-fg-muted font-normal">vs</span> {pendingDelete.drug2Name}
+            </span>
+          ) : undefined
+        }
+        description="Are you sure you want to delete this saved comparison report? You can generate a new comparison between these drugs at any time."
+        confirmText="Delete Comparison"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </aside>
   )
 }
