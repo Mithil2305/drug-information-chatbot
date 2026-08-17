@@ -233,7 +233,8 @@ async def simulate_processing_task(
 
             chunk_count = await create_chunks(
                 document_id,
-                db
+                db,
+                task_id=task_id,
             )
 
             logger.info(

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,6 +8,7 @@ from app.models.chunk import Chunk
 from app.models.document import Document
 from app.services.embeddings.embedding_service import embedding_service
 from app.repositories.qdrant_repository import qdrant_repository
+from app.core.task_manager import task_manager, TaskCancelledError
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +42,8 @@ def split_text(text):
 
 async def create_chunks(
     document_id: str,
-    db: AsyncSession
+    db: AsyncSession,
+    task_id: str = "",
 ):
     """
     Chunk document page text, save chunks to MySQL, generate embeddings,
@@ -71,7 +74,10 @@ async def create_chunks(
     await db.execute(
         delete(Chunk).where(Chunk.document_id == document_id)
     )
-    await qdrant_repository.delete_document_chunks(document_id)
+    try:
+        await qdrant_repository.delete_document_chunks(document_id)
+    except Exception as exc:
+        logger.warning(f"Qdrant cleanup failed for {document_id}: {exc}")
     await db.flush()
 
     # 4. Perform text chunking on each page
@@ -108,12 +114,22 @@ async def create_chunks(
     )
     db_chunks = chunks_result.scalars().all()
 
-    # 6. Batch embed all chunk texts for utmost efficiency
+    # 6. Batch embed all chunk texts (offloaded to thread so event loop stays responsive)
+    await task_manager.raise_if_cancelled(task_id)
     logger.info(f"Generating embeddings for {len(db_chunks)} chunks of document: {doc.file_name}")
     chunk_texts = [c.chunk_text for c in db_chunks]
-    embeddings = embedding_service.create_embeddings(chunk_texts)
+    try:
+        embeddings = await asyncio.to_thread(
+            embedding_service.create_embeddings, chunk_texts
+        )
+    except Exception as exc:
+        logger.error(f"Embedding generation failed for {document_id}: {exc}")
+        # Chunks are saved in MySQL; Qdrant indexing will be skipped.
+        return total_chunks
 
-    # 7. Index chunks in Qdrant Vector DB
+    await task_manager.raise_if_cancelled(task_id)
+
+    # 7. Index chunks in Qdrant Vector DB (best-effort — chunks are already in MySQL)
     logger.info(f"Indexing {len(db_chunks)} chunks in Qdrant for document: {doc.file_name}")
 
     # Make sure Qdrant collection is created with the real model dimension.
@@ -132,7 +148,13 @@ async def create_chunks(
             "embedding": emb
         })
 
-    await qdrant_repository.add_chunks(qdrant_chunks)
-    logger.info(f"Successfully chunked and indexed {total_chunks} chunks for document: {doc.file_name}")
+    try:
+        await qdrant_repository.add_chunks(qdrant_chunks)
+        logger.info(f"Successfully chunked and indexed {total_chunks} chunks for document: {doc.file_name}")
+    except Exception as exc:
+        logger.warning(
+            f"Qdrant indexing failed for {document_id}: {exc}. "
+            f"Chunks saved to MySQL but not vector-indexed."
+        )
 
     return total_chunks

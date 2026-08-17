@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import types
 from typing import Optional
 
 from app.core.config import settings

@@ -122,6 +122,27 @@ async def post_chat_message(
     current_user: User = Depends(get_current_user)
 ):
 
+    try:
+        return await _post_chat_message_impl(
+            request, x_task_id, db, embedding_model, qdrant_client, rag_service, current_user
+        )
+    except TaskCancelledError:
+        raise HTTPException(
+            status_code=499,
+            detail="Chat cancelled by user."
+        )
+
+
+async def _post_chat_message_impl(
+    request: ChatRequest,
+    x_task_id: str,
+    db: AsyncSession,
+    embedding_model: Any,
+    qdrant_client: Any,
+    rag_service: RAGService,
+    current_user: User,
+):
+
     # ---------------------------------------------------------
     # 1. Get existing session
     # ---------------------------------------------------------
