@@ -30,7 +30,7 @@ frontend/.env
 *.pt
 *.onnx
 data/models/
-models/
+/models/
 .paddleocr/
 .cache/
 
