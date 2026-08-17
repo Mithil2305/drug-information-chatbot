@@ -2,7 +2,7 @@ import logging
 import json
 from typing import List, Dict, Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Header, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -13,6 +13,7 @@ from app.models.document import Document
 from app.schemas.chat import ChatRequest, ChatResponse, SessionResponse, MessageResponse, SessionCreate, SessionUpdate
 from app.schemas.evidence import Citation
 from app.services.chat.rag_service import RAGService
+from app.core.task_manager import TaskCancelledError
 from app.dependencies.embeddings import get_embedding_model
 from app.dependencies.qdrant import get_qdrant_client
 from app.repositories.qdrant_repository import qdrant_repository
@@ -113,6 +114,7 @@ async def mock_evidence_retrieval(
 @router.post("", response_model=ChatResponse)
 async def post_chat_message(
     request: ChatRequest,
+    x_task_id: str = Header(default=""),
     db: AsyncSession = Depends(get_db_session),
     embedding_model: Any = Depends(get_embedding_model),
     qdrant_client: Any = Depends(get_qdrant_client),
@@ -467,7 +469,8 @@ async def post_chat_message(
     rag_result = await rag_service.answer_with_evidence(
         request.message,
         evidence_chunks,
-        memories=memory_records if current_user.memory_enabled else None
+        memories=memory_records if current_user.memory_enabled else None,
+        task_id=x_task_id,
     )
     answer_text = rag_result["answer"]
     grounded = rag_result["grounded"]

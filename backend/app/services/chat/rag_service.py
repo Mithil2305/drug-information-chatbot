@@ -3,6 +3,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 from app.core.config import settings
+from app.core.task_manager import task_manager, TaskCancelledError
 from app.services.chat.citation_mapper import CitationMapper
 from app.services.chat.evidence_context_builder import EvidenceContextBuilder
 from app.services.llm.llm_service import LLMService
@@ -43,7 +44,9 @@ class RAGService:
         version: Optional[str] = None,
         score_threshold: Optional[float] = None,
         memories: Optional[List[Dict[str, Any]]] = None,
+        task_id: Optional[str] = None,
     ) -> Dict[str, Any]:
+        await task_manager.raise_if_cancelled(task_id)
         """
         Orchestrate retrieval, context preparation, prompting, generation,
         citation mapping, and grounding validation.
@@ -81,9 +84,11 @@ class RAGService:
         prompt = self.prompt_builder.build(question, evidence_context)
 
         # 4. Generate an answer with Qwen.
+        await task_manager.raise_if_cancelled(task_id)
         gen_start = time.perf_counter()
         try:
             answer = self.llm_service.generate(prompt)
+            await task_manager.raise_if_cancelled(task_id)
         except Exception as exc:
             logger.error("LLM generation failed: %s", exc)
             return {
@@ -139,7 +144,9 @@ class RAGService:
         question: str,
         evidence: List[Dict[str, Any]],
         memories: Optional[List[Dict[str, Any]]] = None,
+        task_id: Optional[str] = None,
     ) -> Dict[str, Any]:
+        await task_manager.raise_if_cancelled(task_id)
         """
         Generate an answer from already-retrieved evidence.
         Useful when the retrieval is performed by another route or service.
@@ -155,9 +162,11 @@ class RAGService:
         evidence_context, citation_map = self.context_builder.build(all_evidence)
         prompt = self.prompt_builder.build(question, evidence_context)
 
+        await task_manager.raise_if_cancelled(task_id)
         gen_start = time.perf_counter()
         try:
             answer = self.llm_service.generate(prompt)
+            await task_manager.raise_if_cancelled(task_id)
         except Exception as exc:
             logger.error("LLM generation failed: %s", exc)
             return {

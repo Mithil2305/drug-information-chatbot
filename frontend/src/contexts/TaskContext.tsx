@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { apiFetch } from '../api/client'
 import type { TaskState, TaskType } from '../types/task'
 
 const STORAGE_KEY = 'medimei-current-task'
@@ -62,10 +63,15 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       const controller = new AbortController()
       abortControllerRef.current = controller
 
+      const taskId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+      ;(window as any).__medimeiTaskId = taskId
+
+      const payloadWithId = { ...payload, taskId }
+
       setCurrentTask({
         type,
         status: 'running',
-        payload,
+        payload: payloadWithId,
       })
 
       try {
@@ -99,6 +105,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         if (abortControllerRef.current === controller) {
           abortControllerRef.current = null
         }
+        ;(window as any).__medimeiTaskId = null
       }
 
       return true
@@ -106,10 +113,19 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     [currentTask.status],
   )
 
-  const cancelTask = useCallback(() => {
+  const cancelTask = useCallback(async () => {
+    const taskId = (typeof window !== 'undefined' && (window as any).__medimeiTaskId) as string | undefined
+    if (!taskId) return
+
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
       abortControllerRef.current = null
+    }
+
+    try {
+      await apiFetch<void>(`/api/v1/tasks/${taskId}/cancel`, { method: 'POST' })
+    } catch {
+      // Ignore network errors — the abort controller already stops the UI.
     }
   }, [])
 

@@ -10,6 +10,7 @@ from fastapi import (
     UploadFile,
     File,
     BackgroundTasks,
+    Header,
     status
 )
 from fastapi.responses import FileResponse
@@ -35,6 +36,7 @@ from app.services.pdf.extractor import extract_pdf_pages
 from app.services.chunking.chunker import create_chunks
 
 from app.core.config import settings
+from app.core.task_manager import task_manager, TaskCancelledError
 
 
 logger = logging.getLogger(__name__)
@@ -67,7 +69,8 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 async def simulate_processing_task(
     document_id: str,
-    db_session_factory
+    db_session_factory,
+    task_id: str = "",
 ):
     """
     Process document:
@@ -91,6 +94,8 @@ async def simulate_processing_task(
 
         try:
 
+            await task_manager.raise_if_cancelled(task_id)
+
             # -----------------------------------------
             # 1. Find document
             # -----------------------------------------
@@ -109,6 +114,8 @@ async def simulate_processing_task(
                 )
                 return
 
+            await task_manager.raise_if_cancelled(task_id)
+
 
             # -----------------------------------------
             # 2. Update status
@@ -118,6 +125,7 @@ async def simulate_processing_task(
 
             await db.commit()
 
+            await task_manager.raise_if_cancelled(task_id)
 
             # -----------------------------------------
             # 3. Find uploaded PDF
@@ -144,6 +152,8 @@ async def simulate_processing_task(
             # -----------------------------------------
 
             pages = extract_pdf_pages(file_path)
+
+            await task_manager.raise_if_cancelled(task_id)
 
             if not pages:
 
@@ -174,12 +184,15 @@ async def simulate_processing_task(
 
             await db.flush()
 
+            await task_manager.raise_if_cancelled(task_id)
 
             # -----------------------------------------
             # 6. Save extracted pages
             # -----------------------------------------
 
             for page in pages:
+
+                await task_manager.raise_if_cancelled(task_id)
 
                 document_page = DocumentPage(
                     document_id=document_id,
@@ -204,6 +217,8 @@ async def simulate_processing_task(
             # 7. Create chunks
             # -----------------------------------------
 
+            await task_manager.raise_if_cancelled(task_id)
+
             chunk_count = await create_chunks(
                 document_id,
                 db
@@ -214,6 +229,7 @@ async def simulate_processing_task(
                 f"for document {document_id}"
             )
 
+            await task_manager.raise_if_cancelled(task_id)
 
             # -----------------------------------------
             # 8. Mark document completed
@@ -228,6 +244,23 @@ async def simulate_processing_task(
                 f"{document_id}"
             )
 
+
+        except TaskCancelledError:
+            logger.info("Document processing cancelled for %s", document_id)
+            try:
+                await db.rollback()
+                result = await db.execute(
+                    select(Document).filter(
+                        Document.document_id == document_id
+                    )
+                )
+                doc = result.scalar_one_or_none()
+                if doc:
+                    doc.status = "failed"
+                    await db.commit()
+            except Exception:
+                await db.rollback()
+            return
 
         except Exception as e:
 
@@ -281,6 +314,7 @@ async def upload_document(
     file: UploadFile = File(...),
     source: str = None,
     version: str = "1.0",
+    x_task_id: str = Header(default=""),
     db: AsyncSession = Depends(get_db_session)
 ):
 
@@ -408,7 +442,8 @@ async def upload_document(
     background_tasks.add_task(
         simulate_processing_task,
         doc_id,
-        get_db_session
+        get_db_session,
+        task_id=x_task_id,
     )
 
 
@@ -512,6 +547,7 @@ async def get_document(
 async def process_document(
     document_id: str,
     background_tasks: BackgroundTasks,
+    x_task_id: str = Header(default=""),
     db: AsyncSession = Depends(get_db_session)
 ):
 
@@ -553,7 +589,8 @@ async def process_document(
     background_tasks.add_task(
         simulate_processing_task,
         document_id,
-        get_db_session
+        get_db_session,
+        task_id=x_task_id,
     )
 
 

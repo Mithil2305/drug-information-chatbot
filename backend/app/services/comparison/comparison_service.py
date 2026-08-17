@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.core.config import settings
+from app.core.task_manager import task_manager, TaskCancelledError
 from app.models.document import Document
 from app.models.document_page import DocumentPage
 from app.schemas.comparison import (
@@ -74,7 +75,12 @@ class ComparisonService:
         self.citation_mapper = citation_mapper or CitationMapper()
         self.batch_size = batch_size or ATTRIBUTE_BATCH_SIZE
 
-    async def compare(self, request: ComparisonRequest, db: AsyncSession) -> ComparisonResult:
+    async def compare(
+        self,
+        request: ComparisonRequest,
+        db: AsyncSession,
+        task_id: Optional[str] = None,
+    ) -> ComparisonResult:
         drug1_id = request.drug1_id
         drug2_id = request.drug2_id
 
@@ -111,6 +117,7 @@ class ComparisonService:
             drug2_id,
             drug1_info.name,
             drug2_info.name,
+            task_id=task_id,
         )
 
         summary = self._build_summary(attributes)
@@ -159,10 +166,13 @@ class ComparisonService:
         drug2_id: str,
         drug1_name: str,
         drug2_name: str,
+        task_id: Optional[str] = None,
     ) -> List[ComparisonAttribute]:
+        await task_manager.raise_if_cancelled(task_id)
+
         # 1. Gather evidence for all candidate attributes in parallel.
         tasks = [
-            self._gather_evidence(key, label, drug1_id, drug2_id)
+            self._gather_evidence(key, label, drug1_id, drug2_id, task_id=task_id)
             for key, label in ATTRIBUTE_LABELS
         ]
         evidence_list = await asyncio.gather(*tasks)
@@ -185,6 +195,7 @@ class ComparisonService:
                 batch,
                 drug1_name,
                 drug2_name,
+                task_id=task_id,
             )
             attributes.extend(batch_attrs)
 
@@ -203,7 +214,9 @@ class ComparisonService:
         label: str,
         drug1_id: str,
         drug2_id: str,
+        task_id: Optional[str] = None,
     ) -> Tuple[str, str, List[Dict[str, Any]], List[Dict[str, Any]]]:
+        await task_manager.raise_if_cancelled(task_id)
         results1, results2 = await asyncio.gather(
             self.search_service.search(
                 query=label,
@@ -225,7 +238,9 @@ class ComparisonService:
         batch: List[Tuple[str, str, List[Dict[str, Any]], List[Dict[str, Any]]]],
         drug1_name: str,
         drug2_name: str,
+        task_id: Optional[str] = None,
     ) -> List[ComparisonAttribute]:
+        await task_manager.raise_if_cancelled(task_id)
         evidence: List[Tuple[str, str, str, Dict[str, Dict[str, Any]]]] = []
 
         for key, label, results1, results2 in batch:
@@ -246,12 +261,15 @@ class ComparisonService:
 
         prompt = self._build_batch_prompt(evidence, drug1_name, drug2_name)
 
+        await task_manager.raise_if_cancelled(task_id)
+
         try:
             answer = self.llm_service.generate(
                 prompt,
                 max_new_tokens=min(512, 128 * len(evidence)),
                 temperature=0.1,
             )
+            await task_manager.raise_if_cancelled(task_id)
         except Exception as exc:
             logger.warning("LLM batch generation failed: %s", exc)
             return [
