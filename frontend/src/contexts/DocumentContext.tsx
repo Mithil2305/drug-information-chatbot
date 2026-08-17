@@ -101,8 +101,8 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
     const started = await startTask(
       'document',
       { name: tempDoc.name, tempId },
-      async () => {
-        const res = await uploadDocumentApi(file)
+      async (signal) => {
+        const res = await uploadDocumentApi(file, signal)
         const mapped = mapBackendDoc(res.document)
         setDocuments((prev) =>
           prev.map((d) => (d.id === tempId ? mapped : d)),
@@ -110,13 +110,14 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
 
         const id = mapped.id
         while (true) {
-          const status = await getDocumentStatus(id)
+          const status = await getDocumentStatus(id, signal)
           if (status.status === 'completed' || status.status === 'failed') {
-            const fresh = await fetchDocuments()
+            const fresh = await fetchDocuments(signal)
             setDocuments(fresh.map(mapBackendDoc))
             toast.success(`Successfully uploaded "${tempDoc.name}"`)
             return status
           }
+          if (signal.aborted) throw new DOMException('Cancelled by user', 'AbortError')
           await new Promise((resolve) => setTimeout(resolve, 3000))
         }
       },

@@ -1,11 +1,12 @@
 import { apiFetch } from './client'
 import type { Document } from '../types/document'
 
-export const fetchDocuments = () => apiFetch<Document[]>('/api/v1/documents')
-export const uploadDocument = (file: File) => {
+export const fetchDocuments = (signal?: AbortSignal) =>
+  apiFetch<Document[]>('/api/v1/documents', { signal })
+export const uploadDocument = (file: File, signal?: AbortSignal) => {
   const formData = new FormData()
   formData.append('file', file)
-  return apiFetch<{ document: any; message: string }>('/api/v1/documents/upload', { method: 'POST', body: formData })
+  return apiFetch<{ document: any; message: string }>('/api/v1/documents/upload', { method: 'POST', body: formData, signal })
 }
 export const deleteDocument = (id: string) =>
   apiFetch<void>(`/api/v1/documents/${id}`, { method: 'DELETE' })
@@ -16,9 +17,10 @@ export const updateDocument = (id: string, source: string) =>
     body: JSON.stringify({ source }),
   })
 
-export const getDocumentStatus = (id: string) =>
+export const getDocumentStatus = (id: string, signal?: AbortSignal) =>
   apiFetch<{ document_id: string; status: string; stage: string; message: string }>(
-    `/api/v1/documents/${id}/status`
+    `/api/v1/documents/${id}/status`,
+    { signal },
   )
 
 export const viewDocumentUrl = (id: string) => {

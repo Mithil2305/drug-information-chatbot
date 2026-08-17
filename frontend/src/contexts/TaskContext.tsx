@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { TaskState, TaskType } from '../types/task'
 
 const STORAGE_KEY = 'medimei-current-task'
@@ -9,8 +9,9 @@ interface TaskContextValue {
   startTask: <T>(
     type: NonNullable<TaskType>,
     payload: Record<string, unknown>,
-    runner: () => Promise<T>,
+    runner: (signal: AbortSignal) => Promise<T>,
   ) => Promise<boolean>
+  cancelTask: () => void
   completeTask: (result?: unknown) => void
   failTask: (error: string) => void
   resetTask: () => void
@@ -38,6 +39,7 @@ function getInitialTask(): TaskState {
 
 export function TaskProvider({ children }: { children: ReactNode }) {
   const [currentTask, setCurrentTask] = useState<TaskState>(getInitialTask)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     if (currentTask.status === 'idle') {
@@ -51,11 +53,14 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     async <T,>(
       type: NonNullable<TaskType>,
       payload: Record<string, unknown>,
-      runner: () => Promise<T>,
+      runner: (signal: AbortSignal) => Promise<T>,
     ): Promise<boolean> => {
       if (currentTask.status === 'running') {
         return false
       }
+
+      const controller = new AbortController()
+      abortControllerRef.current = controller
 
       setCurrentTask({
         type,
@@ -64,7 +69,10 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       })
 
       try {
-        const result = await runner()
+        const result = await runner(controller.signal)
+        if (controller.signal.aborted) {
+          return false
+        }
         setCurrentTask({
           type,
           status: 'success',
@@ -72,18 +80,38 @@ export function TaskProvider({ children }: { children: ReactNode }) {
           result,
         })
       } catch (err: any) {
+        if (err?.name === 'AbortError' || controller.signal.aborted) {
+          setCurrentTask({
+            type,
+            status: 'error',
+            payload,
+            error: 'Cancelled by user',
+          })
+          return false
+        }
         setCurrentTask({
           type,
           status: 'error',
           payload,
           error: err?.message || 'Task failed.',
         })
+      } finally {
+        if (abortControllerRef.current === controller) {
+          abortControllerRef.current = null
+        }
       }
 
       return true
     },
     [currentTask.status],
   )
+
+  const cancelTask = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+  }, [])
 
   const completeTask = useCallback((result?: unknown) => {
     setCurrentTask((prev) =>
@@ -110,6 +138,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       value={{
         currentTask,
         startTask,
+        cancelTask,
         completeTask,
         failTask,
         resetTask,

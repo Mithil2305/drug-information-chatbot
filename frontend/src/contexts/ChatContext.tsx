@@ -87,7 +87,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     void startTask(
       'chat',
       { message: content.trim(), documentIds },
-      async () => {
+      async (signal) => {
         const trimmed = content.trim()
         const userMessage: ChatMessage = {
           id: makeId(),
@@ -100,18 +100,21 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
         if (!sessionId) {
           const title = trimmed.slice(0, 30) + (trimmed.length > 30 ? '…' : '')
-          const session = await createSession(title)
+          const session = await createSession(title, signal)
           sessionId = String(session.session_id)
           setConversations((prev) => [toConversationSummary(session), ...prev])
           setActiveConversationId(sessionId)
           window.history.replaceState(null, '', `/chat/${sessionId}`)
         }
 
-        const response = await sendChatMessage({
-          message: trimmed,
-          session_id: sessionId,
-          document_ids: documentIds,
-        })
+        const response = await sendChatMessage(
+          {
+            message: trimmed,
+            session_id: sessionId,
+            document_ids: documentIds,
+          },
+          signal,
+        )
 
         const assistantMessage: ChatMessage = {
           id: String(response.message_id),

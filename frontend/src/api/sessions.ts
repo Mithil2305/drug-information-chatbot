@@ -11,14 +11,15 @@ export interface SessionResponse {
 export const listSessions = () =>
   apiFetch<SessionResponse[]>('/api/v1/sessions')
 
-export const createSession = (summary?: string) =>
+export const createSession = (summary?: string, signal?: AbortSignal) =>
   apiFetch<SessionResponse>('/api/v1/sessions', {
     method: 'POST',
     body: summary ? JSON.stringify({ summary }) : undefined,
+    signal,
   })
 
-export const getSession = (sessionId: string) =>
-  apiFetch<SessionResponse>(`/api/v1/sessions/${sessionId}`)
+export const getSession = (sessionId: string, signal?: AbortSignal) =>
+  apiFetch<SessionResponse>(`/api/v1/sessions/${sessionId}`, { signal })
 
 export const updateSession = (sessionId: string, summary: string) =>
   apiFetch<SessionResponse>(`/api/v1/sessions/${sessionId}`, {

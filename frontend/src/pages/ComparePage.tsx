@@ -95,8 +95,8 @@ export default function ComparePage() {
       return
     }
 
-    const started = await startTask('compare', { drug1Id, drug2Id }, async () =>
-      compareDrugs(drug1Id, drug2Id),
+    const started = await startTask('compare', { drug1Id, drug2Id }, async (signal) =>
+      compareDrugs(drug1Id, drug2Id, signal),
     )
     if (!started) {
       setValidationMsg('Another task is in progress. Please wait or go to that page.')
