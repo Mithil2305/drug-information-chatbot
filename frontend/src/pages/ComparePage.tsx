@@ -12,15 +12,18 @@ import { ComparisonSaveBar } from '../components/compare/ComparisonSaveBar'
 import { useDocuments } from '../hooks/useDocuments'
 import { useChat } from '../hooks/useChat'
 import { useUI } from '../hooks/useUI'
+import { useTask } from '../hooks/useTask'
 import { useSavedComparisons } from '../hooks/useSavedComparisons'
 import { compareDrugs } from '../services/comparisonService'
 import type { ComparisonResult, ComparisonCitation, SavedComparison } from '../types/comparison'
+import type { CompareTaskPayload } from '../types/task'
 import medicalDocumentsImage from '../assets/documents.png'
 
 export default function ComparePage() {
   const { documents } = useDocuments()
   const { setSelectedCitation } = useChat()
   const { isMobile } = useUI()
+  const { currentTask, startTask } = useTask()
   const {
     savedList,
     saveComparison,
@@ -33,22 +36,41 @@ export default function ComparePage() {
 
   const [drug1Id, setDrug1Id] = useState<string | null>(null)
   const [drug2Id, setDrug2Id] = useState<string | null>(null)
-  const [result, setResult] = useState<ComparisonResult | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [validationMsg, setValidationMsg] = useState<string | null>(null)
 
   const [savedPanelOpen, setSavedPanelOpen] = useState(false)
   const [activeSavedId, setActiveSavedId] = useState<string | null>(null)
 
-  // Invalidate previous comparison when either drug changes manually
+  const isComparing = currentTask.type === 'compare' && currentTask.status === 'running'
+  const isTaskRunning = currentTask.status === 'running'
+  const isBlocked = isTaskRunning && currentTask.type !== 'compare'
+
+  const taskResult =
+    !activeSavedId && currentTask.type === 'compare' && currentTask.status === 'success'
+      ? (currentTask.result as ComparisonResult)
+      : null
+
+  const taskError =
+    !activeSavedId && currentTask.type === 'compare' && currentTask.status === 'error'
+      ? currentTask.error || 'Comparison failed.'
+      : null
+
+  const savedResult = activeSavedId
+    ? savedList.find((s) => s.id === activeSavedId)?.result
+    : null
+
+  const result = savedResult || taskResult
+  const error = activeSavedId ? null : taskError
+
+  // Restore an in-progress or completed comparison from the global task state.
   useEffect(() => {
-    if (!activeSavedId) {
-      setResult(null)
-      setError(null)
+    if (currentTask.type === 'compare' && currentTask.payload && !activeSavedId) {
+      const payload = (currentTask.payload as unknown) as CompareTaskPayload
+      setDrug1Id(payload.drug1Id)
+      setDrug2Id(payload.drug2Id)
       setValidationMsg(null)
     }
-  }, [drug1Id, drug2Id, activeSavedId])
+  }, [])
 
   const handleSwap = useCallback(() => {
     setActiveSavedId(null)
@@ -73,19 +95,13 @@ export default function ComparePage() {
       return
     }
 
-    setLoading(true)
-    setError(null)
-    setResult(null)
-
-    try {
-      const res = await compareDrugs(drug1Id, drug2Id)
-      setResult(res)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Comparison failed.')
-    } finally {
-      setLoading(false)
+    const started = await startTask('compare', { drug1Id, drug2Id }, async () =>
+      compareDrugs(drug1Id, drug2Id),
+    )
+    if (!started) {
+      setValidationMsg('Another task is in progress. Please wait or go to that page.')
     }
-  }, [drug1Id, drug2Id])
+  }, [drug1Id, drug2Id, startTask])
 
   const handleCitationClick = useCallback(
     (citation: ComparisonCitation) => {
@@ -108,9 +124,7 @@ export default function ComparePage() {
     (saved: SavedComparison) => {
       setDrug1Id(saved.drug1Id)
       setDrug2Id(saved.drug2Id)
-      setResult(saved.result)
       setActiveSavedId(saved.id)
-      setError(null)
       setValidationMsg(null)
       if (isMobile) {
         setSavedPanelOpen(false)
@@ -178,6 +192,22 @@ export default function ComparePage() {
               </div>
             </section>
 
+            {/* Blocked Task Alert */}
+            {isBlocked && (
+              <div
+                role="alert"
+                className="flex items-center gap-2 rounded-xl border border-warning/30 bg-warning/5 px-4 py-2.5 text-sm text-warning animate-fade-in"
+              >
+                <span className="font-semibold">
+                  {currentTask.type === 'chat'
+                    ? 'An AI chat is in progress. Wait or switch to the chat page.'
+                    : currentTask.type === 'document'
+                      ? 'A document is being processed. Wait or switch to documents.'
+                      : 'Another task is in progress. Please wait.'}
+                </span>
+              </div>
+            )}
+
             {/* Drug Selector */}
             <DrugSelector
               documents={readyDocs}
@@ -193,7 +223,7 @@ export default function ComparePage() {
               }}
               onSwap={handleSwap}
               onCompare={handleCompare}
-              loading={loading}
+              loading={isTaskRunning}
             />
 
             {/* Validation message */}
@@ -207,8 +237,8 @@ export default function ComparePage() {
             )}
 
             {/* Results Area */}
-            <section aria-live="polite" aria-busy={loading} className="space-y-5 pb-8">
-              {loading ? (
+            <section aria-live="polite" aria-busy={isComparing} className="space-y-5 pb-8">
+              {isComparing ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm font-semibold text-primary">
                     <Loader2 className="h-4 w-4 animate-spin" />

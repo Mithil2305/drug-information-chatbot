@@ -1,0 +1,121 @@
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useCallback, useEffect, useState, type ReactNode } from 'react'
+import type { TaskState, TaskType } from '../types/task'
+
+const STORAGE_KEY = 'medimei-current-task'
+
+interface TaskContextValue {
+  currentTask: TaskState
+  startTask: <T>(
+    type: NonNullable<TaskType>,
+    payload: Record<string, unknown>,
+    runner: () => Promise<T>,
+  ) => Promise<boolean>
+  completeTask: (result?: unknown) => void
+  failTask: (error: string) => void
+  resetTask: () => void
+}
+
+export const TaskContext = createContext<TaskContextValue | null>(null)
+
+function getInitialTask(): TaskState {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return { type: null, status: 'idle' }
+    const parsed: TaskState = JSON.parse(raw)
+    if (parsed.status === 'running') {
+      return {
+        ...parsed,
+        status: 'error',
+        error: 'The task was interrupted (page reloaded). Please retry.',
+      }
+    }
+    return parsed
+  } catch {
+    return { type: null, status: 'idle' }
+  }
+}
+
+export function TaskProvider({ children }: { children: ReactNode }) {
+  const [currentTask, setCurrentTask] = useState<TaskState>(getInitialTask)
+
+  useEffect(() => {
+    if (currentTask.status === 'idle') {
+      localStorage.removeItem(STORAGE_KEY)
+    } else {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(currentTask))
+    }
+  }, [currentTask])
+
+  const startTask = useCallback(
+    async <T,>(
+      type: NonNullable<TaskType>,
+      payload: Record<string, unknown>,
+      runner: () => Promise<T>,
+    ): Promise<boolean> => {
+      if (currentTask.status === 'running') {
+        return false
+      }
+
+      setCurrentTask({
+        type,
+        status: 'running',
+        payload,
+      })
+
+      try {
+        const result = await runner()
+        setCurrentTask({
+          type,
+          status: 'success',
+          payload,
+          result,
+        })
+      } catch (err: any) {
+        setCurrentTask({
+          type,
+          status: 'error',
+          payload,
+          error: err?.message || 'Task failed.',
+        })
+      }
+
+      return true
+    },
+    [currentTask.status],
+  )
+
+  const completeTask = useCallback((result?: unknown) => {
+    setCurrentTask((prev) =>
+      prev.type
+        ? { ...prev, status: 'success', result }
+        : { type: null, status: 'idle' },
+    )
+  }, [])
+
+  const failTask = useCallback((error: string) => {
+    setCurrentTask((prev) =>
+      prev.type
+        ? { ...prev, status: 'error', error }
+        : { type: null, status: 'idle' },
+    )
+  }, [])
+
+  const resetTask = useCallback(() => {
+    setCurrentTask({ type: null, status: 'idle' })
+  }, [])
+
+  return (
+    <TaskContext.Provider
+      value={{
+        currentTask,
+        startTask,
+        completeTask,
+        failTask,
+        resetTask,
+      }}
+    >
+      {children}
+    </TaskContext.Provider>
+  )
+}

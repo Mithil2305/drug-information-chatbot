@@ -2,6 +2,7 @@ import { Menu } from 'lucide-react'
 import { MobileSidebar } from './MobileSidebar'
 import { Sidebar } from './Sidebar'
 import { useUI } from '../../hooks/useUI'
+import { GlobalTaskIndicator } from '../common/GlobalTaskIndicator'
 
 interface ChatLayoutProps {
   children: React.ReactNode
@@ -43,6 +44,7 @@ export function ChatLayout({ children }: ChatLayoutProps) {
         )}
 
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+          <GlobalTaskIndicator />
           {children}
         </div>
       </main>

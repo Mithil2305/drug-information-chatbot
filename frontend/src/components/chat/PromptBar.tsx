@@ -2,6 +2,7 @@ import { useRef, useState, useEffect, useLayoutEffect } from 'react'
 import { Send, Mic, Loader2, FolderOpen } from 'lucide-react'
 import { useChat } from '../../hooks/useChat'
 import { useDocuments } from '../../hooks/useDocuments'
+import { useTask } from '../../hooks/useTask'
 import { useSearchParams } from 'react-router-dom'
 import { useVoiceInput } from '../../hooks/useVoiceInput'
 import { DocumentSelectorModal } from './DocumentSelectorModal'
@@ -19,6 +20,10 @@ export function PromptBar() {
   const valueRef = useRef('')
   const { sendMessage, isLoading, clearChat } = useChat()
   const { documents } = useDocuments()
+  const { currentTask } = useTask()
+
+  const isTaskRunning = currentTask.status === 'running'
+  const isBlocked = isTaskRunning && currentTask.type !== 'chat'
   const [searchParams] = useSearchParams()
 
   const { listening, toggleListening } = useVoiceInput({
@@ -65,10 +70,11 @@ export function PromptBar() {
     }
   }, [value, expanded])
 
-  const canSubmit = !isLoading && !!value.trim()
+  const canSubmit = !isLoading && !isTaskRunning && !!value.trim()
 
   const handleSubmit = () => {
     if (!canSubmit) return
+    if (isTaskRunning) return
     sendMessage(value.trim(), selectedDocIds)
     setValue('')
     setAttachments([])
@@ -99,6 +105,18 @@ export function PromptBar() {
 
   return (
     <div className="w-full">
+      {isBlocked && (
+        <div
+          role="alert"
+          className="mb-2 flex items-center gap-2 rounded-xl border border-warning/30 bg-warning/5 px-4 py-2 text-xs font-semibold text-warning"
+        >
+          {currentTask.type === 'compare'
+            ? 'A comparison is in progress. Wait or switch to Compare.'
+            : currentTask.type === 'document'
+              ? 'A document is being processed. Wait or switch to Documents.'
+              : 'Another task is in progress. Please wait.'}
+        </div>
+      )}
       <SelectedDocChips
         selectedDocs={selectedDocs}
         allSelected={allSelected}
@@ -153,7 +171,7 @@ export function PromptBar() {
             onKeyDown={handleKeyDown}
             placeholder={listening ? 'Listening…' : 'Ask about dosage, warnings, contraindications…'}
             aria-label="Ask about medication"
-            disabled={isLoading}
+            disabled={isLoading || isTaskRunning}
             className={`min-h-7 max-h-[40px] w-full resize-none bg-transparent px-1 py-[5px] text-[13px] leading-[18px] text-fg outline-none placeholder:text-fg-muted ${
               expanded ? 'col-span-full col-start-2 row-start-1' : 'col-start-2 row-start-1'
             }`}

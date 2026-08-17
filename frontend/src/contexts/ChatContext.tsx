@@ -1,8 +1,9 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useState, useEffect, useRef, type ReactNode } from 'react'
+import { createContext, useState, useEffect, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import type { ChatMessage, Citation } from '../types/chat'
 import { useConversations } from '../hooks/useConversations'
+import { useTask } from '../hooks/useTask'
 import { sendMessage as sendChatMessage } from '../api/chat'
 import { createSession, getSession, toConversationSummary } from '../api/sessions'
 
@@ -39,12 +40,11 @@ function mapCitations(raw: any[] | undefined): Citation[] {
 
 export function ChatProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [isLoading, setIsLoading] = useState(false)
   const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null)
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null)
-  const sendingRef = useRef(false)
 
   const { activeConversationId, setConversations, setActiveConversationId } = useConversations()
+  const { currentTask, startTask } = useTask()
 
   // Clear messages when no active conversation
   useEffect(() => {
@@ -55,10 +55,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
   }, [activeConversationId])
 
+  const isLoading = currentTask.type === 'chat' && currentTask.status === 'running'
+
   // Load messages when a conversation is selected
   useEffect(() => {
     if (!activeConversationId) return
-    if (isLoading || sendingRef.current) return
+    if (isLoading) return
     const load = async () => {
       try {
         const session = await getSession(activeConversationId)
@@ -79,68 +81,60 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     load()
   }, [activeConversationId])
 
-  const sendMessage = async (content: string, documentIds?: string[]) => {
+  const sendMessage = (content: string, documentIds?: string[]) => {
     if (!content.trim() || isLoading) return
-    sendingRef.current = true
 
-    const userMessage: ChatMessage = {
-      id: makeId(),
-      role: 'user',
-      content: content.trim(),
-    }
-    setMessages((prev) => [...prev, userMessage])
-    setIsLoading(true)
+    void startTask(
+      'chat',
+      { message: content.trim(), documentIds },
+      async () => {
+        const trimmed = content.trim()
+        const userMessage: ChatMessage = {
+          id: makeId(),
+          role: 'user',
+          content: trimmed,
+        }
+        setMessages((prev) => [...prev, userMessage])
 
-    let sessionId = activeConversationId
+        let sessionId = activeConversationId
 
-    if (!sessionId) {
-      try {
-        const title = content.trim().slice(0, 30) + (content.trim().length > 30 ? '…' : '')
-        const session = await createSession(title)
-        sessionId = String(session.session_id)
-        setConversations((prev) => [toConversationSummary(session), ...prev])
-        setActiveConversationId(sessionId)
-        window.history.replaceState(null, '', `/chat/${sessionId}`)
-      } catch (err: any) {
-        toast.error(err.message || 'Failed to start chat session')
-        setIsLoading(false)
-        return
-      }
-    }
+        if (!sessionId) {
+          const title = trimmed.slice(0, 30) + (trimmed.length > 30 ? '…' : '')
+          const session = await createSession(title)
+          sessionId = String(session.session_id)
+          setConversations((prev) => [toConversationSummary(session), ...prev])
+          setActiveConversationId(sessionId)
+          window.history.replaceState(null, '', `/chat/${sessionId}`)
+        }
 
-    try {
-      const response = await sendChatMessage({
-        message: content.trim(),
-        session_id: sessionId,
-        document_ids: documentIds,
-      })
+        const response = await sendChatMessage({
+          message: trimmed,
+          session_id: sessionId,
+          document_ids: documentIds,
+        })
 
-      const assistantMessage: ChatMessage = {
-        id: String(response.message_id),
-        role: 'assistant',
-        content: response.answer,
-        citations: mapCitations(response.citations),
-        status: response.grounded ? 'grounded' : 'insufficient_evidence',
-        memoriesUpdated: response.memories_updated || undefined,
-        memoriesUsed: response.memories_used || undefined,
-      }
+        const assistantMessage: ChatMessage = {
+          id: String(response.message_id),
+          role: 'assistant',
+          content: response.answer,
+          citations: mapCitations(response.citations),
+          status: response.grounded ? 'grounded' : 'insufficient_evidence',
+          memoriesUpdated: response.memories_updated || undefined,
+          memoriesUsed: response.memories_used || undefined,
+        }
 
-      setMessages((prev) => [...prev, assistantMessage])
-      setSelectedMessageId(assistantMessage.id)
-      if (assistantMessage.citations && assistantMessage.citations.length > 0) {
-        setSelectedCitation(assistantMessage.citations[0])
-      }
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to send message')
-    } finally {
-      setIsLoading(false)
-      sendingRef.current = false
-    }
+        setMessages((prev) => [...prev, assistantMessage])
+        setSelectedMessageId(assistantMessage.id)
+        if (assistantMessage.citations && assistantMessage.citations.length > 0) {
+          setSelectedCitation(assistantMessage.citations[0])
+        }
+
+        return assistantMessage
+      },
+    )
   }
-
   const clearChat = () => {
     setMessages([])
-    setIsLoading(false)
     setSelectedCitation(null)
     setSelectedMessageId(null)
     setActiveConversationId(null)

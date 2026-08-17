@@ -3,9 +3,11 @@ import { createContext, useMemo, useState, useEffect, type ReactNode } from 'rea
 import { toast } from 'sonner'
 import type { Document } from '../types/document'
 import { useAuth } from '../hooks/useAuth'
+import { useTask } from '../hooks/useTask'
 import {
   fetchDocuments,
   uploadDocument as uploadDocumentApi,
+  getDocumentStatus,
   deleteDocument as deleteDocumentApi,
   updateDocument as updateDocumentApi,
 } from '../api/documents'
@@ -26,6 +28,7 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
   const [documents, setDocuments] = useState<Document[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const { user } = useAuth()
+  const { startTask } = useTask()
 
   const mapBackendDoc = (doc: any): Document => ({
     id: doc.document_id,
@@ -95,14 +98,32 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
     }
     setDocuments((prev) => [tempDoc, ...prev])
 
-    try {
-      const res = await uploadDocumentApi(file)
-      setDocuments((prev) =>
-        prev.map((d) => (d.id === tempId ? mapBackendDoc(res.document) : d)),
-      )
-      toast.success(`Successfully uploaded "${tempDoc.name}"`)
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to upload document')
+    const started = await startTask(
+      'document',
+      { name: tempDoc.name, tempId },
+      async () => {
+        const res = await uploadDocumentApi(file)
+        const mapped = mapBackendDoc(res.document)
+        setDocuments((prev) =>
+          prev.map((d) => (d.id === tempId ? mapped : d)),
+        )
+
+        const id = mapped.id
+        while (true) {
+          const status = await getDocumentStatus(id)
+          if (status.status === 'completed' || status.status === 'failed') {
+            const fresh = await fetchDocuments()
+            setDocuments(fresh.map(mapBackendDoc))
+            toast.success(`Successfully uploaded "${tempDoc.name}"`)
+            return status
+          }
+          await new Promise((resolve) => setTimeout(resolve, 3000))
+        }
+      },
+    )
+
+    if (!started) {
+      toast.error('Another task is in progress. Please wait or switch to that page.')
       setDocuments((prev) => prev.filter((d) => d.id !== tempId))
     }
   }
