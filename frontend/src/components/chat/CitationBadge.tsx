@@ -4,6 +4,7 @@ import { useChat } from '../../hooks/useChat'
 
 interface CitationBadgeProps {
   citation: Citation
+  onClick?: () => void
 }
 
 export function CitationBadge({ citation }: CitationBadgeProps) {

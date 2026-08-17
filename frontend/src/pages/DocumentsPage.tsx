@@ -84,6 +84,13 @@ export default function DocumentsPage() {
         </div>
       </div>
 
+
+
+
+
+
+
+
       <DeleteDocumentDialog
         document={pendingDelete}
         onCancel={() => setPendingDelete(null)}

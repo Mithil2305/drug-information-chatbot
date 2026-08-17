@@ -31,3 +31,14 @@ export function DocumentStatus({ status }: DocumentStatusProps) {
     </span>
   )
 }
+
+
+
+
+
+
+
+
+
+
+

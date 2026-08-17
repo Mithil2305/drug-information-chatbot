@@ -16,21 +16,30 @@ import SignUpPage from './pages/SignUpPage'
 import MemoryPage from './pages/MemoryPage'
 import { useTheme } from './hooks/useTheme'
 
+
 function ThemedToaster() {
   const { theme } = useTheme()
-
   return (
     <Toaster
       position="bottom-right"
       theme={theme}
       toastOptions={{
-        style: {
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          color: 'var(--color-foreground)',
-          borderRadius: '14px',
-          fontSize: '13px',
-          boxShadow: 'var(--shadow-card)',
+        style: theme === 'dark' ? {
+          background: '#171A21',
+          border: '1px solid #292E38',
+          color: '#F1F3F7',
+          borderRadius: '6px',
+          fontSize: '12px',
+          fontFamily: 'Inter, sans-serif',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)',
+        } : {
+          background: '#FFFFFF',
+          border: '1px solid #D8E2EE',
+          color: '#0F172A',
+          borderRadius: '6px',
+          fontSize: '12px',
+          fontFamily: 'Inter, sans-serif',
+          boxShadow: '0 4px 16px rgba(15, 23, 42, 0.08)',
         },
       }}
     />
@@ -117,6 +126,7 @@ function App() {
 
                     {/* Auth Routes */}
                     <Route path="/signin" element={<SignInPage />} />
+                    <Route path="/login" element={<SignInPage />} />
                     <Route path="/signup" element={<SignUpPage />} />
                     <Route path="/login" element={<SignInPage />} />
                     <Route path="/register" element={<SignUpPage />} />
@@ -136,4 +146,6 @@ function App() {
   )
 }
 
+
 export default App
+

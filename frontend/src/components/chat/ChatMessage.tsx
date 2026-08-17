@@ -7,6 +7,7 @@ import type { ChatMessage as ChatMessageType } from '../../types/chat'
 import { CitationBadge } from './CitationBadge'
 import { FollowUpList } from './FollowUpList'
 import { StreamingText } from './StreamingText'
+import { EvidencePanel } from '../evidence/EvidencePanel'
 
 interface ChatMessageProps {
   message: ChatMessageType
@@ -134,10 +135,12 @@ function ActionButton({
   onClick,
   icon: Icon,
   label,
+  active,
 }: {
   onClick: () => void
   icon: LucideIcon
   label: string
+  active?: boolean
 }) {
   return (
     <button

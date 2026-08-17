@@ -1,5 +1,6 @@
-import { Activity } from 'lucide-react'
+import { Activity, Moon, Sun } from 'lucide-react'
 import { AuthBrandPanel } from './AuthBrandPanel'
+import { useTheme } from '../../hooks/useTheme'
 
 interface AuthLayoutProps {
   children: React.ReactNode
@@ -7,6 +8,8 @@ interface AuthLayoutProps {
 }
 
 export function AuthLayout({ children, panel = true }: AuthLayoutProps) {
+  const { theme, toggleTheme } = useTheme()
+
   return (
     <div className="app-shell flex min-h-screen w-full lg:h-screen lg:overflow-hidden">
       <div className="flex w-full flex-col justify-center px-6 py-10 sm:px-10 lg:w-1/2 lg:px-14 xl:px-24">
@@ -30,3 +33,6 @@ export function AuthLayout({ children, panel = true }: AuthLayoutProps) {
     </div>
   )
 }
+
+
+

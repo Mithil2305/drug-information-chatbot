@@ -84,6 +84,7 @@ export function ChatWindow() {
           />
 
         </div>
+
       ) : (
         <div className="mx-auto max-w-3xl space-y-7 px-4 py-8 pb-6 sm:px-6 lg:px-8">
           {messages.map((message, index) => (

@@ -4,8 +4,8 @@ import { useChat } from '../../hooks/useChat'
 import { useConversations } from '../../hooks/useConversations'
 import { useDocuments } from '../../hooks/useDocuments'
 import { useUI } from '../../hooks/useUI'
-import { RecentChats } from './RecentChats'
 import { SidebarHeader } from './SidebarHeader'
+import { RecentChats } from './RecentChats'
 import { UserProfile } from './UserProfile'
 import ThemeToggle from '../common/ThemeToggle'
 import { ThemeToggle as ThemeToggleLong } from './ThemeToggle'
@@ -15,9 +15,9 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onClose }: SidebarProps) {
-  const { sidebarCollapsed } = useUI()
   const { clearChat } = useChat()
   const { newConversation } = useConversations()
+  const { sidebarCollapsed } = useUI()
   const navigate = useNavigate();
   useDocuments()
   const location = useLocation()

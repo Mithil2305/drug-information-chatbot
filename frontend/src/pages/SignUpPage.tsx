@@ -187,6 +187,13 @@ export default function SignUpPage() {
           </Link>
         </p>
       </div>
+
+
+
     </AuthLayout>
   )
 }
+
+
+
+

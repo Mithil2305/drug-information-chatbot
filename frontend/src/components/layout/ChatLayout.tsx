@@ -1,15 +1,16 @@
 import { Menu } from 'lucide-react'
-import { useUI } from '../../hooks/useUI'
 import { MobileSidebar } from './MobileSidebar'
 import { Sidebar } from './Sidebar'
+import { TopHeader } from './TopHeader'
+import { useUI } from '../../hooks/useUI'
 
 interface ChatLayoutProps {
   children: React.ReactNode
+  title?: string
 }
 
-export function ChatLayout({ children }: ChatLayoutProps) {
+export function ChatLayout({ children, title }: ChatLayoutProps) {
   const { isMobile, toggleSidebar } = useUI()
-
   return (
     <div className="app-shell flex h-screen w-full overflow-hidden text-fg">
       <div className="hidden shrink-0 lg:block lg:sticky lg:top-0 lg:h-screen">

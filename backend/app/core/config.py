@@ -6,7 +6,8 @@ class Settings(BaseSettings):
     APP_NAME: str = "MediMei"
     ENVIRONMENT: str = "development"
 
-    # MySQL Database Settings
+    # Database Settings
+    DATABASE_URL: Optional[str] = None
     MYSQL_HOST: str = "localhost"
     MYSQL_PORT: int = 3306
     MYSQL_DATABASE: str = "MediMei"

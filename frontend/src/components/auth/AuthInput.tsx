@@ -16,9 +16,9 @@ export function AuthInput({ label, icon: Icon, error, className, ...props }: Aut
       >
         {label}
       </label>
-      <div className="relative">
+      <div className="relative flex items-center">
         <Icon
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-muted"
+          className="pointer-events-none absolute left-3 h-4 w-4 text-text-tertiary"
           aria-hidden="true"
         />
         <input
