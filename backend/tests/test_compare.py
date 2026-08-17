@@ -100,6 +100,9 @@ def test_compare_documents_not_ready(client, mock_db):
 def test_compare_documents_success(client, mock_db):
     _setup_docs(mock_db)
 
+    original_batch_size = comparison_service.batch_size
+    comparison_service.batch_size = 1
+
     original_generate = comparison_service.llm_service.generate
     comparison_service.llm_service.generate = MagicMock(
         return_value=(
@@ -156,4 +159,5 @@ def test_compare_documents_success(client, mock_db):
     finally:
         comparison_service.llm_service.generate = original_generate
         comparison_service.search_service.search = original_search
+        comparison_service.batch_size = original_batch_size
 

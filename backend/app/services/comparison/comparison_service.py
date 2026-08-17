@@ -45,6 +45,8 @@ ATTRIBUTE_LABELS: List[Tuple[str, str]] = [
 WARNING_KEYS = {"warnings", "contraindications", "pregnancy"}
 HIGHLIGHT_KEYS = {"dosage_administration"}
 
+ATTRIBUTE_BATCH_SIZE = 3
+
 
 class ComparisonInputError(Exception):
     """Raised for invalid comparison requests (maps to an HTTPException in the route)."""
@@ -64,11 +66,13 @@ class ComparisonService:
         context_builder: Optional[EvidenceContextBuilder] = None,
         llm_service: Optional[LLMService] = None,
         citation_mapper: Optional[CitationMapper] = None,
+        batch_size: Optional[int] = None,
     ):
         self.search_service = search_service or SemanticSearchService()
         self.context_builder = context_builder or EvidenceContextBuilder()
         self.llm_service = llm_service or LLMService()
         self.citation_mapper = citation_mapper or CitationMapper()
+        self.batch_size = batch_size or ATTRIBUTE_BATCH_SIZE
 
     async def compare(self, request: ComparisonRequest, db: AsyncSession) -> ComparisonResult:
         drug1_id = request.drug1_id
@@ -102,24 +106,12 @@ class ComparisonService:
         drug1_info = await self._build_drug_info(db, docs[drug1_id])
         drug2_info = await self._build_drug_info(db, docs[drug2_id])
 
-        attributes: List[ComparisonAttribute] = []
-        for key, label in ATTRIBUTE_LABELS:
-            drug1_cell, drug2_cell = await self._compare_attribute(
-                key,
-                label,
-                drug1_id,
-                drug2_id,
-                drug1_info.name,
-                drug2_info.name,
-            )
-            attributes.append(
-                ComparisonAttribute(
-                    key=key,
-                    label=label,
-                    drug1=drug1_cell,
-                    drug2=drug2_cell,
-                )
-            )
+        attributes = await self._build_attributes(
+            drug1_id,
+            drug2_id,
+            drug1_info.name,
+            drug2_info.name,
+        )
 
         summary = self._build_summary(attributes)
 
@@ -161,100 +153,200 @@ class ComparisonService:
             page_count=page_count,
         )
 
-    async def _compare_attribute(
+    async def _build_attributes(
+        self,
+        drug1_id: str,
+        drug2_id: str,
+        drug1_name: str,
+        drug2_name: str,
+    ) -> List[ComparisonAttribute]:
+        # 1. Gather evidence for all candidate attributes in parallel.
+        tasks = [
+            self._gather_evidence(key, label, drug1_id, drug2_id)
+            for key, label in ATTRIBUTE_LABELS
+        ]
+        evidence_list = await asyncio.gather(*tasks)
+
+        # 2. Keep only sections present in at least one document.
+        present_evidence = [
+            (key, label, results1, results2)
+            for key, label, results1, results2 in evidence_list
+            if results1 or results2
+        ]
+
+        if not present_evidence:
+            return []
+
+        # 3. Generate comparison cells in batches.
+        attributes: List[ComparisonAttribute] = []
+        for i in range(0, len(present_evidence), self.batch_size):
+            batch = present_evidence[i : i + self.batch_size]
+            batch_attrs = await self._generate_batch(
+                batch,
+                drug1_name,
+                drug2_name,
+            )
+            attributes.extend(batch_attrs)
+
+        return attributes
+
+    async def _gather_evidence(
         self,
         key: str,
         label: str,
         drug1_id: str,
         drug2_id: str,
-        drug1_name: str,
-        drug2_name: str,
-    ) -> Tuple[ComparisonCell, ComparisonCell]:
+    ) -> Tuple[str, str, List[Dict[str, Any]], List[Dict[str, Any]]]:
         results1, results2 = await asyncio.gather(
             self.search_service.search(
                 query=label,
-                top_k=2,
+                top_k=1,
                 document_ids=[drug1_id],
                 score_threshold=settings.MIN_RELEVANCE_SCORE,
             ),
             self.search_service.search(
                 query=label,
-                top_k=2,
+                top_k=1,
                 document_ids=[drug2_id],
                 score_threshold=settings.MIN_RELEVANCE_SCORE,
             ),
         )
+        return key, label, results1, results2
 
-        unavailable_cell = ComparisonCell(
-            content="Not available in source document.",
-            citations=[],
-            status="unavailable",
-        )
+    async def _generate_batch(
+        self,
+        batch: List[Tuple[str, str, List[Dict[str, Any]], List[Dict[str, Any]]]],
+        drug1_name: str,
+        drug2_name: str,
+    ) -> List[ComparisonAttribute]:
+        evidence: List[Tuple[str, str, str, Dict[str, Dict[str, Any]]]] = []
 
-        if not results1 and not results2:
-            return unavailable_cell, unavailable_cell
+        for key, label, results1, results2 in batch:
+            combined: List[Dict[str, Any]] = []
+            if results1:
+                combined.extend(results1)
+            if results2:
+                combined.extend(results2)
 
-        evidence = []
-        if results1:
-            evidence.extend(results1)
-        if results2:
-            evidence.extend(results2)
+            if not combined:
+                continue
 
-        context, citation_map = self.context_builder.build(evidence)
-        prompt = self._build_prompt(label, drug1_name, drug2_name, context)
+            context, citation_map = self.context_builder.build(combined)
+            evidence.append((key, label, context, citation_map))
+
+        if not evidence:
+            return []
+
+        prompt = self._build_batch_prompt(evidence, drug1_name, drug2_name)
 
         try:
             answer = self.llm_service.generate(
                 prompt,
-                max_new_tokens=512,
+                max_new_tokens=min(512, 128 * len(evidence)),
                 temperature=0.1,
             )
         except Exception as exc:
-            logger.warning("LLM generation failed for section '%s': %s", key, exc)
-            return unavailable_cell, unavailable_cell
+            logger.warning("LLM batch generation failed: %s", exc)
+            return [
+                ComparisonAttribute(
+                    key=key,
+                    label=label,
+                    drug1=ComparisonCell(
+                        content="Not available in source document.",
+                        citations=[],
+                        status="unavailable",
+                    ),
+                    drug2=ComparisonCell(
+                        content="Not available in source document.",
+                        citations=[],
+                        status="unavailable",
+                    ),
+                )
+                for key, label, _, _ in evidence
+            ]
 
-        drug1_text, drug2_text = self._split_answer(answer)
+        cell_texts = self._parse_batch_answer(answer, len(evidence))
 
-        if not drug1_text.strip():
-            drug1_text = "Not available in source document."
-        if not drug2_text.strip():
-            drug2_text = "Not available in source document."
+        attributes: List[ComparisonAttribute] = []
+        for (key, label, context, citation_map), (drug1_text, drug2_text) in zip(
+            evidence, cell_texts
+        ):
+            cell1 = self._build_cell(drug1_text, citation_map, key)
+            cell2 = self._build_cell(drug2_text, citation_map, key)
+            attributes.append(
+                ComparisonAttribute(
+                    key=key,
+                    label=label,
+                    drug1=cell1,
+                    drug2=cell2,
+                )
+            )
 
-        cell1 = self._build_cell(drug1_text, citation_map, key)
-        cell2 = self._build_cell(drug2_text, citation_map, key)
-
-        return cell1, cell2
+        return attributes
 
     @staticmethod
-    def _build_prompt(
-        label: str,
+    def _build_batch_prompt(
+        evidence: List[Tuple[str, str, str, Dict[str, Dict[str, Any]]]],
         drug1_name: str,
         drug2_name: str,
-        context: str,
     ) -> str:
+        blocks = []
+        for i, (key, label, context, _) in enumerate(evidence, 1):
+            block = (
+                f"Section {i}: {label}\n"
+                f"Drug 1: {drug1_name}\n"
+                f"Drug 2: {drug2_name}\n"
+                f"=== Evidence ===\n"
+                f"{context}\n"
+                f"DRUG1: <1-2 sentence summary with citations>\n"
+                f"DRUG2: <1-2 sentence summary with citations>"
+            )
+            blocks.append(block)
+
         return (
-            "You are MediMei, a clinical assistant. Compare one section of two drug labels using ONLY the evidence below. "
-            "Do not use outside knowledge, do not infer unsupported dosages, and do not fabricate citations. "
-            "Cite sources with [S1], [S2], etc. Be concise: 1-2 short sentences per drug. "
-            "If the evidence lacks information for a drug, write exactly: 'Not available in source document.'\n\n"
-            f"Section: {label}\n"
-            f"Drug 1: {drug1_name}\n"
-            f"Drug 2: {drug2_name}\n\n"
-            "=== Evidence ===\n"
-            f"{context}\n\n"
-            "=== Answer format ===\n"
-            "DRUG1: [summary of drug 1 with citations]\n"
-            "DRUG2: [summary of drug 2 with citations]\n\n"
-            "=== Answer ===\n"
+            "You are MediMei, a clinical assistant. Compare the following sections of two drug labels. "
+            "Use ONLY the evidence under each section. Do not use outside knowledge, do not infer unsupported dosages, "
+            "and do not fabricate citations. Cite relevant sources using the [S1], [S2], etc. markers from that section. "
+            "Be concise: 1-2 short sentences per drug. "
+            "If the evidence does not contain information for a drug, write exactly: 'Not available in source document.'\n\n"
+            + "\n---\n".join(blocks)
+            + "\n\n=== Answer ===\n"
         )
 
     @staticmethod
+    def _parse_batch_answer(
+        answer: str,
+        expected_count: int,
+    ) -> List[Tuple[str, str]]:
+        answer = answer.strip()
+
+        # The prompt uses '---' as a section separator.
+        parts = re.split(r"\n---\s*\n", answer)
+
+        if len(parts) != expected_count:
+            # If the model omitted separators, try splitting on blank lines.
+            parts = re.split(r"\n\s*\n", answer)
+
+        results: List[Tuple[str, str]] = []
+        for part in parts[:expected_count]:
+            drug1, drug2 = ComparisonService._split_answer(part)
+            if not drug1.strip():
+                drug1 = "Not available in source document."
+            if not drug2.strip():
+                drug2 = "Not available in source document."
+            results.append((drug1, drug2))
+
+        # Pad if the model returned fewer blocks than expected.
+        while len(results) < expected_count:
+            results.append(("Not available in source document.", "Not available in source document."))
+
+        return results
+
+    @staticmethod
     def _split_answer(answer: str) -> Tuple[str, str]:
-        # Strip any think blocks or reasoning
-        if "</think>" in answer:
-            answer = answer.split("</think>")[-1].strip()
-        elif "<think>" in answer:
-            answer = answer.split("<think>")[0].strip()
+        # Strip Qwen control token if present.
+        if " thinking" in answer:
+            answer = answer.split(" thinking")[-1].strip()
 
         answer = answer.strip()
 
