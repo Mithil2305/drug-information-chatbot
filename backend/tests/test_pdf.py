@@ -129,3 +129,33 @@ async def test_extract_pdf_pages_with_image_triggers_ocr():
         mock_ocr_page.assert_called_once_with(mock_page, 1, "doc-001")
 
 
+@pytest.mark.asyncio
+async def test_extract_pdf_pages_with_image_ocr_failure_falls_back_to_pymupdf():
+    mock_page = _make_mock_page("Standard PyMuPDF text fallback content.")
+    mock_page.get_images.return_value = [("dummy_xref", 0, 0, 0, 0, "img", "DCTDecode", 0)]
+
+    mock_doc = MagicMock()
+    mock_doc.__iter__.return_value = iter([mock_page])
+
+    with patch("fitz.open") as mock_open, \
+         patch("app.services.pdf.ocr.OCRService.ocr_page") as mock_ocr_page:
+
+        mock_open.return_value = mock_doc
+        mock_ocr_page.return_value = {
+            "text": None,
+            "confidence": None,
+            "extraction_method": "paddleocr_failed",
+        }
+
+        pages = await extract_pdf_pages("fake_path.pdf", document_id="doc-001")
+
+        assert len(pages) == 1
+        assert pages[0]["document_id"] == "doc-001"
+        assert pages[0]["page_no"] == 1
+        assert pages[0]["text"] == "Standard PyMuPDF text fallback content."
+        assert pages[0]["extraction_method"] == "pymupdf"
+        assert pages[0]["image_count"] == 1
+        mock_ocr_page.assert_called_once_with(mock_page, 1, "doc-001")
+
+
+

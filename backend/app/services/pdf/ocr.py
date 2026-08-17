@@ -39,7 +39,6 @@ class OCRService:
                 self._ocr = PaddleOCR(
                     lang="en",
                     device=device_str,
-                    max_side_limit=5000,
                 )
                 logger.info("PaddleOCR 3.x initialized successfully with device=%s", device_str)
             except Exception as inner_exc:
@@ -50,7 +49,6 @@ class OCRService:
                     lang="en",
                     use_gpu=use_gpu and has_gpu,
                     show_log=False,
-                    max_side_limit=5000,
                 )
                 logger.info("PaddleOCR legacy initialized successfully")
         except Exception as exc:
@@ -96,7 +94,7 @@ class OCRService:
             if hasattr(self._ocr, "predict"):
                 result = self._ocr.predict(image_np)
             else:
-                result = self._ocr.ocr(image_np, cls=True)
+                result = self._ocr.ocr(image_np, cls=True, max_side_limit=5000)
 
             return self._parse_ocr_result(list(result) if result is not None else [])
         except Exception as exc:
@@ -120,7 +118,7 @@ class OCRService:
             if hasattr(self._ocr, "predict"):
                 result = self._ocr.predict(str(image_path))
             else:
-                result = self._ocr.ocr(str(image_path), cls=True)
+                result = self._ocr.ocr(str(image_path), cls=True, max_side_limit=5000)
 
             return self._parse_ocr_result(list(result) if result is not None else [])
         except Exception as exc:
