@@ -82,24 +82,24 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   }, [activeConversationId])
 
   const sendMessage = (content: string, documentIds?: string[]) => {
-    if (!content.trim() || isLoading) return
+    const lowercased = content.trim().toLowerCase()
+    if (!lowercased || isLoading) return
 
     void startTask(
       'chat',
-      { message: content.trim(), documentIds },
+      { message: lowercased, documentIds },
       async (signal) => {
-        const trimmed = content.trim()
         const userMessage: ChatMessage = {
           id: makeId(),
           role: 'user',
-          content: trimmed,
+          content: lowercased,
         }
         setMessages((prev) => [...prev, userMessage])
 
         let sessionId = activeConversationId
 
         if (!sessionId) {
-          const title = trimmed.slice(0, 30) + (trimmed.length > 30 ? '…' : '')
+          const title = lowercased.slice(0, 30) + (lowercased.length > 30 ? '…' : '')
           const session = await createSession(title, signal)
           sessionId = String(session.session_id)
           setConversations((prev) => [toConversationSummary(session), ...prev])
@@ -109,7 +109,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
         const response = await sendChatMessage(
           {
-            message: trimmed,
+            message: lowercased,
             session_id: sessionId,
             document_ids: documentIds,
           },

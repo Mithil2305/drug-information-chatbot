@@ -18,6 +18,7 @@ from app.dependencies.embeddings import get_embedding_model
 from app.dependencies.qdrant import get_qdrant_client
 from app.repositories.qdrant_repository import qdrant_repository
 from app.services.chat.memory_service import memory_service
+from app.services.pdf.cleaner import clean_text
 
 def get_rag_service() -> RAGService:
     return RAGService()
@@ -142,6 +143,8 @@ async def _post_chat_message_impl(
     rag_service: RAGService,
     current_user: User,
 ):
+    if request.message:
+        request.message = request.message.strip().lower()
 
     # ---------------------------------------------------------
     # 1. Get existing session
