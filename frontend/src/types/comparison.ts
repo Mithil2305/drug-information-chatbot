@@ -41,6 +41,18 @@ export interface ComparisonResult {
   summary?: ComparisonSummary
 }
 
+export interface SavedComparison {
+  id: string
+  title: string
+  drug1Id: string
+  drug2Id: string
+  drug1Name: string
+  drug2Name: string
+  savedAt: string
+  notes?: string
+  result: ComparisonResult
+}
+
 export const COMPARISON_ATTRIBUTE_KEYS = [
   'indications',
   'dosage_administration',
