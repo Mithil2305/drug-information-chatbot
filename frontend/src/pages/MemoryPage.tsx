@@ -9,7 +9,9 @@ import {
   Trash,
   Check,
   AlertTriangle,
-  FileText
+  FileText,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import { ChatLayout } from '../components/layout/ChatLayout'
 import { useAuth } from '../contexts/AuthContext'
@@ -18,16 +20,27 @@ import {
   createMemoryRequest,
   deleteMemoryRequest,
   clearMemoriesRequest,
-  toggleMemoryRequest
+  toggleMemoryRequest,
 } from '../api/memories'
 import type { UserMemory } from '../api/memories'
+import { MarkdownResponse } from '../components/common/MarkdownResponse'
 import { toast } from 'sonner'
+
+interface MemoryCitation {
+  document_id?: string
+  document_name?: string
+  page_no?: number
+  page?: number
+  section_title?: string
+  section?: string
+  text?: string
+}
 
 interface ParsedQA {
   isQA: true
   question: string
   answer: string
-  citations: any[]
+  citations: MemoryCitation[]
 }
 
 interface ParsedPlain {
@@ -38,19 +51,19 @@ interface ParsedPlain {
 type ParsedMemory = ParsedQA | ParsedPlain
 
 function parseMemoryContent(content: string): ParsedMemory {
-  if (content.startsWith("Q: ") && content.includes(" | A: ")) {
+  if (content.startsWith('Q: ') && content.includes(' | A: ')) {
     const qIndex = 3
-    const aIndex = content.indexOf(" | A: ")
+    const aIndex = content.indexOf(' | A: ')
     const question = content.substring(qIndex, aIndex).trim()
     const rest = content.substring(aIndex + 6).trim()
 
-    const cIndex = rest.indexOf(" | Citations: ")
+    const cIndex = rest.indexOf(' | Citations: ')
     if (cIndex !== -1) {
       const answer = rest.substring(0, cIndex).trim()
       const citationsJson = rest.substring(cIndex + 14).trim()
       try {
         const citations = JSON.parse(citationsJson)
-        return { isQA: true, question, answer, citations }
+        return { isQA: true, question, answer, citations: Array.isArray(citations) ? citations : [] }
       } catch {
         return { isQA: true, question, answer, citations: [] }
       }
@@ -59,6 +72,160 @@ function parseMemoryContent(content: string): ParsedMemory {
     }
   }
   return { isQA: false, content }
+}
+
+/**
+ * Individual Memory Card with Collapsible / Expandable Details
+ */
+function MemoryItemCard({
+  memory,
+  onDelete,
+}: {
+  memory: UserMemory
+  onDelete: (id: string) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const parsed = parseMemoryContent(memory.content)
+
+  // Determine if content is long enough to warrant a show full toggle
+  const isLongContent = parsed.isQA
+    ? parsed.answer.length > 160 || (parsed.citations && parsed.citations.length > 2)
+    : (parsed as ParsedPlain).content.length > 160
+
+  const mappedCitations = parsed.isQA
+    ? (parsed.citations || []).map((c, idx) => ({
+        citationId: `S${idx + 1}`,
+        documentId: c.document_id || '',
+        documentName: c.document_name || 'Document',
+        page: c.page_no ?? c.page ?? 1,
+        section: c.section_title || c.section,
+        text: c.text,
+      }))
+    : []
+
+  return (
+    <div className="group flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 hover:shadow-subtle hover:border-primary/30 transition-all duration-200 animate-fade-in-up">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          {parsed.isQA ? (
+            <div className="space-y-2.5">
+              {/* Question Header */}
+              <div className="flex items-start gap-2">
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-primary/10 text-[10px] font-bold text-primary shrink-0 mt-0.5">
+                  Q
+                </span>
+                <h4 className="text-xs font-bold text-fg leading-relaxed break-words">
+                  {parsed.question}
+                </h4>
+              </div>
+
+              {/* Answer Body (Clipped by default, expandable) */}
+              <div className="pl-6 border-l-2 border-border/70">
+                <div className={`relative transition-all duration-200 ${!expanded && isLongContent ? 'max-h-20 overflow-hidden' : ''}`}>
+                  <MarkdownResponse
+                    content={parsed.answer}
+                    citations={mappedCitations}
+                    compact
+                  />
+                  {/* Subtle fade gradient when clipped */}
+                  {!expanded && isLongContent && (
+                    <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-surface via-surface/80 to-transparent pointer-events-none" />
+                  )}
+                </div>
+              </div>
+
+              {/* Citations Badges */}
+              {mappedCitations.length > 0 && (
+                <div className="pl-6 pt-1">
+                  <div className="flex flex-wrap gap-1.5">
+                    {(expanded ? mappedCitations : mappedCitations.slice(0, 3)).map((c, cIdx) => (
+                      <span
+                        key={cIdx}
+                        title={c.text || `${c.documentName} (p. ${c.page})`}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-surface-highlight/80 px-2.5 py-0.5 text-[10px] font-medium text-fg-muted border border-border/80 shadow-2xs"
+                      >
+                        <FileText className="h-3 w-3 text-accent shrink-0" />
+                        <span className="truncate max-w-[130px]">{c.documentName}</span>
+                        <span className="opacity-70 text-[9px] font-semibold text-primary">
+                          (p. {c.page})
+                        </span>
+                      </span>
+                    ))}
+                    {!expanded && mappedCitations.length > 3 && (
+                      <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                        +{mappedCitations.length - 3} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Expand / Collapse Button */}
+              {isLongContent && (
+                <div className="pl-6 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setExpanded((prev) => !prev)}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:text-accent transition-colors cursor-pointer select-none"
+                  >
+                    <span>{expanded ? 'Show less' : 'Show full details'}</span>
+                    {expanded ? (
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-start gap-2.5">
+                <div className="flex h-5 w-5 items-center justify-center rounded-lg bg-primary/5 text-primary shrink-0 mt-0.5">
+                  <Check className="h-3 w-3" />
+                </div>
+                <div className="flex-1">
+                  <div className={`relative ${!expanded && isLongContent ? 'max-h-16 overflow-hidden' : ''}`}>
+                    <p className="text-xs leading-relaxed text-fg break-words font-medium">
+                      {(parsed as ParsedPlain).content}
+                    </p>
+                    {!expanded && isLongContent && (
+                      <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-surface to-transparent pointer-events-none" />
+                    )}
+                  </div>
+                  {isLongContent && (
+                    <button
+                      type="button"
+                      onClick={() => setExpanded((prev) => !prev)}
+                      className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:text-accent transition-colors"
+                    >
+                      <span>{expanded ? 'Show less' : 'Show full details'}</span>
+                      {expanded ? (
+                        <ChevronUp className="h-3.5 w-3.5" />
+                      ) : (
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Delete Button */}
+        <button
+          onClick={() => onDelete(memory.memory_id)}
+          type="button"
+          className="opacity-0 group-hover:opacity-100 flex h-7 w-7 items-center justify-center rounded-lg text-fg-muted hover:bg-danger/10 hover:text-danger transition-all duration-200 focus:opacity-100 shrink-0 self-start"
+          aria-label="Delete preference"
+          title="Delete memory"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  )
 }
 
 export default function MemoryPage() {
@@ -77,8 +244,9 @@ export default function MemoryPage() {
       setLoading(true)
       const data = await getMemoriesRequest()
       setMemories(data)
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to retrieve memories')
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to retrieve memories'
+      toast.error(errorMsg)
     } finally {
       setLoading(false)
     }
@@ -97,8 +265,9 @@ export default function MemoryPage() {
       await toggleMemoryRequest(nextState)
       updateUser({ memory_enabled: nextState })
       toast.success(nextState ? 'AI Memory enabled' : 'AI Memory paused')
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to toggle memory setting')
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to toggle memory setting'
+      toast.error(errorMsg)
     } finally {
       setToggling(false)
     }
@@ -116,8 +285,9 @@ export default function MemoryPage() {
       setMemories((prev) => [created, ...prev])
       setNewMemoryText('')
       toast.success('Preference added to memory')
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to add memory')
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to add memory'
+      toast.error(errorMsg)
     } finally {
       setSubmitting(false)
     }
@@ -129,8 +299,9 @@ export default function MemoryPage() {
       await deleteMemoryRequest(id)
       setMemories((prev) => prev.filter((m) => m.memory_id !== id))
       toast.success('Memory deleted')
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to delete memory')
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to delete memory'
+      toast.error(errorMsg)
     }
   }
 
@@ -141,14 +312,15 @@ export default function MemoryPage() {
       setMemories([])
       setShowClearConfirm(false)
       toast.success('All memories cleared')
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to clear memories')
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to clear memories'
+      toast.error(errorMsg)
     }
   }
 
   // Filter memories based on search query
   const filteredMemories = memories.filter((m) =>
-    m.content.toLowerCase().includes(searchQuery.toLowerCase())
+    m.content.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
   const memoryEnabled = user?.memory_enabled ?? true
@@ -157,7 +329,6 @@ export default function MemoryPage() {
     <ChatLayout>
       <div className="flex-1 overflow-y-auto bg-background">
         <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
-          
           {/* Header Dashboard Banner */}
           <section className="relative overflow-hidden rounded-2xl border border-border bg-surface p-5 shadow-card">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(15,119,114,0.06),transparent_40%)]" />
@@ -175,7 +346,7 @@ export default function MemoryPage() {
                 </p>
               </div>
 
-              {/* High-End Feature Toggle Switch */}
+              {/* Feature Toggle Switch */}
               <div className="flex items-center gap-3 shrink-0 bg-surface-highlight/40 rounded-xl p-2.5 border border-border/60">
                 <div className="text-right">
                   <span className="block text-xs font-bold text-fg">AI Memory</span>
@@ -215,7 +386,6 @@ export default function MemoryPage() {
 
           {/* Grid Layout: Manual Add & Memory List */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
             {/* Left Column: Manual Form */}
             <div className="md:col-span-1 space-y-4">
               <div className="rounded-2xl border border-border bg-surface p-4 shadow-subtle">
@@ -255,7 +425,7 @@ export default function MemoryPage() {
                     {[
                       'I work in cardiology',
                       'Focus on Rinvoq warnings',
-                      'Explain pediatric dosages only'
+                      'Explain pediatric dosages only',
                     ].map((s) => (
                       <button
                         key={s}
@@ -273,10 +443,8 @@ export default function MemoryPage() {
 
             {/* Right Column: Search & Memories List */}
             <div className="md:col-span-2 space-y-4">
-              
               {/* Toolbar */}
               <div className="flex flex-col sm:flex-row items-center gap-3 justify-between">
-                
                 {/* Search Bar */}
                 <div className="relative w-full sm:max-w-xs">
                   <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-fg-muted" />
@@ -322,7 +490,7 @@ export default function MemoryPage() {
               </div>
 
               {/* Memories Cards */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {loading ? (
                   <div className="flex flex-col items-center justify-center py-16 text-fg-muted gap-2">
                     <Loader2 className="h-7 w-7 animate-spin text-primary" />
@@ -341,81 +509,13 @@ export default function MemoryPage() {
                     </p>
                   </div>
                 ) : (
-                  filteredMemories.map((m) => {
-                    const parsed = parseMemoryContent(m.content)
-
-                    return (
-                      <div
-                        key={m.memory_id}
-                        className="group flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 hover:shadow-subtle hover:border-primary/20 transition-all duration-200 animate-fade-in-up"
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            {parsed.isQA ? (
-                              <div className="space-y-2.5">
-                                {/* Question */}
-                                <div className="flex items-start gap-2">
-                                  <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-primary/10 text-[10px] font-bold text-primary shrink-0 mt-0.5">
-                                    Q
-                                  </span>
-                                  <h4 className="text-xs font-bold text-fg leading-relaxed break-words">
-                                    {parsed.question}
-                                  </h4>
-                                </div>
-                                
-                                {/* Answer */}
-                                <div className="flex items-start gap-2 pl-7 border-l-2 border-border/60">
-                                  <p className="text-xs leading-relaxed text-fg-muted break-words whitespace-pre-wrap">
-                                    {parsed.answer}
-                                  </p>
-                                </div>
-
-                                {/* Citations */}
-                                {parsed.citations && parsed.citations.length > 0 && (
-                                  <div className="flex flex-wrap gap-1.5 pt-1 pl-7">
-                                    {parsed.citations.map((c: any, cIdx: number) => (
-                                      <span 
-                                        key={cIdx} 
-                                        title={c.text || ''}
-                                        className="inline-flex items-center gap-1.5 rounded bg-surface-highlight px-2 py-0.5 text-[10px] font-medium text-fg-muted border border-border/80"
-                                      >
-                                        <FileText className="h-3 w-3 text-accent shrink-0" />
-                                        <span className="truncate max-w-[150px]">
-                                          {c.document_name || 'Document'}
-                                        </span>
-                                        <span className="opacity-60 text-[9px]">
-                                          (p. {c.page_no ?? c.page ?? 1})
-                                        </span>
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="flex items-start gap-2.5">
-                                <div className="flex h-5 w-5 items-center justify-center rounded-lg bg-primary/5 text-primary shrink-0 mt-0.5">
-                                  <Check className="h-3 w-3" />
-                                </div>
-                                <p className="text-xs leading-relaxed text-fg break-words font-medium">
-                                  {(parsed as ParsedPlain).content}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Delete Button */}
-                          <button
-                            onClick={() => handleDeleteMemory(m.memory_id)}
-                            type="button"
-                            className="opacity-0 group-hover:opacity-100 flex h-7 w-7 items-center justify-center rounded-lg text-fg-muted hover:bg-danger/10 hover:text-danger transition-all duration-200 focus:opacity-100 shrink-0 self-start"
-                            aria-label="Delete preference"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })
+                  filteredMemories.map((m) => (
+                    <MemoryItemCard
+                      key={m.memory_id}
+                      memory={m}
+                      onDelete={handleDeleteMemory}
+                    />
+                  ))
                 )}
               </div>
             </div>
@@ -431,7 +531,6 @@ export default function MemoryPage() {
               </p>
             </div>
           </section>
-
         </div>
       </div>
     </ChatLayout>
