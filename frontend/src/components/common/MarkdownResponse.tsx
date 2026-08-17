@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef } from 'react'
+import React, { useMemo, useState, useRef, useLayoutEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { FileText, ChevronRight, CheckCircle2 } from 'lucide-react'
@@ -67,6 +67,7 @@ function InlineCitationPill({
   const [tooltipOpen, setTooltipOpen] = useState(false)
   const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 })
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const tooltipRef = useRef<HTMLSpanElement>(null)
 
   // Find matching citation by ID (e.g. S1, S2) or fallback to index matching
   const matchedCitation = useMemo(() => {
@@ -96,19 +97,28 @@ function InlineCitationPill({
   const label = citationId.replace(/^S/i, '').trim() || citationId
 
   const handleMouseEnter = () => {
-    if (buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect()
-      setTooltipPos({
-        top: rect.top + window.scrollY - 8,
-        left: Math.max(16, rect.left + rect.width / 2),
-      })
-    }
     setTooltipOpen(true)
   }
 
   const handleMouseLeave = () => {
     setTooltipOpen(false)
   }
+
+  useLayoutEffect(() => {
+    if (tooltipOpen && buttonRef.current && tooltipRef.current) {
+      const btnRect = buttonRef.current.getBoundingClientRect()
+      const ttRect = tooltipRef.current.getBoundingClientRect()
+      const gap = 8
+      let top = btnRect.top - ttRect.height - gap
+      if (top < gap) {
+        top = btnRect.bottom + gap
+      }
+      const halfWidth = ttRect.width / 2
+      let left = btnRect.left + btnRect.width / 2
+      left = Math.max(halfWidth + gap, Math.min(window.innerWidth - halfWidth - gap, left))
+      setTooltipPos({ top, left })
+    }
+  }, [tooltipOpen])
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -140,10 +150,11 @@ function InlineCitationPill({
       {/* Floating Tooltip */}
       {tooltipOpen && (
         <span
+          ref={tooltipRef}
           style={{
             top: `${tooltipPos.top}px`,
             left: `${tooltipPos.left}px`,
-            transform: 'translate(-50%, -100%)',
+            transform: 'translateX(-50%)',
           }}
           className="fixed z-50 pointer-events-none w-72 max-w-[90vw] p-3 rounded-xl bg-surface border border-border shadow-xl text-left animate-fade-in"
         >

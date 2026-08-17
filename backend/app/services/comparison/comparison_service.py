@@ -45,7 +45,7 @@ ATTRIBUTE_LABELS: List[Tuple[str, str]] = [
 WARNING_KEYS = {"warnings", "contraindications", "pregnancy"}
 HIGHLIGHT_KEYS = {"dosage_administration"}
 
-ATTRIBUTE_BATCH_SIZE = 3
+ATTRIBUTE_BATCH_SIZE = 1
 
 
 class ComparisonInputError(Exception):
@@ -188,6 +188,13 @@ class ComparisonService:
             )
             attributes.extend(batch_attrs)
 
+        # 4. Hide rows where both drugs have no useful information.
+        attributes = [
+            attr
+            for attr in attributes
+            if not (attr.drug1.status == "unavailable" and attr.drug2.status == "unavailable")
+        ]
+
         return attributes
 
     async def _gather_evidence(
@@ -200,13 +207,13 @@ class ComparisonService:
         results1, results2 = await asyncio.gather(
             self.search_service.search(
                 query=label,
-                top_k=1,
+                top_k=2,
                 document_ids=[drug1_id],
                 score_threshold=settings.MIN_RELEVANCE_SCORE,
             ),
             self.search_service.search(
                 query=label,
-                top_k=1,
+                top_k=2,
                 document_ids=[drug2_id],
                 score_threshold=settings.MIN_RELEVANCE_SCORE,
             ),
