@@ -361,6 +361,58 @@ async def _post_chat_message_impl(
             )
 
     # ---------------------------------------------------------
+    # 1.6. Greeting / identity handler (memory-driven small talk)
+    # ---------------------------------------------------------
+
+    if current_user.memory_enabled and memories_used:
+        lower_msg = request.message or ""
+        greeting_triggers = {
+            "hi", "hey", "hello", "howdy", "greetings",
+            "good morning", "good afternoon", "good evening",
+            "what's up", "who are you", "what are you", "tell me about yourself",
+        }
+        is_greeting = lower_msg in greeting_triggers or lower_msg.startswith(("hi ", "hey ", "hello ", "howdy "))
+
+        greeting_memories = [
+            m for m in memories_used
+            if "greet" in m.lower() and "medimei" in m.lower()
+        ]
+
+        if is_greeting and greeting_memories:
+            greeting_answer = (
+                "Hello! I'm MediMei, your clinical assistant. "
+                "How can I help you today?"
+            )
+
+            user_msg = ChatMessage(
+                session_id=session_id,
+                role="user",
+                content=request.message
+            )
+            assistant_msg = ChatMessage(
+                session_id=session_id,
+                role="assistant",
+                content=greeting_answer,
+                memories_used=json.dumps(greeting_memories[:1])
+            )
+
+            db.add(user_msg)
+            db.add(assistant_msg)
+            await db.commit()
+            await db.refresh(assistant_msg)
+
+            return ChatResponse(
+                message_id=str(assistant_msg.message_id),
+                session_id=str(session_id),
+                answer=greeting_answer,
+                grounded=False,
+                evidence_count=0,
+                citations=[],
+                memories_updated=None,
+                memories_used=greeting_memories[:1]
+            )
+
+    # ---------------------------------------------------------
     # 2. Retrieve evidence from Qdrant
     # ---------------------------------------------------------
 
