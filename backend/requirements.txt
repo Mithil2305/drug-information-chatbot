@@ -24,6 +24,8 @@ pymupdf
 paddleocr
 # Note: For GPU support, replace with paddlepaddle-gpu if CUDA is available
 paddlepaddle-gpu
+# EasyOCR: PyTorch-based fallback when PaddlePaddle is incompatible (e.g. Python 3.12)
+easyocr
 
 # --- Machine Learning, Embeddings & LLM ---
 # Note: For CUDA-enabled environments, ensure PyTorch is installed with appropriate CUDA wheels
