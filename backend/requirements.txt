@@ -23,7 +23,7 @@ cryptography
 pymupdf
 paddleocr
 # Note: For GPU support, replace with paddlepaddle-gpu if CUDA is available
-paddlepaddle
+paddlepaddle-gpu
 
 # --- Machine Learning, Embeddings & LLM ---
 # Note: For CUDA-enabled environments, ensure PyTorch is installed with appropriate CUDA wheels
