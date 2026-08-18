@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     TOP_K: int = 8
     MIN_RELEVANCE_SCORE: float = 0.20
     MAX_UPLOAD_SIZE_MB: int = 50
+    ENABLE_RERANKING: bool = True
+    RERANK_CANDIDATES_LIMIT: int = 25
 
     # Pydantic Settings Config
     model_config = SettingsConfigDict(

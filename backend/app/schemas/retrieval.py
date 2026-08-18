@@ -25,6 +25,7 @@ class SearchRequest(BaseModel):
     version: Optional[str] = None
     top_k: int = Field(default=settings.TOP_K, ge=1, le=100)
     score_threshold: Optional[float] = Field(default=settings.MIN_RELEVANCE_SCORE, ge=-1.0, le=1.0)
+    rerank: Optional[bool] = Field(default=None, description="Whether to apply CrossEncoder reranking.")
 
 
 class SearchResponse(BaseModel):

@@ -26,6 +26,7 @@ class SemanticSearchService:
         section: Optional[str] = None,
         version: Optional[str] = None,
         score_threshold: Optional[float] = None,
+        rerank: Optional[bool] = None,
     ) -> List[Dict[str, Any]]:
         """
         Perform semantic search and return a list of RetrievalResult-like dicts.
@@ -37,13 +38,22 @@ class SemanticSearchService:
         if score_threshold is None:
             score_threshold = settings.MIN_RELEVANCE_SCORE
 
+        if rerank is None:
+            rerank = getattr(settings, "ENABLE_RERANKING", True)
+
+        # Determine retrieval limit if reranking is enabled
+        retrieval_limit = top_k
+        if rerank:
+            candidates_limit = getattr(settings, "RERANK_CANDIDATES_LIMIT", 25)
+            retrieval_limit = max(min(top_k * 3, candidates_limit), top_k)
+
         # 1. Embed the query with the same model used for chunks.
         query_vector = self.embedding_service.embed_query(query)
 
         # 2. Search Qdrant with optional metadata filters.
         points = await self.qdrant_repository.search(
             query_vector=query_vector,
-            limit=top_k,
+            limit=retrieval_limit,
             document_ids=document_ids,
             section=section,
             version=version,
@@ -68,10 +78,17 @@ class SemanticSearchService:
                 "text": payload.get("text") or payload.get("chunk_text"),
             })
 
+        # 4. Perform reranking if enabled
+        if rerank and results:
+            from app.services.retrieval.reranker import rerank_documents
+            results = await rerank_documents(query=query, documents=results, limit=top_k)
+
         logger.info(
-            "Semantic search: query='%s...' top_k=%s filters=%s returned=%s",
+            "Semantic search: query='%s...' top_k=%s (retrieved=%s, reranked=%s) filters=%s returned=%s",
             query[:40],
             top_k,
+            retrieval_limit,
+            rerank,
             {"document_ids": document_ids, "section": section, "version": version},
             len(results),
         )
