@@ -76,6 +76,24 @@ async def lifespan(app: FastAPI):
                 if result_mem_def.fetchone() is None:
                     await conn.execute(text("ALTER TABLE user_memories ADD COLUMN is_default BOOLEAN NOT NULL DEFAULT FALSE"))
                     logger.info("Database: Added is_default column to user_memories table.")
+
+                # Check for stage column on documents table
+                result_doc_stage = await conn.execute(text("SHOW COLUMNS FROM documents LIKE 'stage'"))
+                if result_doc_stage.fetchone() is None:
+                    await conn.execute(text("ALTER TABLE documents ADD COLUMN stage VARCHAR(100) NULL"))
+                    logger.info("Database: Added stage column to documents table.")
+
+                # Check for progress column on documents table
+                result_doc_progress = await conn.execute(text("SHOW COLUMNS FROM documents LIKE 'progress'"))
+                if result_doc_progress.fetchone() is None:
+                    await conn.execute(text("ALTER TABLE documents ADD COLUMN progress INT NOT NULL DEFAULT 0"))
+                    logger.info("Database: Added progress column to documents table.")
+
+                # Check for progress_detail column on documents table
+                result_doc_detail = await conn.execute(text("SHOW COLUMNS FROM documents LIKE 'progress_detail'"))
+                if result_doc_detail.fetchone() is None:
+                    await conn.execute(text("ALTER TABLE documents ADD COLUMN progress_detail TEXT NULL"))
+                    logger.info("Database: Added progress_detail column to documents table.")
             except Exception as ex:
                 logger.warning(f"Database dynamic migration warning: {ex}")
     yield

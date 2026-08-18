@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from typing import Callable, Optional
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
+EMBEDDING_BATCH_SIZE = 32
 
 
 def split_text(text):
@@ -45,6 +47,7 @@ async def create_chunks(
     document_id: str,
     db: AsyncSession,
     task_id: str = "",
+    on_progress: Optional[Callable[[int, int, str], None]] = None,
 ):
     """
     Chunk document page text, save chunks to MySQL, generate embeddings,
@@ -120,14 +123,30 @@ async def create_chunks(
     )
     db_chunks = chunks_result.scalars().all()
 
-    # 6. Batch embed all chunk texts (offloaded to thread so event loop stays responsive)
+    # 6. Batch embed all chunk texts in small batches with progress updates
     await task_manager.raise_if_cancelled(task_id)
     logger.info(f"Generating embeddings for {len(db_chunks)} chunks of document: {doc.file_name}")
     chunk_texts = [c.chunk_text for c in db_chunks]
+
+    all_embeddings: list = []
+    total_batches = (len(chunk_texts) + EMBEDDING_BATCH_SIZE - 1) // EMBEDDING_BATCH_SIZE
+
     try:
-        embeddings = await asyncio.to_thread(
-            embedding_service.create_embeddings, chunk_texts
-        )
+        for batch_idx in range(total_batches):
+            await task_manager.raise_if_cancelled(task_id)
+
+            start_idx = batch_idx * EMBEDDING_BATCH_SIZE
+            end_idx = min(start_idx + EMBEDDING_BATCH_SIZE, len(chunk_texts))
+            batch_texts = chunk_texts[start_idx:end_idx]
+
+            batch_embeddings = await asyncio.to_thread(
+                embedding_service.create_embeddings, batch_texts
+            )
+            all_embeddings.extend(batch_embeddings)
+
+            if on_progress:
+                on_progress(end_idx, len(chunk_texts), "embedding")
+
     except Exception as exc:
         logger.error(f"Embedding generation failed for {document_id}: {exc}")
         # Chunks are saved in MySQL; Qdrant indexing will be skipped.
@@ -142,7 +161,7 @@ async def create_chunks(
     qdrant_repository.set_vector_size(embedding_service.vector_size)
 
     qdrant_chunks = []
-    for chunk, emb in zip(db_chunks, embeddings):
+    for chunk, emb in zip(db_chunks, all_embeddings):
         qdrant_chunks.append({
             "chunk_id": chunk.chunk_id,  # BigInteger MySQL primary key serves as Qdrant ID
             "document_id": document_id,

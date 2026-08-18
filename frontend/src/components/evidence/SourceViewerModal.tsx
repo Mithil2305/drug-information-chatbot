@@ -4,7 +4,6 @@ import { X, Loader2, FileText, Maximize2, Minimize2, Sparkles, BookOpen, Layers,
 import { fetchDocumentFile, fetchDocumentChunks, type DocumentChunkRecord } from '../../api/viewer'
 import type { Citation } from '../../types/chat'
 import type { Document } from '../../types/document'
-// @ts-ignore
 import * as mammoth from 'mammoth'
 
 interface SourceViewerModalProps {
@@ -98,14 +97,14 @@ export function SourceViewerModal({ citation, document, open, onClose }: SourceV
             }
           }
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!cancelled) {
           // Fallback to chunks
           const chunks = await fetchDocumentChunks(docId)
           if (chunks && chunks.length > 0) {
             setDocChunks(chunks)
           } else {
-            setError(err?.message || 'Failed to load source document.')
+            setError(err instanceof Error ? err.message : 'Failed to load source document.')
           }
         }
       } finally {

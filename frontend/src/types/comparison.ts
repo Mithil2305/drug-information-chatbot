@@ -2,7 +2,7 @@ import type { Citation } from './chat'
 
 export type ComparisonCellStatus = 'normal' | 'warning' | 'highlight' | 'unavailable'
 
-export interface ComparisonCitation extends Citation {}
+export type ComparisonCitation = Citation
 
 export interface ComparisonCell {
   content: string

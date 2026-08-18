@@ -77,11 +77,13 @@ async def simulate_processing_task(
 
     PDF
       ↓
-    Extract pages
+    Extract pages (with progress updates)
       ↓
     Save document_pages
       ↓
-    Create chunks
+    Create chunks + embeddings (with progress updates)
+      ↓
+    Index in Qdrant
       ↓
     Mark document completed
     """
@@ -116,12 +118,14 @@ async def simulate_processing_task(
 
             await task_manager.raise_if_cancelled(task_id)
 
-
             # -----------------------------------------
-            # 2. Update status
+            # 2. Update status → processing
             # -----------------------------------------
 
             doc.status = "processing"
+            doc.stage = "extraction"
+            doc.progress = 0
+            doc.progress_detail = "Starting extraction…"
 
             await db.commit()
 
@@ -146,16 +150,26 @@ async def simulate_processing_task(
                     f"PDF file not found: {file_path}"
                 )
 
+            # -----------------------------------------
+            # 4. Extract PDF pages (with progress)
+            # -----------------------------------------
 
-            # -----------------------------------------
-            # 4. Extract PDF pages
-            # -----------------------------------------
+            async def on_extraction_progress(current, total, stage):
+                pct = int((current / total) * 50) if total > 0 else 0
+                doc.stage = "extraction"
+                doc.progress = pct
+                doc.progress_detail = f"Extracting page {current}/{total}"
+                try:
+                    await db.commit()
+                except Exception:
+                    await db.rollback()
 
             try:
                 pages = await extract_pdf_pages(
                     file_path,
                     document_id=document_id,
                     task_id=task_id,
+                    on_progress=on_extraction_progress,
                 )
             except Exception as exc:
                 logger.error("PDF extraction failed: %s", exc)
@@ -169,6 +183,9 @@ async def simulate_processing_task(
                     file_path,
                 )
                 doc.status = "completed"
+                doc.stage = "completed"
+                doc.progress = 100
+                doc.progress_detail = "No pages extracted"
                 doc.page_count = 0
                 await db.commit()
                 return
@@ -176,7 +193,6 @@ async def simulate_processing_task(
             logger.info(
                 f"Extracted {len(pages)} pages."
             )
-
 
             # -----------------------------------------
             # 5. Remove old page records
@@ -202,6 +218,11 @@ async def simulate_processing_task(
             # 6. Save extracted pages
             # -----------------------------------------
 
+            doc.stage = "saving_pages"
+            doc.progress = 55
+            doc.progress_detail = f"Saving {len(pages)} pages…"
+            await db.commit()
+
             for page in pages:
 
                 await task_manager.raise_if_cancelled(task_id)
@@ -218,23 +239,38 @@ async def simulate_processing_task(
 
             await db.commit()
 
-
             logger.info(
                 f"Saved {len(pages)} document pages "
                 f"for document {document_id}"
             )
 
+            # -----------------------------------------
+            # 7. Create chunks + embeddings (with progress)
+            # -----------------------------------------
 
-            # -----------------------------------------
-            # 7. Create chunks
-            # -----------------------------------------
+            doc.stage = "chunking"
+            doc.progress = 60
+            doc.progress_detail = "Chunking text and generating embeddings…"
+            await db.commit()
 
             await task_manager.raise_if_cancelled(task_id)
+
+            async def on_embedding_progress(current, total, stage):
+                # Embedding progress maps to 60%–95% range
+                pct = 60 + int((current / total) * 35) if total > 0 else 60
+                doc.stage = "embedding"
+                doc.progress = pct
+                doc.progress_detail = f"Embedding chunk {current}/{total}"
+                try:
+                    await db.commit()
+                except Exception:
+                    await db.rollback()
 
             chunk_count = await create_chunks(
                 document_id,
                 db,
                 task_id=task_id,
+                on_progress=on_embedding_progress,
             )
 
             logger.info(
@@ -249,6 +285,9 @@ async def simulate_processing_task(
             # -----------------------------------------
 
             doc.status = "completed"
+            doc.stage = "completed"
+            doc.progress = 100
+            doc.progress_detail = f"Ready — {len(pages)} pages, {chunk_count} chunks"
             doc.page_count = len(pages)
 
             await db.commit()
@@ -271,6 +310,8 @@ async def simulate_processing_task(
                 doc = result.scalar_one_or_none()
                 if doc:
                     doc.status = "failed"
+                    doc.stage = "cancelled"
+                    doc.progress_detail = "Processing cancelled by user"
                     await db.commit()
             except Exception:
                 await db.rollback()
@@ -282,7 +323,6 @@ async def simulate_processing_task(
                 f"Error processing document "
                 f"{document_id}: {str(e)}"
             )
-
 
             # -----------------------------------------
             # Mark document as failed
@@ -303,6 +343,8 @@ async def simulate_processing_task(
                 if doc:
 
                     doc.status = "failed"
+                    doc.stage = "failed"
+                    doc.progress_detail = f"Error: {str(e)[:200]}"
 
                     await db.commit()
 
@@ -744,7 +786,9 @@ async def get_document_status(
     return DocumentStatusResponse(
         document_id=doc.document_id,
         status=doc.status,
-        stage=doc.status,
+        stage=doc.stage or doc.status,
+        progress=doc.progress or 0,
+        progress_detail=doc.progress_detail,
         message=f"Document is currently {doc.status}."
     )
 

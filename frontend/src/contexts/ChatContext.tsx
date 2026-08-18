@@ -25,16 +25,16 @@ function makeId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 }
 
-function mapCitations(raw: any[] | undefined): Citation[] {
+function mapCitations(raw: unknown[] | undefined): Citation[] {
   if (!raw) return []
-  return raw.map((c, idx) => ({
-    citationId: c.citation_id || c.chunk_id || `c-${idx}`,
-    documentId: c.document_id || '',
-    documentName: c.document_name || 'Unknown Document',
-    page: c.page ?? c.page_no ?? 0,
-    section: c.section_title || c.section,
-    text: c.text,
-    score: c.score,
+  return (raw as Record<string, unknown>[]).map((c, idx) => ({
+    citationId: String(c.citation_id || c.chunk_id || `c-${idx}`),
+    documentId: String(c.document_id || ''),
+    documentName: String(c.document_name || 'Unknown Document'),
+    page: Number(c.page ?? c.page_no ?? 0),
+    section: c.section_title as string | undefined || c.section as string | undefined,
+    text: c.text as string | undefined,
+    score: c.score as number | undefined,
   }))
 }
 
@@ -64,21 +64,22 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const load = async () => {
       try {
         const session = await getSession(activeConversationId)
-        const loaded: ChatMessage[] = session.messages.map((msg: any) => ({
+        const loaded: ChatMessage[] = session.messages.map((msg) => ({
           id: String(msg.message_id),
           role: msg.role as 'user' | 'assistant',
           content: msg.content,
           citations: mapCitations(msg.citations),
           status: msg.role === 'assistant' ? 'grounded' : undefined,
-          memoriesUpdated: msg.memories_updated || undefined,
-          memoriesUsed: msg.memories_used || undefined,
+          memoriesUpdated: msg.memories_updated as string[] | undefined || undefined,
+          memoriesUsed: msg.memories_used as string[] | undefined || undefined,
         }))
         setMessages(loaded)
-      } catch (err: any) {
-        toast.error(err.message || 'Failed to load chat')
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : 'Failed to load chat')
       }
     }
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeConversationId])
 
   const sendMessage = (content: string, documentIds?: string[]) => {
@@ -120,7 +121,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           id: String(response.message_id),
           role: 'assistant',
           content: response.answer,
-          citations: mapCitations(response.citations),
+          citations: mapCitations(response.citations as unknown[]),
           status: response.grounded ? 'grounded' : 'insufficient_evidence',
           memoriesUpdated: response.memories_updated || undefined,
           memoriesUsed: response.memories_used || undefined,

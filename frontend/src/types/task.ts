@@ -24,4 +24,4 @@ export interface DocumentTaskPayload {
   name: string
 }
 
-export interface TaskState extends BaseTaskState {}
+export type TaskState = BaseTaskState

@@ -147,14 +147,14 @@ export function DocumentCard({ document, onDelete, onView, isSelected = false }:
         <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
           FDA Grounded
         </span>
-        <DocumentStatus status={document.status} />
+        <DocumentStatus status={document.status} stage={document.stage} progress={document.progress} progressDetail={document.progressDetail} />
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border pt-3 text-xs text-fg-muted sm:grid-cols-4">
         <MetaItem icon={Calendar} label="Uploaded" value={formatDate(document.uploadedAt)} />
         <MetaItem icon={FileDigit} label="Pages" value={document.pageCount ? `${document.pageCount}` : '—'} />
         <MetaItem icon={HardDrive} label="File size" value={formatFileSize(document.fileSize)} />
-        <MetaItem icon={FileText} label="Status" value={document.status === 'ready' ? 'Ready' : 'Processing'} />
+        <MetaItem icon={FileText} label="Status" value={document.status === 'ready' ? 'Ready' : document.status === 'failed' ? 'Failed' : (document.progressDetail || 'Processing')} />
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">

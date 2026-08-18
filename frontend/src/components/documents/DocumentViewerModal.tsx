@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom'
 import { X, Loader2, FileText, Maximize2, Minimize2, Download, BookOpen, Layers } from 'lucide-react'
 import type { Document } from '../../types/document'
 import { fetchDocumentFile, fetchDocumentChunks, getDocumentViewUrl, type DocumentChunkRecord } from '../../api/viewer'
-// @ts-ignore
 import * as mammoth from 'mammoth'
 
 interface DocumentViewerModalProps {
@@ -83,13 +82,13 @@ export function DocumentViewerModal({ document, open, onClose }: DocumentViewerM
             }
           }
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!cancelled) {
           const chunks = await fetchDocumentChunks(document.id)
           if (chunks && chunks.length > 0) {
             setDocChunks(chunks)
           } else {
-            setError(err?.message || 'Failed to load document')
+            setError(err instanceof Error ? err.message : 'Failed to load document')
           }
         }
       } finally {

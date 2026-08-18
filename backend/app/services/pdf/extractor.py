@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 import fitz
 
@@ -8,28 +8,36 @@ from app.core.task_manager import task_manager
 
 logger = logging.getLogger(__name__)
 
+OCR_TIMEOUT_SECONDS = 120
+
 
 async def extract_pdf_pages(
     file_path: str,
     document_id: Optional[str] = None,
     task_id: Optional[str] = None,
+    on_progress: Optional[Callable[[int, int, str], None]] = None,
 ) -> List[dict]:
     """Extract page content using PyMuPDF, falling back to PaddleOCR when quality is low.
 
     Extraction and OCR are offloaded to worker threads page-by-page so that
     cancellation can be checked between pages.
+
+    Args:
+        on_progress: Optional callback(current_page, total_pages, stage_label)
+                     called after each page is processed.
     """
     pages = []
     doc = None
     try:
         await task_manager.raise_if_cancelled(task_id)
         doc = await asyncio.to_thread(fitz.open, file_path)
+        total_pages = len(doc)
 
         from app.services.pdf.quality_checker import QualityChecker
-        from app.services.pdf.ocr import OCRService
+        from app.services.pdf.ocr import get_ocr_service
 
         quality_checker = QualityChecker()
-        ocr_service = OCRService(use_gpu=True)
+        ocr_service = get_ocr_service(use_gpu=True)
 
         for page_no, page in enumerate(doc, start=1):
             await task_manager.raise_if_cancelled(task_id)
@@ -52,9 +60,24 @@ async def extract_pdf_pages(
                     page_no,
                     image_count,
                 )
-                ocr_result = await asyncio.to_thread(
-                    ocr_service.ocr_page, page, page_no, document_id
-                )
+                try:
+                    ocr_result = await asyncio.wait_for(
+                        asyncio.to_thread(
+                            ocr_service.ocr_page, page, page_no, document_id
+                        ),
+                        timeout=OCR_TIMEOUT_SECONDS,
+                    )
+                except asyncio.TimeoutError:
+                    logger.warning(
+                        "OCR timed out after %ss for page %s. Falling back to PyMuPDF text.",
+                        OCR_TIMEOUT_SECONDS,
+                        page_no,
+                    )
+                    ocr_result = {
+                        "text": None,
+                        "confidence": None,
+                        "extraction_method": "paddleocr_failed",
+                    }
 
                 if (
                     ocr_result.get("text") is not None
@@ -62,7 +85,6 @@ async def extract_pdf_pages(
                 ):
                     text = ocr_result["text"].strip()
                     extraction_method = "paddleocr"
-                    # Recompute quality score after OCR
                     ocr_page_record = {
                         "text": text,
                         "page_width": page_width,
@@ -77,7 +99,6 @@ async def extract_pdf_pages(
                         page_no,
                         ocr_result.get("extraction_method"),
                     )
-                    # Normal process fallback
                     page_record_raw = {
                         "text": text,
                         "page_width": page_width,
@@ -107,9 +128,24 @@ async def extract_pdf_pages(
                         quality_score,
                     )
 
-                    ocr_result = await asyncio.to_thread(
-                        ocr_service.ocr_page, page, page_no, document_id
-                    )
+                    try:
+                        ocr_result = await asyncio.wait_for(
+                            asyncio.to_thread(
+                                ocr_service.ocr_page, page, page_no, document_id
+                            ),
+                            timeout=OCR_TIMEOUT_SECONDS,
+                        )
+                    except asyncio.TimeoutError:
+                        logger.warning(
+                            "OCR timed out after %ss for page %s. Keeping PyMuPDF text.",
+                            OCR_TIMEOUT_SECONDS,
+                            page_no,
+                        )
+                        ocr_result = {
+                            "text": None,
+                            "confidence": None,
+                            "extraction_method": "paddleocr_failed",
+                        }
 
                     if (
                         ocr_result.get("text") is not None
@@ -118,7 +154,6 @@ async def extract_pdf_pages(
                         text = ocr_result["text"].strip()
                         extraction_method = "paddleocr"
 
-                        # Recompute quality score after OCR
                         ocr_page_record = {
                             "text": text,
                             "page_width": page_width,
@@ -144,6 +179,10 @@ async def extract_pdf_pages(
                 "page_width": page_width,
                 "page_height": page_height,
             })
+
+            if on_progress:
+                on_progress(page_no, total_pages, "extracting")
+
     except Exception as exc:
         logger.error("PDF extraction failed for %s: %s", file_path, exc)
         raise
@@ -154,4 +193,4 @@ async def extract_pdf_pages(
             except Exception:
                 pass
 
-    return pages
+    return pages

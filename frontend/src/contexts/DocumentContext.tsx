@@ -30,14 +30,17 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const { startTask } = useTask()
 
-  const mapBackendDoc = (doc: any): Document => ({
-    id: doc.document_id,
-    name: doc.source || doc.file_name.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ').trim(),
-    filename: doc.file_name,
+  const mapBackendDoc = (doc: Record<string, unknown>): Document => ({
+    id: String(doc.document_id),
+    name: String(doc.source || (doc.file_name as string).replace(/\.pdf$/i, '').replace(/[-_]/g, ' ').trim()),
+    filename: String(doc.file_name),
     status: doc.status === 'completed' ? 'ready' : doc.status === 'failed' ? 'failed' : 'processing',
-    fileSize: doc.file_size || 0,
-    pageCount: doc.page_count || 0,
-    uploadedAt: doc.created_at || new Date().toISOString(),
+    fileSize: Number(doc.file_size || 0),
+    pageCount: Number(doc.page_count || 0),
+    uploadedAt: String(doc.created_at || new Date().toISOString()),
+    stage: (doc.stage as string) || undefined,
+    progress: Number(doc.progress || 0),
+    progressDetail: (doc.progress_detail as string) || undefined,
   })
 
   // Load documents on mount / when user changes
@@ -51,8 +54,8 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
       try {
         const res = await fetchDocuments()
         setDocuments(res.map(mapBackendDoc))
-      } catch (err: any) {
-        toast.error(err.message || 'Failed to load documents')
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : 'Failed to load documents')
       }
     }
 
@@ -114,9 +117,26 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
           if (status.status === 'completed' || status.status === 'failed') {
             const fresh = await fetchDocuments(signal)
             setDocuments(fresh.map(mapBackendDoc))
-            toast.success(`Successfully uploaded "${tempDoc.name}"`)
+            if (status.status === 'completed') {
+              toast.success(`Successfully uploaded "${tempDoc.name}"`)
+            } else {
+              toast.error(`Failed to process "${tempDoc.name}": ${status.progress_detail || 'Unknown error'}`)
+            }
             return status
           }
+          // Update progress in real-time without full refetch
+          setDocuments((prev) =>
+            prev.map((d) =>
+              d.id === id
+                ? {
+                    ...d,
+                    stage: status.stage || d.stage,
+                    progress: status.progress ?? d.progress,
+                    progressDetail: status.progress_detail || d.progressDetail,
+                  }
+                : d,
+            ),
+          )
           if (signal.aborted) throw new DOMException('Cancelled by user', 'AbortError')
           await new Promise((resolve) => setTimeout(resolve, 3000))
         }
@@ -133,8 +153,8 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
     try {
       await deleteDocumentApi(id)
       setDocuments((prev) => prev.filter((d) => d.id !== id))
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to delete document')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete document')
     }
   }
 
@@ -145,13 +165,13 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
       setDocuments((prev) =>
         prev.map((d) =>
           d.id === id
-            ? { ...d, name: name.trim(), source: updated.source || d.source }
+            ? { ...d, name: name.trim(), source: (updated.source as string) || d.source }
             : d,
         ),
       )
       toast.success('Document renamed')
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to rename document')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to rename document')
     }
   }
 

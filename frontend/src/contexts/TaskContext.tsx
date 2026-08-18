@@ -64,7 +64,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       abortControllerRef.current = controller
 
       const taskId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-      ;(window as any).__medimeiTaskId = taskId
+      ;(window as unknown as Record<string, string | null>).__medimeiTaskId = taskId
 
       const payloadWithId = { ...payload, taskId }
 
@@ -85,8 +85,8 @@ export function TaskProvider({ children }: { children: ReactNode }) {
           payload,
           result,
         })
-      } catch (err: any) {
-        if (err?.name === 'AbortError' || controller.signal.aborted) {
+      } catch (err: unknown) {
+        if (err instanceof Error && (err.name === 'AbortError' || controller.signal.aborted)) {
           setCurrentTask({
             type,
             status: 'error',
@@ -99,13 +99,13 @@ export function TaskProvider({ children }: { children: ReactNode }) {
           type,
           status: 'error',
           payload,
-          error: err?.message || 'Task failed.',
+          error: err instanceof Error ? err.message : 'Task failed.',
         })
       } finally {
         if (abortControllerRef.current === controller) {
           abortControllerRef.current = null
         }
-        ;(window as any).__medimeiTaskId = null
+        ;(window as unknown as Record<string, string | null>).__medimeiTaskId = null
       }
 
       return true
@@ -114,7 +114,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   )
 
   const cancelTask = useCallback(async () => {
-    const taskId = (typeof window !== 'undefined' && (window as any).__medimeiTaskId) as string | undefined
+    const taskId = (typeof window !== 'undefined' && (window as unknown as Record<string, string | undefined>).__medimeiTaskId) as string | undefined
     if (!taskId) return
 
     if (abortControllerRef.current) {

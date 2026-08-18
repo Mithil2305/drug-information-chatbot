@@ -16,6 +16,16 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_DPI = 300
 
+_ocr_service_instance: Optional["OCRService"] = None
+
+
+def get_ocr_service(use_gpu: bool = False, dpi: int = DEFAULT_DPI) -> "OCRService":
+    """Return a cached OCRService singleton so the PaddleOCR model is loaded once."""
+    global _ocr_service_instance
+    if _ocr_service_instance is None:
+        _ocr_service_instance = OCRService(use_gpu=use_gpu, dpi=dpi)
+    return _ocr_service_instance
+
 
 class OCRService:
     """OCR fallback service. Real PaddleOCR loading is deferred; a stub is

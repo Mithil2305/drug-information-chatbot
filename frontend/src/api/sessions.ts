@@ -1,11 +1,20 @@
 import { apiFetch } from './client'
-import type { Conversation, ConversationSummary } from '../types/chat'
+import type { Conversation, ConversationSummary, Citation } from '../types/chat'
+
+export interface SessionMessage {
+  message_id: string
+  role: string
+  content: string
+  citations?: unknown[]
+  memories_updated?: string
+  memories_used?: string
+}
 
 export interface SessionResponse {
   session_id: string
   started_at: string
   summary: string | null
-  messages: any[]
+  messages: SessionMessage[]
 }
 
 export const listSessions = () =>
@@ -46,9 +55,9 @@ export function toConversation(s: SessionResponse): Conversation {
     messages:
       s.messages?.map((m) => ({
         id: String(m.message_id),
-        role: m.role,
+        role: m.role as 'user' | 'assistant',
         content: m.content,
-        citations: m.citations || [],
+        citations: (m.citations as Citation[]) || [],
       })) || [],
   }
 }
