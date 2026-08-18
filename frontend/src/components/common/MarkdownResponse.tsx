@@ -152,8 +152,8 @@ function InlineCitationPill({
         <span
           ref={tooltipRef}
           style={{
-            // top: `${tooltipPos.top}px`,
-            // left: `${tooltipPos.left}px`,
+            top: `${tooltipPos.top}px`,
+            left: `${tooltipPos.left}px`,
             transform: 'translateX(-50%)',
           }}
           className="fixed z-50 pointer-events-none w-72 max-w-[90vw] p-3 rounded-xl bg-surface border border-border shadow-xl text-left animate-fade-in"
