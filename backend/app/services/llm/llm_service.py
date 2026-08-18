@@ -53,13 +53,20 @@ class LLMService:
     def _extract_text(response) -> str:
         if isinstance(response, dict):
             text = response["choices"][0]["text"].strip()
-        else:
-            text = str(response).strip()
+        full_text = text
 
         if "</think>" in text:
-            text = text.split("</think>")[-1].strip()
-        elif "<think>" in text:
-            text = text.split("<think>")[0].strip()
+            post = text.split("</think>")[-1].strip()
+            if post:
+                return post
+            # Model did not generate an answer after </think>; use the think block as fallback.
+            pre = full_text.split("</think>")[-1].strip()
+            if "<think>" in pre:
+                pre = pre.split("<think>")[-1].strip()
+            return pre
+
+        if "<think>" in text:
+            text = text.split("<think>")[-1].strip()
 
         return text
 

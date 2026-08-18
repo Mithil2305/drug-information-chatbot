@@ -28,7 +28,6 @@ class PromptBuilder:
             f"=== Evidence ===\n{evidence_context}\n\n"
             f"=== Question ===\n{question}\n\n"
             "=== Answer ===\n"
-            "<think>\n\n</think>\n"
         )
 
         return prompt
