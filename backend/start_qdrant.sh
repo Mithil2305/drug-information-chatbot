@@ -4,9 +4,8 @@ QDRANT_BIN="$QDRANT_DIR/qdrant"
 LOG_FILE="$QDRANT_DIR/qdrant.log"
 
 # Check if Qdrant is already running
-if pgrep -lf qdrant | grep -v grep > /dev/null; then
-    echo "Qdrant is already running:"
-    pgrep -lf qdrant | grep -v grep
+if pgrep -x "qdrant" > /dev/null; then
+    echo "Qdrant is already running."
     exit 0
 fi
 
