@@ -64,6 +64,17 @@ class LLMService:
         return text
 
     @staticmethod
+    def _clean_think_tokens(text: str) -> str:
+        """Strip Qwen thinking/reasoning tokens from generated text."""
+        if "</think>" in text:
+            text = text.split("</think>")[-1].strip()
+        elif "<think>" in text:
+            text = text.split("<think>")[0].strip()
+        if "<|im_end|>" in text:
+            text = text.split("<|im_end|>")[0].strip()
+        return text
+
+    @staticmethod
     def _token_text(token) -> str:
         if isinstance(token, dict):
             choices = token.get("choices") or []
@@ -113,7 +124,7 @@ class LLMService:
                         text_parts.append(self._token_text(token))
                 except Exception as exc:
                     logger.debug("Exception in streaming loop: %s", exc)
-                return "".join(text_parts)
+                return self._clean_think_tokens("".join(text_parts))
         except (TypeError, ValueError, AttributeError) as exc:
             logger.debug("LLM streaming not supported by client: %s", exc)
 

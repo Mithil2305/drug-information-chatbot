@@ -243,3 +243,79 @@ def test_parse_batch_answer_formats():
     assert "tuberculosis" in res5[1][1]
 
 
+def test_split_answer_strips_think_tokens():
+    from app.services.comparison.comparison_service import ComparisonService
+
+    ans = (
+        "Some thinking content here\n"
+        "\n"
+        "DRUG1: Rinvoq is indicated for rheumatoid arthritis. [S1]\n"
+        "DRUG2: Humira is indicated for Crohn's disease. [S2]"
+    )
+    d1, d2 = ComparisonService._split_answer(ans)
+    assert "arthritis" in d1
+    assert "Crohn's" in d2
+    assert "thinking" not in d1.lower()
+    assert "thinking" not in d2.lower()
+
+
+def test_split_answer_no_drug1_drug2_fallback():
+    """Ensure _split_answer does NOT match 'Drug 1:' / 'Drug 2:' prompt headers."""
+    from app.services.comparison.comparison_service import ComparisonService
+
+    # Simulates LLM echoing the prompt (no DRUG1:/DRUG2: markers)
+    ans = (
+        "Drug 1: Theranova\n"
+        "Drug 2: Neurovia\n"
+        "=== Evidence ===\n"
+        "Some evidence text"
+    )
+    d1, d2 = ComparisonService._split_answer(ans)
+    # Should NOT extract drug names from prompt headers
+    assert "Theranova" not in d1
+    assert "Neurovia" not in d2
+    # Should return empty (which becomes "Not available in source document.")
+    assert d1 == ""
+    assert d2 == ""
+
+
+def test_build_batch_prompt_has_think_tokens():
+    """Ensure the comparison prompt includes Qwen think/assistant tokens."""
+    from app.services.comparison.comparison_service import ComparisonService
+
+    evidence = [
+        ("indications", "Indications", "Some evidence for drug1", "Some evidence for drug2", {}),
+    ]
+    prompt = ComparisonService._build_batch_prompt(evidence, "DrugA", "DrugB")
+    assert "imd" in prompt
+    assert "" in prompt
+    assert "=== Answer ===" in prompt
+    # Should NOT have "Drug 1:" / "Drug 2:" inside section blocks
+    blocks = prompt.split("---")
+    for block in blocks:
+        # The intro has "Drug 1:" and "Drug 2:" but section blocks should not
+        if "Section" in block and "Evidence for" in block:
+            assert "Drug 1:" not in block
+            assert "Drug 2:" not in block
+
+
+def test_clean_think_tokens():
+    from app.services.llm.llm_service import LLMService
+
+    # With closing think tag
+    text1 = "reasoning here\n\nActual answer"
+    assert LLMService._clean_think_tokens(text1) == "Actual answer"
+
+    # With opening think tag only
+    text2 = "Actual answer\nimd\nmore thinking"
+    assert LLMService._clean_think_tokens(text2) == "Actual answer"
+
+    # With im_end
+    text3 = "Actual answer<|im_end|>trailing"
+    assert LLMService._clean_think_tokens(text3) == "Actual answer"
+
+    # No tokens
+    text4 = "Just a plain answer"
+    assert LLMService._clean_think_tokens(text4) == "Just a plain answer"
+
+
