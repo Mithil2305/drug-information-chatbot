@@ -170,9 +170,15 @@ class ComparisonService:
     ) -> List[ComparisonAttribute]:
         await task_manager.raise_if_cancelled(task_id)
 
-        # 1. Gather evidence for all candidate attributes in parallel.
+        # 1. Gather evidence with bounded concurrency to avoid overwhelming Qdrant.
+        sem = asyncio.Semaphore(4)
+
+        async def _limited_gather(key, label):
+            async with sem:
+                return await self._gather_evidence(key, label, drug1_id, drug2_id, task_id=task_id)
+
         tasks = [
-            self._gather_evidence(key, label, drug1_id, drug2_id, task_id=task_id)
+            _limited_gather(key, label)
             for key, label in ATTRIBUTE_LABELS
         ]
         evidence_list = await asyncio.gather(*tasks)

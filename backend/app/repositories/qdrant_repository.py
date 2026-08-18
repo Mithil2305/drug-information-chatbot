@@ -4,6 +4,7 @@ import uuid
 from typing import List, Dict, Any, Optional
 
 from qdrant_client import AsyncQdrantClient
+from qdrant_client.http.exceptions import ResponseHandlingException
 from qdrant_client.models import (
     Distance,
     VectorParams,
@@ -40,7 +41,7 @@ class QdrantRepository:
             self._client = AsyncQdrantClient(
                 url=settings.QDRANT_URL,
                 api_key=api_key,
-                timeout=30.0,
+                timeout=60.0,
             )
         return self._client
 
@@ -203,15 +204,28 @@ class QdrantRepository:
 
         query_filter = Filter(must=must_conditions) if must_conditions else None
 
-        results = await self.client.query_points(
-            collection_name=self.collection_name,
-            query=query_vector,
-            query_filter=query_filter,
-            limit=limit,
-            score_threshold=score_threshold,
-        )
-
-        return results.points
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                results = await self.client.query_points(
+                    collection_name=self.collection_name,
+                    query=query_vector,
+                    query_filter=query_filter,
+                    limit=limit,
+                    score_threshold=score_threshold,
+                )
+                return results.points
+            except (ResponseHandlingException, Exception) as e:
+                is_transient = isinstance(e, ResponseHandlingException) or "ReadError" in str(e)
+                if is_transient and attempt < max_retries - 1:
+                    delay = 0.5 * (2 ** attempt)
+                    logger.warning(
+                        "Qdrant search attempt %d/%d failed (retrying in %.1fs): %s",
+                        attempt + 1, max_retries, delay, e,
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    raise
 
     async def delete_document_chunks(self, document_id: str):
         """Delete all vectors and payload associated with a specific document ID from Qdrant."""
