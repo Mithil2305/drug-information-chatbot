@@ -348,23 +348,42 @@ class ComparisonService:
     ) -> List[Tuple[str, str]]:
         answer = answer.strip()
 
-        # The prompt uses '---' as a section separator.
-        parts = re.split(r"\n---\s*\n", answer)
+        # Step 1: Try splitting by Section header patterns (e.g. "Section 1: ...")
+        parts = re.split(r"(?i)Section\s*\d+\s*:?", answer)
+        if parts and not parts[0].strip():
+            parts = parts[1:]
 
         if len(parts) != expected_count:
-            # If the model omitted separators, try splitting on blank lines.
-            parts = re.split(r"\n\s*\n", answer)
+            # Step 2: Fallback to the original hyphen-based split
+            parts = re.split(r"\n---\s*\n", answer)
 
         results: List[Tuple[str, str]] = []
-        for part in parts[:expected_count]:
-            drug1, drug2 = ComparisonService._split_answer(part)
-            if not drug1.strip():
-                drug1 = "Not available in source document."
-            if not drug2.strip():
-                drug2 = "Not available in source document."
-            results.append((drug1, drug2))
 
-        # Pad if the model returned fewer blocks than expected.
+        if len(parts) == expected_count:
+            for part in parts:
+                drug1, drug2 = ComparisonService._split_answer(part)
+                if not drug1.strip():
+                    drug1 = "Not available in source document."
+                if not drug2.strip():
+                    drug2 = "Not available in source document."
+                results.append((drug1, drug2))
+        else:
+            # Step 3: Granular regex extract for each Section {i}
+            for i in range(1, expected_count + 1):
+                pattern = rf"(?i)Section\s*{i}\b(.*?)(?=\n\s*Section\s*{i+1}\b|\s+Section\s*{i+1}\b|$)"
+                match = re.search(pattern, answer, re.DOTALL)
+                if match:
+                    drug1, drug2 = ComparisonService._split_answer(match.group(1))
+                else:
+                    drug1, drug2 = "", ""
+
+                if not drug1.strip():
+                    drug1 = "Not available in source document."
+                if not drug2.strip():
+                    drug2 = "Not available in source document."
+                results.append((drug1, drug2))
+
+        # Pad if we somehow have fewer blocks than expected (should not happen, but safe to keep)
         while len(results) < expected_count:
             results.append(("Not available in source document.", "Not available in source document."))
 

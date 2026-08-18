@@ -162,3 +162,84 @@ def test_compare_documents_success(client, mock_db):
         comparison_service.search_service.search = original_search
         comparison_service.batch_size = original_batch_size
 
+
+def test_parse_batch_answer_formats():
+    from app.services.comparison.comparison_service import ComparisonService
+
+    # 1. Hyphen-separated format (expected behaviour)
+    ans1 = (
+        "DRUG1: Rinvoq is indicated for rheumatoid arthritis. [S1]\n"
+        "DRUG2: Humira is indicated for Crohn's disease. [S2]\n"
+        "---\n"
+        "DRUG1: Rinvoq warnings include serious infections. [S3]\n"
+        "DRUG2: Humira warnings include tuberculosis. [S4]"
+    )
+    res1 = ComparisonService._parse_batch_answer(ans1, 2)
+    assert len(res1) == 2
+    assert "arthritis" in res1[0][0]
+    assert "Crohn's" in res1[0][1]
+    assert "serious infections" in res1[1][0]
+    assert "tuberculosis" in res1[1][1]
+
+    # 2. Section-labeled format (no hyphens)
+    ans2 = (
+        "Section 1: Indications\n"
+        "DRUG1: Rinvoq is indicated for rheumatoid arthritis. [S1]\n"
+        "DRUG2: Humira is indicated for Crohn's disease. [S2]\n"
+        "\n"
+        "Section 2: Warnings\n"
+        "DRUG1: Rinvoq warnings include serious infections. [S3]\n"
+        "DRUG2: Humira warnings include tuberculosis. [S4]"
+    )
+    res2 = ComparisonService._parse_batch_answer(ans2, 2)
+    assert len(res2) == 2
+    assert "arthritis" in res2[0][0]
+    assert "Crohn's" in res2[0][1]
+    assert "serious infections" in res2[1][0]
+    assert "tuberculosis" in res2[1][1]
+
+    # 3. Single-section format (batch size = 1)
+    ans3 = (
+        "DRUG1: Rinvoq is indicated for rheumatoid arthritis. [S1]\n"
+        "DRUG2: Humira is indicated for Crohn's disease. [S2]"
+    )
+    res3 = ComparisonService._parse_batch_answer(ans3, 1)
+    assert len(res3) == 1
+    assert "arthritis" in res3[0][0]
+    assert "Crohn's" in res3[0][1]
+
+    # 4. Fallback/mismatched format (should use granular lookahead)
+    ans4 = (
+        "Section 1: Indications\n"
+        "DRUG1: Rinvoq is indicated for rheumatoid arthritis. [S1]\n"
+        "DRUG2: Humira is indicated for Crohn's disease. [S2]\n"
+        "Random text or weird lines here\n"
+        "Section 2: Warnings\n"
+        "DRUG1: Rinvoq warnings include serious infections. [S3]\n"
+        "DRUG2: Humira warnings include tuberculosis. [S4]"
+    )
+    res4 = ComparisonService._parse_batch_answer(ans4, 2)
+    assert len(res4) == 2
+    assert "arthritis" in res4[0][0]
+    assert "Crohn's" in res4[0][1]
+    assert "serious infections" in res4[1][0]
+    assert "tuberculosis" in res4[1][1]
+
+    # 5. Missing one drug in one of the sections
+    ans5 = (
+        "Section 1: Indications\n"
+        "DRUG1: Rinvoq is indicated for rheumatoid arthritis. [S1]\n"
+        "DRUG2: Not available in source document.\n"
+        "\n"
+        "Section 2: Warnings\n"
+        "DRUG1: Not available in source document.\n"
+        "DRUG2: Humira warnings include tuberculosis. [S4]"
+    )
+    res5 = ComparisonService._parse_batch_answer(ans5, 2)
+    assert len(res5) == 2
+    assert "arthritis" in res5[0][0]
+    assert "not available" in res5[0][1].lower()
+    assert "not available" in res5[1][0].lower()
+    assert "tuberculosis" in res5[1][1]
+
+

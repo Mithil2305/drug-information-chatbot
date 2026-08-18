@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import uuid
 from typing import List, Dict, Any, Optional
@@ -30,6 +31,7 @@ class QdrantRepository:
         self.collection_name = settings.QDRANT_COLLECTION
         self._collection_verified = False
         self._vector_size: Optional[int] = None
+        self._lock = asyncio.Lock()
 
     @property
     def client(self) -> AsyncQdrantClient:
@@ -56,45 +58,49 @@ class QdrantRepository:
         if self._collection_verified:
             return
 
-        try:
-            collections = await self.client.get_collections()
-            exists = any(c.name == self.collection_name for c in collections.collections)
+        async with self._lock:
+            if self._collection_verified:
+                return
 
-            size = self._vector_size or 1024  # Safe default until verified by the model
+            try:
+                collections = await self.client.get_collections()
+                exists = any(c.name == self.collection_name for c in collections.collections)
 
-            if not exists:
-                logger.info(f"Creating Qdrant collection: {self.collection_name}")
-                await self.client.create_collection(
-                    collection_name=self.collection_name,
-                    vectors_config=VectorParams(
-                        size=size,
-                        distance=Distance.COSINE
+                size = self._vector_size or 1024  # Safe default until verified by the model
+
+                if not exists:
+                    logger.info(f"Creating Qdrant collection: {self.collection_name}")
+                    await self.client.create_collection(
+                        collection_name=self.collection_name,
+                        vectors_config=VectorParams(
+                            size=size,
+                            distance=Distance.COSINE
+                        )
                     )
-                )
 
-                # Payload indexes for filtering and keyword retrieval
-                keyword_fields = ["document_id", "section", "version", "extraction_method"]
-                for field in keyword_fields:
+                    # Payload indexes for filtering and keyword retrieval
+                    keyword_fields = ["document_id", "section", "version", "extraction_method"]
+                    for field in keyword_fields:
+                        await self.client.create_payload_index(
+                            collection_name=self.collection_name,
+                            field_name=field,
+                            field_schema="keyword"
+                        )
+
                     await self.client.create_payload_index(
                         collection_name=self.collection_name,
-                        field_name=field,
-                        field_schema="keyword"
+                        field_name="chunk_text",
+                        field_schema=TextIndexParams(
+                            type="text",
+                            tokenizer=TokenizerType.WORD,
+                            lowercase=True
+                        )
                     )
+                    logger.info("Successfully configured Qdrant collection and indexes.")
 
-                await self.client.create_payload_index(
-                    collection_name=self.collection_name,
-                    field_name="chunk_text",
-                    field_schema=TextIndexParams(
-                        type="text",
-                        tokenizer=TokenizerType.WORD,
-                        lowercase=True
-                    )
-                )
-                logger.info("Successfully configured Qdrant collection and indexes.")
-
-            self._collection_verified = True
-        except Exception as e:
-            logger.error(f"Failed to verify/create Qdrant collection: {e}")
+                self._collection_verified = True
+            except Exception as e:
+                logger.error(f"Failed to verify/create Qdrant collection: {e}")
 
     async def add_chunk(
         self,

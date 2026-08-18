@@ -31,25 +31,6 @@ class PromptBuilder:
             "<think>\n\n</think>\n"
         )
 
-        # Rough guard against passing the input context window.
-        max_input_chars = settings.LLM_MAX_INPUT_TOKENS * 4
-        if len(prompt) > max_input_chars:
-            logger.warning(
-                "Final prompt too long (%d chars); truncating evidence.",
-                len(prompt),
-            )
-            # Keep the system + question and trim the evidence from the front.
-            overflow = len(prompt) - max_input_chars
-            evidence_context = evidence_context[overflow:]
-            prompt = (
-                f"{system}"
-                f"{memories_section}\n\n"
-                f"=== Evidence (truncated) ===\n{evidence_context}\n\n"
-                f"=== Question ===\n{question}\n\n"
-                "=== Answer ===\n"
-                "<think>\n\n</think>\n"
-            )
-
         return prompt
 
     @staticmethod

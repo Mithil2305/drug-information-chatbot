@@ -37,16 +37,6 @@ class LLMService:
         max_new_tokens = max_new_tokens or settings.LLM_MAX_NEW_TOKENS
         temperature = temperature if temperature is not None else settings.LLM_TEMPERATURE
 
-        # Rough input-token guard: ~4 characters per token.
-        max_input_chars = settings.LLM_MAX_INPUT_TOKENS * 4
-        if len(prompt) > max_input_chars:
-            logger.warning(
-                "Prompt too long (%d chars); truncating to ~%d tokens",
-                len(prompt),
-                settings.LLM_MAX_INPUT_TOKENS,
-            )
-            prompt = prompt[:max_input_chars]
-
         gen_kwargs = {}
         if max_new_tokens is not None:
             gen_kwargs["max_tokens"] = max_new_tokens
