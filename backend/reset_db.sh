@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# This script resets the database and starts fresh
 # Exit on any error
 set -e
 
