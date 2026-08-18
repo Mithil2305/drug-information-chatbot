@@ -24,6 +24,7 @@ def reset_database():
     print("\n[1/6] Force killing lingering database processes...")
     run_cmd("kill -9 $(pgrep mysql) 2>/dev/null || true", check=False)
     run_cmd("kill -9 $(pgrep mysqld) 2>/dev/null || true", check=False)
+    run_cmd("kill -9 $(pgrep mariadbd) 2>/dev/null || true", check=False)
 
     # 2. Purge old package files and corrupt data folders
     print("\n[2/6] Purging old packages and removing data directories...")
