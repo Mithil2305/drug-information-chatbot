@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import uuid
 from typing import List, Dict, Any, Optional
@@ -18,6 +19,10 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+QDRANT_TIMEOUT = 30
+QDRANT_MAX_RETRIES = 2
+QDRANT_RETRY_DELAY = 1.0
+
 
 class QdrantRepository:
     """
@@ -37,9 +42,15 @@ class QdrantRepository:
             api_key = getattr(settings, "QDRANT_API_KEY", None)
             self._client = AsyncQdrantClient(
                 url=settings.QDRANT_URL,
-                api_key=api_key
+                api_key=api_key,
+                timeout=QDRANT_TIMEOUT,
             )
         return self._client
+
+    def _reset_client(self):
+        """Reset the cached client so the next access creates a fresh connection."""
+        self._client = None
+        self._collection_verified = False
 
     def set_vector_size(self, vector_size: int):
         """Set the collection vector size from the actual embedding model."""
@@ -196,15 +207,31 @@ class QdrantRepository:
 
         query_filter = Filter(must=must_conditions) if must_conditions else None
 
-        results = await self.client.query_points(
-            collection_name=self.collection_name,
-            query=query_vector,
-            query_filter=query_filter,
-            limit=limit,
-            score_threshold=score_threshold,
-        )
+        last_exc = None
+        for attempt in range(QDRANT_MAX_RETRIES + 1):
+            try:
+                results = await self.client.query_points(
+                    collection_name=self.collection_name,
+                    query=query_vector,
+                    query_filter=query_filter,
+                    limit=limit,
+                    score_threshold=score_threshold,
+                )
+                return results.points
+            except Exception as exc:
+                last_exc = exc
+                logger.warning(
+                    "Qdrant search attempt %d/%d failed: %s",
+                    attempt + 1,
+                    QDRANT_MAX_RETRIES + 1,
+                    exc,
+                )
+                if attempt < QDRANT_MAX_RETRIES:
+                    self._reset_client()
+                    await self.ensure_collection_exists()
+                    await asyncio.sleep(QDRANT_RETRY_DELAY)
 
-        return results.points
+        raise last_exc
 
     async def delete_document_chunks(self, document_id: str):
         """Delete all vectors and payload associated with a specific document ID from Qdrant."""
