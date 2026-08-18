@@ -6,8 +6,8 @@ export interface SessionMessage {
   role: string
   content: string
   citations?: unknown[]
-  memories_updated?: string
-  memories_used?: string
+  memories_updated?: string[]
+  memories_used?: string[]
 }
 
 export interface SessionResponse {

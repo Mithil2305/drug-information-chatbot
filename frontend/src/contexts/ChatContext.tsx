@@ -70,8 +70,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           content: msg.content,
           citations: mapCitations(msg.citations),
           status: msg.role === 'assistant' ? 'grounded' : undefined,
-          memoriesUpdated: msg.memories_updated as string[] | undefined || undefined,
-          memoriesUsed: msg.memories_used as string[] | undefined || undefined,
+          memoriesUpdated: msg.memories_updated || undefined,
+          memoriesUsed: msg.memories_used || undefined,
         }))
         setMessages(loaded)
       } catch (err: unknown) {
