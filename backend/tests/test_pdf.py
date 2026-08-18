@@ -72,7 +72,9 @@ async def test_extract_pdf_pages_with_document_id():
 
 @pytest.mark.asyncio
 async def test_extract_pdf_pages_with_ocr_fallback():
+    # Make a mock page with poor quality text and containing an image
     mock_page = _make_mock_page("")
+    mock_page.get_images.return_value = [("dummy_xref", 0, 0, 0, 0, "img", "DCTDecode", 0)]
 
     mock_doc = MagicMock()
     mock_doc.__iter__.return_value = iter([mock_page])
@@ -99,9 +101,10 @@ async def test_extract_pdf_pages_with_ocr_fallback():
 
 
 @pytest.mark.asyncio
-async def test_extract_pdf_pages_with_image_triggers_ocr():
+async def test_extract_pdf_pages_with_image_and_good_text_skips_ocr():
     # Make a mock page with text that is normally good enough to bypass OCR,
-    # but with get_images returning an image.
+    # and with get_images returning an image. Under the new logic, PyMuPDF is preferred
+    # and we skip OCR since quality is good.
     mock_page = _make_mock_page("This is a clean page with plenty of characters and words.")
     mock_page.get_images.return_value = [("dummy_xref", 0, 0, 0, 0, "img", "DCTDecode", 0)]
 
@@ -112,26 +115,22 @@ async def test_extract_pdf_pages_with_image_triggers_ocr():
          patch("app.services.pdf.ocr.OCRService.ocr_page") as mock_ocr_page:
 
         mock_open.return_value = mock_doc
-        mock_ocr_page.return_value = {
-            "text": "Extracted text from OCR including image content.",
-            "confidence": 0.98,
-            "extraction_method": "paddleocr",
-        }
 
         pages = await extract_pdf_pages("fake_path.pdf", document_id="doc-001")
 
         assert len(pages) == 1
         assert pages[0]["document_id"] == "doc-001"
         assert pages[0]["page_no"] == 1
-        assert pages[0]["text"] == "Extracted text from OCR including image content."
-        assert pages[0]["extraction_method"] == "paddleocr"
+        assert pages[0]["text"] == "This is a clean page with plenty of characters and words."
+        assert pages[0]["extraction_method"] == "pymupdf"
         assert pages[0]["image_count"] == 1
-        mock_ocr_page.assert_called_once_with(mock_page, 1, "doc-001")
+        mock_ocr_page.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_extract_pdf_pages_with_image_ocr_failure_falls_back_to_pymupdf():
-    mock_page = _make_mock_page("Standard PyMuPDF text fallback content.")
+async def test_extract_pdf_pages_with_poor_text_image_and_ocr_failure_keeps_pymupdf():
+    # Make a mock page with poor text that needs OCR, and contains an image, but OCR fails
+    mock_page = _make_mock_page("Bad")
     mock_page.get_images.return_value = [("dummy_xref", 0, 0, 0, 0, "img", "DCTDecode", 0)]
 
     mock_doc = MagicMock()
@@ -152,10 +151,35 @@ async def test_extract_pdf_pages_with_image_ocr_failure_falls_back_to_pymupdf():
         assert len(pages) == 1
         assert pages[0]["document_id"] == "doc-001"
         assert pages[0]["page_no"] == 1
-        assert pages[0]["text"] == "Standard PyMuPDF text fallback content."
+        assert pages[0]["text"] == "Bad"
         assert pages[0]["extraction_method"] == "pymupdf"
         assert pages[0]["image_count"] == 1
         mock_ocr_page.assert_called_once_with(mock_page, 1, "doc-001")
+
+
+@pytest.mark.asyncio
+async def test_extract_pdf_pages_with_poor_text_but_no_images_skips_ocr():
+    # Make a mock page with poor text, but no images. Should not trigger OCR.
+    mock_page = _make_mock_page("Bad")
+    mock_page.get_images.return_value = []
+
+    mock_doc = MagicMock()
+    mock_doc.__iter__.return_value = iter([mock_page])
+
+    with patch("fitz.open") as mock_open, \
+         patch("app.services.pdf.ocr.OCRService.ocr_page") as mock_ocr_page:
+
+        mock_open.return_value = mock_doc
+
+        pages = await extract_pdf_pages("fake_path.pdf", document_id="doc-001")
+
+        assert len(pages) == 1
+        assert pages[0]["document_id"] == "doc-001"
+        assert pages[0]["page_no"] == 1
+        assert pages[0]["text"] == "Bad"
+        assert pages[0]["extraction_method"] == "pymupdf"
+        assert pages[0]["image_count"] == 0
+        mock_ocr_page.assert_not_called()
 
 
 
