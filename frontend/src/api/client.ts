@@ -66,7 +66,9 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
     headers,
   })
 
-  if (res.status === 401) {
+  const isLoginPath = path === '/api/v1/auth/login'
+
+  if (res.status === 401 && !isLoginPath) {
     localStorage.removeItem('labelproof_token')
     window.dispatchEvent(new CustomEvent(AUTH_LOGOUT_EVENT))
     throw new Error('Session expired. Please sign in again.')
