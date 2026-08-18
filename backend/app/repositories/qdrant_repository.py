@@ -39,7 +39,8 @@ class QdrantRepository:
             api_key = getattr(settings, "QDRANT_API_KEY", None)
             self._client = AsyncQdrantClient(
                 url=settings.QDRANT_URL,
-                api_key=api_key
+                api_key=api_key,
+                timeout=30.0,
             )
         return self._client
 

@@ -15,6 +15,7 @@ async def get_qdrant_client() -> AsyncQdrantClient:
         api_key = getattr(settings, "QDRANT_API_KEY", None)
         _qdrant_client_instance = AsyncQdrantClient(
             url=settings.QDRANT_URL,
-            api_key=api_key
+            api_key=api_key,
+            timeout=30.0,
         )
     return _qdrant_client_instance
