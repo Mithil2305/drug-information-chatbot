@@ -31,7 +31,7 @@ async def compare_documents(
             detail="Comparison cancelled by user."
         )
     except Exception as exc:
-        logger.error("Comparison failed: %s", exc)
+        logger.exception("Comparison failed:")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Comparison failed.",
