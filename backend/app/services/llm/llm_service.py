@@ -69,27 +69,35 @@ class LLMService:
         thinking = ""
 
         if "</think>" in text:
-            # Full think block: extract thinking content and take answer after it
             parts = text.split("</think>", 1)
             think_block = parts[0]
             answer = parts[1].strip() if len(parts) > 1 else ""
 
-            # Extract the content inside <think>...</think>
             if "<think>" in think_block:
                 thinking = think_block.split("<think>", 1)[-1].strip()
             else:
                 thinking = think_block.strip()
-
-            return {"text": answer, "thinking": thinking}
-
-        if "<think>" in text:
-            # Unclosed think block (model ran out of tokens)
+        elif "<think>" in text:
             parts = text.split("<think>", 1)
             answer = parts[0].strip()
             thinking = parts[1].strip() if len(parts) > 1 else ""
-            return {"text": answer, "thinking": thinking}
+        else:
+            answer = text
 
-        return {"text": text, "thinking": ""}
+        # Truncate any repeated answer blocks (anti-repetition guard)
+        for marker in ["**Answer:**", "\nAnswer:", "=== Answer ===", "=== Question ==="]:
+            if marker in answer:
+                first_part = answer.split(marker)[0].strip()
+                if len(first_part) > 20:
+                    answer = first_part
+
+        # Clean up trailing abstention line if real content is present
+        if "I don't know based on the provided documents." in answer:
+            parts = answer.split("I don't know based on the provided documents.")
+            if len(parts) > 1 and len(parts[0].strip()) > 50:
+                answer = parts[0].strip()
+
+        return {"text": answer, "thinking": thinking}
 
     @staticmethod
     def _extract_text(response) -> str:

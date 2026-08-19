@@ -56,7 +56,8 @@ class PromptBuilder:
     def _default_system_instruction() -> str:
         return (
             "You are MediMei, a clinical assistant. "
-            "Answer the question using ONLY the evidence provided below. "
+            "Answer the question concisely and directly using ONLY the evidence provided below. "
+            "Do not repeat the answer or produce duplicate output blocks. "
             "Do not use outside medical knowledge. "
             "Do not invent facts. "
             "Do not infer unsupported dosage information. "
