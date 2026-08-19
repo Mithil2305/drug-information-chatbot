@@ -98,6 +98,8 @@ class SemanticSearchService:
                     "version": payload.get("version"),
                     "text_hash": payload.get("text_hash"),
                     "text": payload.get("text") or payload.get("chunk_text"),
+                    "quality_score": payload.get("quality_score", 1.0),
+                    "ocr_confidence": payload.get("ocr_confidence"),
                 })
         except Exception as exc:
             if _is_qdrant_connection_error(exc):

@@ -116,7 +116,10 @@ class QdrantRepository:
         section: Optional[str],
         chunk_index: int,
         chunk_text: str,
-        embedding: List[float]
+        embedding: List[float],
+        quality_score: float = 1.0,
+        ocr_confidence: Optional[float] = None,
+        extraction_method: Optional[str] = None,
     ):
         """Index a single document chunk with both text and metadata payload."""
         await self.ensure_collection_exists()
@@ -132,7 +135,10 @@ class QdrantRepository:
                 "section": section,
                 "chunk_index": chunk_index,
                 "chunk_text": chunk_text,
-                "text": chunk_text  # Added for backwards/alternate schema compatibility
+                "text": chunk_text,  # Added for backwards/alternate schema compatibility
+                "quality_score": quality_score,
+                "ocr_confidence": ocr_confidence,
+                "extraction_method": extraction_method,
             }
         )
 
@@ -170,6 +176,8 @@ class QdrantRepository:
                     "extraction_method": chunk.get("extraction_method"),
                     "version": chunk.get("version"),
                     "text_hash": chunk.get("text_hash"),
+                    "quality_score": chunk.get("quality_score", 1.0),
+                    "ocr_confidence": chunk.get("ocr_confidence"),
                 }
             )
             points.append(point)
