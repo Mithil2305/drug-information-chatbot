@@ -200,11 +200,17 @@ class ComparisonService:
             attributes.extend(batch_attrs)
 
         # 4. Hide rows where both drugs have no useful information.
+        before_filter = len(attributes)
         attributes = [
             attr
             for attr in attributes
             if not (attr.drug1.status == "unavailable" and attr.drug2.status == "unavailable")
         ]
+        if before_filter != len(attributes):
+            logger.info(
+                "Filtered %d attributes where both drugs unavailable",
+                before_filter - len(attributes),
+            )
 
         return attributes
 
@@ -220,16 +226,20 @@ class ComparisonService:
         results1, results2 = await asyncio.gather(
             self.search_service.search(
                 query=label,
-                top_k=2,
+                top_k=5,
                 document_ids=[drug1_id],
-                score_threshold=settings.MIN_RELEVANCE_SCORE,
+                score_threshold=max(0.15, settings.MIN_RELEVANCE_SCORE),
             ),
             self.search_service.search(
                 query=label,
-                top_k=2,
+                top_k=5,
                 document_ids=[drug2_id],
-                score_threshold=settings.MIN_RELEVANCE_SCORE,
+                score_threshold=max(0.15, settings.MIN_RELEVANCE_SCORE),
             ),
+        )
+        logger.info(
+            "Evidence for '%s': drug1=%d results, drug2=%d results",
+            label, len(results1), len(results2),
         )
         return key, label, results1, results2
 
@@ -264,7 +274,7 @@ class ComparisonService:
         await task_manager.raise_if_cancelled(task_id)
 
         try:
-            answer = await self.llm_service.generate_async(
+            llm_result = await self.llm_service.generate_async(
                 prompt,
                 task_id=task_id,
                 max_new_tokens=min(512, 128 * len(evidence)),
@@ -293,6 +303,13 @@ class ComparisonService:
                 for key, label, _, _ in evidence
             ]
 
+        # generate_async returns {"text": ..., "thinking": ...}
+        if isinstance(llm_result, dict):
+            answer = llm_result.get("text", "")
+        else:
+            answer = str(llm_result)
+
+        logger.info("LLM batch answer length: %d chars for %d sections", len(answer), len(evidence))
         cell_texts = self._parse_batch_answer(answer, len(evidence))
 
         attributes: List[ComparisonAttribute] = []
@@ -337,6 +354,16 @@ class ComparisonService:
             "and do not fabricate citations. Cite relevant sources using the [S1], [S2], etc. markers from that section. "
             "Be concise: 1-2 short sentences per drug. "
             "If the evidence does not contain information for a drug, write exactly: 'Not available in source document.'\n\n"
+            "IMPORTANT: Format your answer exactly as shown below. Start each section with 'Section N:' and use 'DRUG1:' and 'DRUG2:' labels.\n"
+            "Separate sections with a line containing only '---'.\n\n"
+            "Example:\n"
+            "Section 1: Indications\n"
+            "DRUG1: Used for rheumatoid arthritis [S1].\n"
+            "DRUG2: Used for plaque psoriasis [S2].\n"
+            "---\n"
+            "Section 2: Dosage & Administration\n"
+            "DRUG1: 15 mg once daily [S1].\n"
+            "DRUG2: 150 mg injection every 12 weeks [S3].\n\n"
             + "\n---\n".join(blocks)
             + "\n\n=== Answer ===\n"
         )
@@ -348,11 +375,32 @@ class ComparisonService:
     ) -> List[Tuple[str, str]]:
         answer = answer.strip()
 
-        # The prompt uses '---' as a section separator.
-        parts = re.split(r"\n---\s*\n", answer)
+        # Strip any leading thinking block if present.
+        if answer.startswith("<think"):
+            think_end = answer.find(">")
+            if think_end != -1:
+                think_close = answer.find("</think>", think_end)
+                if think_close != -1:
+                    answer = answer[think_close + len("</think>"):].strip()
+                else:
+                    answer = answer[think_end + 1:].strip()
 
+        # Strip "=== Answer ===" prefix if the model echoed it.
+        answer = re.sub(r"^=+\s*Answer\s*=+\s*\n", "", answer, flags=re.IGNORECASE)
+
+        # Try splitting by '---' separators first.
+        parts = re.split(r"\n-+\s*\n", answer)
+
+        # If that didn't yield the right number of parts, try splitting on "Section N:" headers.
         if len(parts) != expected_count:
-            # If the model omitted separators, try splitting on blank lines.
+            section_splits = re.split(r"\n(?=Section\s*\d+\s*:)", answer, flags=re.IGNORECASE)
+            if len(section_splits) == expected_count:
+                parts = section_splits
+            elif len(section_splits) > 1:
+                parts = section_splits
+
+        # If still wrong count, try splitting on blank lines.
+        if len(parts) != expected_count:
             parts = re.split(r"\n\s*\n", answer)
 
         results: List[Tuple[str, str]] = []
@@ -372,9 +420,13 @@ class ComparisonService:
 
     @staticmethod
     def _split_answer(answer: str) -> Tuple[str, str]:
-        # Strip Qwen control token if present.
-        if " thinking" in answer:
+        # Strip Qwen control tokens if present.
+        answer = re.sub(r"<think(?:ing)?>.*?</think(?:ing)?>", "", answer, flags=re.DOTALL | re.IGNORECASE)
+        if " thinking" in answer.lower():
             answer = answer.split(" thinking")[-1].strip()
+
+        # Strip leading "Section N:" header if present.
+        answer = re.sub(r"^Section\s*\d+\s*:\s*[^\n]*\n", "", answer, flags=re.IGNORECASE)
 
         answer = answer.strip()
 
@@ -405,6 +457,17 @@ class ComparisonService:
             )
             drug1 = drug1_match.group(1).strip() if drug1_match else ""
             drug2 = drug2_match.group(1).strip() if drug2_match else ""
+
+        # Fallback: if still empty, try line-based splitting (first non-empty line = drug1, second = drug2)
+        if not drug1 and not drug2:
+            lines = [l.strip() for l in answer.split("\n") if l.strip()]
+            # Skip any "Section N:" header lines
+            content_lines = [l for l in lines if not re.match(r"^Section\s*\d+", l, re.IGNORECASE)]
+            if len(content_lines) >= 2:
+                drug1 = content_lines[0]
+                drug2 = content_lines[1]
+            elif len(content_lines) == 1:
+                drug1 = content_lines[0]
 
         # Clean any remaining placeholder artifacts
         def clean_placeholder(t: str) -> str:
