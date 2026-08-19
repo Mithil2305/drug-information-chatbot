@@ -98,13 +98,10 @@ async def extract_pdf_pages(
 
                     if (
                         ocr_result.get("text") is not None
-                        and ocr_result.get("extraction_method") not in (
-                            "paddleocr_unavailable", "paddleocr_failed",
-                            "easyocr_failed", "ocr_unavailable",
-                        )
+                        and ocr_result.get("extraction_method") not in ("paddleocr_unavailable", "paddleocr_failed")
                     ):
                         text = ocr_result["text"].strip()
-                        extraction_method = ocr_result.get("extraction_method", "ocr")
+                        extraction_method = "paddleocr"
 
                         ocr_page_record = {
                             "text": text,
