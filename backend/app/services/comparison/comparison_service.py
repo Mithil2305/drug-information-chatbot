@@ -199,12 +199,24 @@ class ComparisonService:
             )
             attributes.extend(batch_attrs)
 
-        # 4. Hide rows where both drugs have no useful information.
-        attributes = [
-            attr
+        # 4. Hide rows where both drugs have no useful information,
+        #    but only if at least one row has useful content.
+        has_useful = any(
+            not (attr.drug1.status == "unavailable" and attr.drug2.status == "unavailable")
             for attr in attributes
-            if not (attr.drug1.status == "unavailable" and attr.drug2.status == "unavailable")
-        ]
+        )
+        if has_useful:
+            attributes = [
+                attr
+                for attr in attributes
+                if not (attr.drug1.status == "unavailable" and attr.drug2.status == "unavailable")
+            ]
+
+        logger.info(
+            "Comparison built %d attributes (useful=%s)",
+            len(attributes),
+            has_useful,
+        )
 
         return attributes
 
@@ -286,6 +298,11 @@ class ComparisonService:
                 answer = llm_res.get("text", "")
             else:
                 answer = str(llm_res)
+            logger.debug(
+                "Comparison LLM answer for %d sections (first 200 chars): %s",
+                len(evidence),
+                answer[:200],
+            )
         except TaskCancelledError:
             raise
         except Exception as exc:
@@ -358,7 +375,6 @@ class ComparisonService:
             f"DRUG2: <summary with citations>\n\n"
             + "\n---\n".join(blocks)
             + "\n\n=== Answer ===\n"
-            "<think>\n\n</think>\n\n"
         )
 
     @staticmethod
@@ -368,12 +384,39 @@ class ComparisonService:
     ) -> List[Tuple[str, str]]:
         answer = answer.strip()
 
-        # The prompt uses '---' as a section separator.
-        parts = re.split(r"\n---\s*\n", answer)
+        # Strip "=== Answer ===" prefix if the LLM echoed it
+        answer = re.sub(r"^={0,}\s*Answer\s*={0,}\s*\n", "", answer, flags=re.IGNORECASE).strip()
 
-        if len(parts) != expected_count:
-            # If the model omitted separators, try splitting on blank lines.
-            parts = re.split(r"\n\s*\n", answer)
+        # 1. Try splitting by Section header patterns (e.g. "Section 1: ...")
+        parts = re.split(r"(?i)Section\s*\d+\s*:?\s*[^\n]*\n", answer)
+        if parts and not parts[0].strip():
+            parts = parts[1:]
+        if len(parts) == expected_count:
+            results = []
+            for part in parts:
+                drug1, drug2 = ComparisonService._split_answer(part)
+                if not drug1.strip():
+                    drug1 = "Not available in source document."
+                if not drug2.strip():
+                    drug2 = "Not available in source document."
+                results.append((drug1, drug2))
+            return results
+
+        # 2. Try splitting by '---' separator
+        parts = re.split(r"\n---\s*\n", answer)
+        if len(parts) == expected_count:
+            results = []
+            for part in parts:
+                drug1, drug2 = ComparisonService._split_answer(part)
+                if not drug1.strip():
+                    drug1 = "Not available in source document."
+                if not drug2.strip():
+                    drug2 = "Not available in source document."
+                results.append((drug1, drug2))
+            return results
+
+        # 3. Fallback: split on blank lines
+        parts = re.split(r"\n\s*\n", answer)
 
         results: List[Tuple[str, str]] = []
         for part in parts[:expected_count]:
@@ -388,19 +431,24 @@ class ComparisonService:
         while len(results) < expected_count:
             results.append(("Not available in source document.", "Not available in source document."))
 
+        logger.debug(
+            "Parsed %d sections from answer (expected %d, split_method=blank_lines, answer_len=%d)",
+            len(results), expected_count, len(answer),
+        )
+
         return results
 
     @staticmethod
     def _split_answer(answer: str) -> Tuple[str, str]:
         # Strip Qwen thinking tokens if present
-        if "</think>" in answer:
-            answer = answer.split("</think>")[-1].strip()
-        if "<think>" in answer:
-            answer = answer.split("<think>")[-1].strip()
+        if "</think" in answer:
+            answer = answer.split("</think")[-1].strip()
+        if "<|im_start|>" in answer:
+            answer = answer.split("<|im_start|>")[-1].strip()
         if "<|im_end|>" in answer:
             answer = answer.split("<|im_end|>")[0].strip()
-
-        answer = answer.strip()
+        # Strip leading section header if present (e.g. "Section 1: Indications\n")
+        answer = re.sub(r"^Section\s*\d+\s*:?\s*[^\n]*\n", "", answer, flags=re.IGNORECASE).strip()
 
         drug1_match = re.search(
             r"DRUG1:\s*(.*?)(?=DRUG2:|$)",

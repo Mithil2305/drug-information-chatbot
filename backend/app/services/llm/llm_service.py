@@ -68,8 +68,8 @@ class LLMService:
         text = raw_text.strip()
         thinking = ""
 
-        if "</think>" in text:
-            parts = text.split("</think>", 1)
+        if "</think" in text:
+            parts = text.split("</think", 1)
             think_block = parts[0]
             answer = parts[1].strip() if len(parts) > 1 else ""
 
@@ -78,14 +78,22 @@ class LLMService:
             else:
                 thinking = think_block.strip()
         elif "<think>" in text:
+            # Model opened thinking but never closed it.
+            # Treat everything after <think> as the answer, not thinking.
             parts = text.split("<think>", 1)
-            answer = parts[0].strip()
-            thinking = parts[1].strip() if len(parts) > 1 else ""
+            after_think = parts[1].strip() if len(parts) > 1 else ""
+            if after_think:
+                answer = after_think
+                thinking = ""
+            else:
+                answer = parts[0].strip()
+                thinking = ""
         else:
             answer = text
 
         # Truncate any repeated answer blocks (anti-repetition guard)
-        for marker in ["**Answer:**", "\nAnswer:", "=== Answer ===", "=== Question ==="]:
+        # Only truncate if the remaining text is non-trivial.
+        for marker in ["**Answer:**", "\nAnswer:"]:
             if marker in answer:
                 first_part = answer.split(marker)[0].strip()
                 if len(first_part) > 20:
@@ -107,10 +115,13 @@ class LLMService:
         else:
             text = str(response).strip()
 
-        if "</think>" in text:
-            text = text.split("</think>")[-1].strip()
-        elif "<think>" in text:
-            text = text.split("<think>")[0].strip()
+        if "</think" in text:
+            text = text.split("</think")[-1].strip()
+        elif "imd" in text:
+            # Model opened thinking but never closed it.
+            # Take everything after imd as the answer.
+            after = text.split("imd", 1)[1].strip() if len(text.split("imd", 1)) > 1 else ""
+            text = after if after else text.split("imd", 1)[0].strip()
 
         return text
 
