@@ -55,6 +55,12 @@ class LLMService:
             text = response["choices"][0]["text"].strip()
         else:
             text = str(response).strip()
+
+        if "</think>" in text:
+            text = text.split("</think>")[-1].strip()
+        elif "<think>" in text:
+            text = text.split("<think>")[0].strip()
+
         return text
 
     @staticmethod
