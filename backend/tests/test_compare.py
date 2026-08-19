@@ -106,10 +106,13 @@ def test_compare_documents_success(client, mock_db):
     from unittest.mock import AsyncMock
     original_generate_async = comparison_service.llm_service.generate_async
     comparison_service.llm_service.generate_async = AsyncMock(
-        return_value=(
-            "DRUG1: Treatment of moderately to severely active rheumatoid arthritis. [S1]\n"
-            "DRUG2: Treatment of moderate-to-severe plaque psoriasis. [S1]"
-        )
+        return_value={
+            "text": (
+                "DRUG1: Treatment of moderately to severely active rheumatoid arthritis. [S1]\n"
+                "DRUG2: Treatment of moderate-to-severe plaque psoriasis. [S2]"
+            ),
+            "thinking": "",
+        }
     )
 
     original_search = comparison_service.search_service.search

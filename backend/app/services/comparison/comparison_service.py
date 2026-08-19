@@ -220,13 +220,13 @@ class ComparisonService:
         results1, results2 = await asyncio.gather(
             self.search_service.search(
                 query=label,
-                top_k=2,
+                top_k=3,
                 document_ids=[drug1_id],
                 score_threshold=settings.MIN_RELEVANCE_SCORE,
             ),
             self.search_service.search(
                 query=label,
-                top_k=2,
+                top_k=3,
                 document_ids=[drug2_id],
                 score_threshold=settings.MIN_RELEVANCE_SCORE,
             ),
@@ -241,20 +241,29 @@ class ComparisonService:
         task_id: Optional[str] = None,
     ) -> List[ComparisonAttribute]:
         await task_manager.raise_if_cancelled(task_id)
-        evidence: List[Tuple[str, str, str, Dict[str, Dict[str, Any]]]] = []
+        evidence: List[Tuple[str, str, str, str, Dict[str, Dict[str, Any]]]] = []
 
         for key, label, results1, results2 in batch:
-            combined: List[Dict[str, Any]] = []
-            if results1:
-                combined.extend(results1)
-            if results2:
-                combined.extend(results2)
-
-            if not combined:
+            if not results1 and not results2:
                 continue
 
-            context, citation_map = self.context_builder.build(combined)
-            evidence.append((key, label, context, citation_map))
+            context1, citation_map1 = self.context_builder.build(results1)
+            context2, citation_map2 = self.context_builder.build(results2)
+
+            # Renumber citation IDs in context2 to avoid conflicts with context1
+            offset = len(citation_map1)
+            if context2 and offset > 0:
+                context2 = re.sub(
+                    r"\[S(\d+)\]",
+                    lambda m: f"[S{int(m.group(1)) + offset}]",
+                    context2,
+                )
+            citation_map2 = {
+                f"S{int(k[1:]) + offset}": v for k, v in citation_map2.items()
+            }
+
+            merged_citation_map = {**citation_map1, **citation_map2}
+            evidence.append((key, label, context1, context2, merged_citation_map))
 
         if not evidence:
             return []
@@ -264,13 +273,19 @@ class ComparisonService:
         await task_manager.raise_if_cancelled(task_id)
 
         try:
-            answer = await self.llm_service.generate_async(
+            llm_res = await self.llm_service.generate_async(
                 prompt,
                 task_id=task_id,
-                max_new_tokens=min(512, 128 * len(evidence)),
+                max_new_tokens=min(1024, 256 * len(evidence)),
                 temperature=0.1,
+                stop=["<|im_end|>"],
             )
             await task_manager.raise_if_cancelled(task_id)
+            # generate_async returns a dict with 'text' and 'thinking' keys
+            if isinstance(llm_res, dict):
+                answer = llm_res.get("text", "")
+            else:
+                answer = str(llm_res)
         except TaskCancelledError:
             raise
         except Exception as exc:
@@ -290,13 +305,13 @@ class ComparisonService:
                         status="unavailable",
                     ),
                 )
-                for key, label, _, _ in evidence
+                for key, label, _, _, _ in evidence
             ]
 
         cell_texts = self._parse_batch_answer(answer, len(evidence))
 
         attributes: List[ComparisonAttribute] = []
-        for (key, label, context, citation_map), (drug1_text, drug2_text) in zip(
+        for (key, label, context1, context2, citation_map), (drug1_text, drug2_text) in zip(
             evidence, cell_texts
         ):
             cell1 = self._build_cell(drug1_text, citation_map, key)
@@ -314,31 +329,36 @@ class ComparisonService:
 
     @staticmethod
     def _build_batch_prompt(
-        evidence: List[Tuple[str, str, str, Dict[str, Dict[str, Any]]]],
+        evidence: List[Tuple[str, str, str, str, Dict[str, Dict[str, Any]]]],
         drug1_name: str,
         drug2_name: str,
     ) -> str:
         blocks = []
-        for i, (key, label, context, _) in enumerate(evidence, 1):
+        for i, (key, label, context1, context2, _) in enumerate(evidence, 1):
             block = (
                 f"Section {i}: {label}\n"
-                f"Drug 1: {drug1_name}\n"
-                f"Drug 2: {drug2_name}\n"
-                f"=== Evidence ===\n"
-                f"{context}\n"
-                f"DRUG1: <1-2 sentence summary with citations>\n"
-                f"DRUG2: <1-2 sentence summary with citations>"
+                f"=== Evidence for {drug1_name} ===\n"
+                f"{context1 or 'No evidence found.'}\n\n"
+                f"=== Evidence for {drug2_name} ===\n"
+                f"{context2 or 'No evidence found.'}"
             )
             blocks.append(block)
 
         return (
-            "You are MediMei, a clinical assistant. Compare the following sections of two drug labels. "
-            "Use ONLY the evidence under each section. Do not use outside knowledge, do not infer unsupported dosages, "
-            "and do not fabricate citations. Cite relevant sources using the [S1], [S2], etc. markers from that section. "
-            "Be concise: 1-2 short sentences per drug. "
-            "If the evidence does not contain information for a drug, write exactly: 'Not available in source document.'\n\n"
+            f"You are MediMei, a clinical assistant. Compare the following sections of two drug labels.\n"
+            f"Drug 1: {drug1_name}\n"
+            f"Drug 2: {drug2_name}\n\n"
+            f"For each section, write a 1-2 sentence summary for each drug based ONLY on the evidence. "
+            f"Do not use outside knowledge. Do not infer unsupported dosages. "
+            f"Cite relevant sources using [S1], [S2], etc. markers. "
+            f"If the evidence does not contain information for a drug, write exactly: 'Not available in source document.'\n\n"
+            f"Format your answer as:\n"
+            f"Section N: <label>\n"
+            f"DRUG1: <summary with citations>\n"
+            f"DRUG2: <summary with citations>\n\n"
             + "\n---\n".join(blocks)
             + "\n\n=== Answer ===\n"
+            "<think>\n\n</think>\n\n"
         )
 
     @staticmethod
@@ -372,9 +392,13 @@ class ComparisonService:
 
     @staticmethod
     def _split_answer(answer: str) -> Tuple[str, str]:
-        # Strip Qwen control token if present.
-        if " thinking" in answer:
-            answer = answer.split(" thinking")[-1].strip()
+        # Strip Qwen thinking tokens if present
+        if "</think>" in answer:
+            answer = answer.split("</think>")[-1].strip()
+        if "<think>" in answer:
+            answer = answer.split("<think>")[-1].strip()
+        if "<|im_end|>" in answer:
+            answer = answer.split("<|im_end|>")[0].strip()
 
         answer = answer.strip()
 
@@ -391,20 +415,6 @@ class ComparisonService:
 
         drug1 = drug1_match.group(1).strip() if drug1_match else ""
         drug2 = drug2_match.group(1).strip() if drug2_match else ""
-
-        if not drug1 and not drug2:
-            drug1_match = re.search(
-                r"Drug\s*1:\s*(.*?)(?=Drug\s*2:|$)",
-                answer,
-                re.DOTALL | re.IGNORECASE,
-            )
-            drug2_match = re.search(
-                r"Drug\s*2:\s*(.*?)(?=Drug\s*1:|$)",
-                answer,
-                re.DOTALL | re.IGNORECASE,
-            )
-            drug1 = drug1_match.group(1).strip() if drug1_match else ""
-            drug2 = drug2_match.group(1).strip() if drug2_match else ""
 
         # Clean any remaining placeholder artifacts
         def clean_placeholder(t: str) -> str:
