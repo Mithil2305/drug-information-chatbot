@@ -145,6 +145,7 @@ async def _post_chat_message_impl(
 ):
     if request.message:
         request.message = request.message.strip().lower()
+    logger.info("[CHAT] Step 0: message=%r, session_id=%s, document_ids=%s", request.message, request.session_id, request.document_ids)
 
     # ---------------------------------------------------------
     # 1. Get existing session
@@ -287,6 +288,7 @@ async def _post_chat_message_impl(
 
         # If a match was found, return immediately
         if matched_answer is not None:
+            logger.info("[CHAT] Step 1.5: Memory match found, returning cached answer (len=%d)", len(matched_answer))
             user_msg = ChatMessage(
                 session_id=session_id,
                 role="user",
@@ -416,6 +418,7 @@ async def _post_chat_message_impl(
     # 2. Retrieve evidence from Qdrant
     # ---------------------------------------------------------
 
+    logger.info("[CHAT] Step 2: Retrieving evidence from Qdrant...")
     evidence_chunks = []
 
     try:
@@ -459,8 +462,7 @@ async def _post_chat_message_impl(
 
     except Exception as e:
         logger.warning(
-            f"Qdrant query failed: {e}. "
-            "Using database retrieval fallback."
+            "[CHAT] Step 2: Qdrant query failed: %s. Using database retrieval fallback.", e
         )
         evidence_chunks = await mock_evidence_retrieval(
             request.message,
@@ -468,18 +470,22 @@ async def _post_chat_message_impl(
             db
         )
 
+    logger.info("[CHAT] Step 2: Qdrant returned %d evidence chunks", len(evidence_chunks))
     if not evidence_chunks:
+        logger.info("[CHAT] Step 2: No Qdrant results, using DB fallback")
         evidence_chunks = await mock_evidence_retrieval(
             request.message,
             request.document_ids,
             db
         )
+        logger.info("[CHAT] Step 2: DB fallback returned %d chunks", len(evidence_chunks))
 
     # ---------------------------------------------------------
     # 3. Safe abstention
     # ---------------------------------------------------------
 
     if not evidence_chunks:
+        logger.info("[CHAT] Step 3: No evidence found at all -> ABSTAINING")
         abstaining_answer = (
             "I couldn't find sufficient information "
             "in the provided document. I don't want to guess."
@@ -542,6 +548,7 @@ async def _post_chat_message_impl(
     # 5. Call LLM
     # ---------------------------------------------------------
 
+    logger.info("[CHAT] Step 5: Calling RAG service with %d evidence chunks", len(evidence_chunks))
     rag_result = await rag_service.answer_with_evidence(
         request.message,
         evidence_chunks,
@@ -551,6 +558,11 @@ async def _post_chat_message_impl(
     answer_text = rag_result["answer"]
     grounded = rag_result["grounded"]
     evidence_count = rag_result["sources_used"]
+    logger.info("[CHAT] Step 5: LLM returned answer_text (len=%d, empty=%s), grounded=%s, sources_used=%d",
+                len(answer_text) if answer_text else 0, not bool(answer_text), grounded, evidence_count)
+    logger.info("[CHAT] Step 5: answer_text first 300 chars: %r", (answer_text[:300] if answer_text else "<EMPTY>"))
+    if rag_result.get("error"):
+        logger.error("[CHAT] Step 5: RAG error: %s", rag_result["error"])
 
     # ---------------------------------------------------------
     # 5.5. Extract & Update Memories (if enabled)
@@ -580,7 +592,9 @@ async def _post_chat_message_impl(
     # ---------------------------------------------------------
 
     raw_citations = rag_result.get("citations") or []
+    logger.info("[CHAT] Step 6: RAG returned %d citations", len(raw_citations))
     if not raw_citations and evidence_chunks and answer_text:
+        logger.info("[CHAT] Step 6: No RAG citations but evidence exists -> using evidence as citations")
         raw_citations = evidence_chunks[:min(4, len(evidence_chunks))]
         grounded = True
         evidence_count = len(raw_citations)
@@ -672,6 +686,8 @@ async def _post_chat_message_impl(
     # 10. Return response
     # ---------------------------------------------------------
 
+    logger.info("[CHAT] Step 10: Returning response. answer_len=%d, grounded=%s, citations=%d, memories_updated=%d",
+                len(answer_text) if answer_text else 0, grounded, len(citations), len(memories_updated) if memories_updated else 0)
     return ChatResponse(
         message_id=str(assistant_msg.message_id),
         session_id=str(session_id),
