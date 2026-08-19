@@ -27,7 +27,7 @@ def test_upload_document_invalid_extension(client):
     files = {"file": ("test.txt", io.BytesIO(b"dummy text"), "text/plain")}
     response = client.post("/api/v1/documents/upload", files=files)
     assert response.status_code == 400
-    assert "Only PDF, DOCX, and DOC files are supported" in response.json()["detail"]
+    assert "Only PDF, DOCX, DOC, and image files" in response.json()["detail"]
 
 def test_upload_document_success(client, mock_db):
     files = {"file": ("test.pdf", io.BytesIO(b"%PDF-1.4 dummy pdf content"), "application/pdf")}

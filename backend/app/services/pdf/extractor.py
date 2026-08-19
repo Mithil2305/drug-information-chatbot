@@ -53,11 +53,16 @@ async def extract_pdf_pages(
             page_width = rect.width
             page_height = rect.height
 
-            # 1. If images are detected on the page, run PaddleOCR first
-            if image_count > 0:
+            is_image_file = file_path.lower().endswith(
+                (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif")
+            )
+
+            # 1. If images are detected or document is an image file, run PaddleOCR first
+            if image_count > 0 or is_image_file:
                 logger.info(
-                    "Page %s contains %s images. Running PaddleOCR first to extract image text.",
+                    "Page %s (image file: %s) contains %s images. Running PaddleOCR first to extract text.",
                     page_no,
+                    is_image_file,
                     image_count,
                 )
                 try:
