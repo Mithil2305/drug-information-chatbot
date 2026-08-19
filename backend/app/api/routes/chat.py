@@ -96,7 +96,7 @@ async def mock_evidence_retrieval(
             scored_chunks.append((max(score, 0.78 if is_summary else 0.5), c))
 
     scored_chunks.sort(key=lambda x: x[0], reverse=True)
-    top_chunks = scored_chunks[:6]
+    top_chunks = scored_chunks[:6] if scored_chunks else [(0.8, c) for c in all_chunks[:4]]
 
     for sc, c in top_chunks:
         retrieved.append({
@@ -367,26 +367,47 @@ async def _post_chat_message_impl(
     evidence_chunks = []
 
     try:
-        # Use SemanticSearchService for retrieval — it applies CrossEncoder
-        # reranking by default, retrieving top_k*3 candidates from Qdrant
-        # then reranking to top_k.  This significantly improves relevance
-        # for non-drug documents (e.g. novels, general text) where raw
-        # cosine similarity alone often surfaces wrong chunks.
-        search_results = await rag_service.search_service.search(
-            query=request.message,
+
+        raw_vec = embedding_model.encode(request.message, normalize_embeddings=True)
+        query_vector = raw_vec.tolist() if hasattr(raw_vec, "tolist") else list(raw_vec)
+
+        search_result = await qdrant_repository.search(
+            query_vector=query_vector,
+            limit=settings.TOP_K,
             document_ids=request.document_ids,
             score_threshold=settings.MIN_RELEVANCE_SCORE,
         )
-        # Normalize field names: SemanticSearchService returns "section_title"
-        # but the prompt builder and citation code below expect "section".
-        for r in search_results:
-            if "section" not in r:
-                r["section"] = r.get("section_title") or "Unknown"
-        evidence_chunks = search_results
+
+        for point in search_result:
+
+            if point.score >= settings.MIN_RELEVANCE_SCORE:
+
+                evidence_chunks.append({
+                    "chunk_id": point.payload.get(
+                        "chunk_id",
+                        str(point.id)
+                    ),
+                    "document_id": point.payload.get(
+                        "document_id"
+                    ),
+                    "document_name": point.payload.get(
+                        "document_name"
+                    ),
+                    "page_no": point.payload.get(
+                        "page_no"
+                    ),
+                    "section": point.payload.get(
+                        "section"
+                    ),
+                    "text": point.payload.get(
+                        "text"
+                    ),
+                    "score": point.score
+                })
 
     except Exception as e:
         logger.warning(
-            f"Semantic search failed: {e}. "
+            f"Qdrant query failed: {e}. "
             "Using database retrieval fallback."
         )
         evidence_chunks = await mock_evidence_retrieval(
