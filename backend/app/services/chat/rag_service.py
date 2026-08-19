@@ -184,8 +184,10 @@ class RAGService:
                 "error": str(exc),
             }
         generation_latency = time.perf_counter() - gen_start
+        logger.info("RAG raw LLM answer (first 500 chars): %s", repr(answer[:500]) if answer else "<EMPTY>")
 
         answer, citations, invalid = self.citation_mapper.extract_citations(answer, citation_map)
+        logger.info("RAG post-citation answer (first 500 chars): %s", repr(answer[:500]) if answer else "<EMPTY>")
 
         if invalid:
             logger.warning("Model produced invalid citation markers: %s", invalid)

@@ -113,7 +113,8 @@ class LLMService:
                         text_parts.append(self._token_text(token))
                 except Exception as exc:
                     logger.debug("Exception in streaming loop: %s", exc)
-                return "".join(text_parts)
+                raw = "".join(text_parts)
+                return self._extract_text({"choices": [{"text": raw}]}) if raw else ""
         except (TypeError, ValueError, AttributeError) as exc:
             logger.debug("LLM streaming not supported by client: %s", exc)
 
