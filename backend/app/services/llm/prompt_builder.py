@@ -35,12 +35,21 @@ class PromptBuilder:
         max_input_chars = settings.LLM_MAX_INPUT_TOKENS * 4
         if len(prompt) > max_input_chars:
             logger.warning(
-                "Final prompt too long (%d chars); truncating evidence.",
+                "Final prompt too long (%d chars); truncating.",
                 len(prompt),
             )
-            # Keep the system + question and trim the evidence from the front.
             overflow = len(prompt) - max_input_chars
-            evidence_context = evidence_context[overflow:]
+            # First trim memories_section (user profile/preferences)
+            if len(memories_section) > overflow:
+                memories_section = memories_section[:len(memories_section) - overflow]
+                overflow = 0
+            else:
+                overflow -= len(memories_section)
+                memories_section = ""
+            # Then trim evidence_context from the end (memories are appended
+            # last in answer_with_evidence, so they get cut first).
+            if overflow > 0:
+                evidence_context = evidence_context[:len(evidence_context) - overflow]
             prompt = (
                 f"{system}"
                 f"{memories_section}\n\n"

@@ -422,7 +422,7 @@ async def _post_chat_message_impl(
             session_id=session_id,
             role="assistant",
             content=abstaining_answer,
-            memories_used=json.dumps(memories_used) if memories_used else None
+            memories_used=None
         )
 
         db.add(user_msg)
@@ -437,7 +437,7 @@ async def _post_chat_message_impl(
             grounded=False,
             evidence_count=0,
             citations=[],
-            memories_used=memories_used if memories_used else None,
+            memories_used=None,
             memories_updated=None
         )
 
@@ -469,10 +469,15 @@ async def _post_chat_message_impl(
     # 5. Call LLM
     # ---------------------------------------------------------
 
+    # Limit memories passed to LLM to avoid prompt overflow
+    llm_memories = None
+    if current_user.memory_enabled and memory_records:
+        llm_memories = memory_records[:5]
+
     rag_result = await rag_service.answer_with_evidence(
         request.message,
         evidence_chunks,
-        memories=memory_records if current_user.memory_enabled else None,
+        memories=llm_memories,
         task_id=x_task_id,
     )
     answer_text = rag_result["answer"]
@@ -544,7 +549,7 @@ async def _post_chat_message_impl(
         role="assistant",
         content=answer_text,
         memories_updated=json.dumps(memories_updated) if memories_updated else None,
-        memories_used=json.dumps(memories_used) if memories_used else None
+        memories_used=json.dumps(rag_result.get("memories_used")) if rag_result.get("memories_used") else None
     )
 
     db.add(user_msg)
@@ -608,7 +613,7 @@ async def _post_chat_message_impl(
         evidence_count=evidence_count,
         citations=citations,
         memories_updated=memories_updated if memories_updated else None,
-        memories_used=rag_result.get("memories_used") if rag_result.get("memories_used") else (memories_used if memories_used else None)
+        memories_used=rag_result.get("memories_used") or None
     )
 
 
