@@ -56,7 +56,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             <FileText className="h-5 w-5" />
           </Link>
 
-          <Link
+          {/* <Link
             to="/compare"
             onClick={onClose}
             className={`flex h-9 w-9 items-center justify-center rounded-2xl transition-colors hover:bg-surface-highlight ${isCompareActive ? 'bg-surface-highlight text-primary' : 'text-fg-muted hover:text-primary'}`}
@@ -64,7 +64,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             title="Compare Drugs"
           >
             <GitCompareArrows className="h-5 w-5" />
-          </Link>
+          </Link> */}
 
           <Link
             to="/memories"
@@ -108,14 +108,14 @@ export function Sidebar({ onClose }: SidebarProps) {
           </div>
         </Link>
 
-        <Link
+        {/* <Link
           to="/compare"
           onClick={onClose}
           className={`flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors ${isCompareActive ? 'bg-surface-highlight text-primary' : 'text-fg hover:bg-surface-highlight'}`}
         >
           <GitCompareArrows className="h-4 w-4 shrink-0 text-accent" />
           <span>Compare Drugs</span>
-        </Link>
+        </Link> */}
 
         <Link
           to="/memories"

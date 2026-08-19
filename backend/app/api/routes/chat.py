@@ -624,6 +624,7 @@ async def _post_chat_message_impl(
         message_id=str(assistant_msg.message_id),
         session_id=str(session_id),
         answer=answer_text,
+        thinking=rag_result.get("thinking"),
         grounded=grounded,
         evidence_count=evidence_count,
         citations=citations,
