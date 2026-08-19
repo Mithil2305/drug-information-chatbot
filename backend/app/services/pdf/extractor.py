@@ -62,93 +62,73 @@ async def extract_pdf_pages(
             quality_report = quality_checker.check(page_record_raw)
             quality_score = quality_report["quality_score"]
             extraction_method = "pymupdf"
-            pymupdf_text = text  # preserve original for merging
 
-            # Run OCR whenever the page contains images — image text is invisible
-            # to PyMuPDF's get_text(). Also run when quality is poor.
-            should_ocr = image_count > 0 or quality_report["needs_ocr"]
-
-            if should_ocr:
-                reason = "poor quality" if quality_report["needs_ocr"] else "images detected"
-                logger.info(
-                    "Page %s: running OCR (%s, images=%s, chars=%s, words=%s, "
-                    "garble=%.3f, quality=%.2f).",
-                    page_no, reason, image_count,
-                    quality_report["char_count"],
-                    quality_report["word_count"],
-                    quality_report["garble_ratio"],
-                    quality_score,
-                )
-
-                try:
-                    ocr_result = await asyncio.wait_for(
-                        asyncio.to_thread(
-                            ocr_service.ocr_page, page, page_no, document_id
-                        ),
-                        timeout=OCR_TIMEOUT_SECONDS,
-                    )
-                except asyncio.TimeoutError:
-                    logger.warning(
-                        "OCR timed out after %ss for page %s. Keeping PyMuPDF text.",
-                        OCR_TIMEOUT_SECONDS,
+            # Check if we need OCR fallback, and only perform OCR if images are detected
+            if quality_report["needs_ocr"]:
+                if image_count > 0:
+                    logger.info(
+                        "Page %s needs OCR fallback (character count: %s, word count: %s, garble ratio: %s, quality score: %s) "
+                        "and contains %s images. Running PaddleOCR fallback.",
                         page_no,
+                        quality_report["char_count"],
+                        quality_report["word_count"],
+                        quality_report["garble_ratio"],
+                        quality_score,
+                        image_count,
                     )
-                    ocr_result = {
-                        "text": None,
-                        "confidence": None,
-                        "extraction_method": "ocr_failed",
-                    }
 
-                ocr_text = (ocr_result.get("text") or "").strip()
-                ocr_method = ocr_result.get("extraction_method", "")
-                ocr_ok = ocr_text and ocr_method not in (
-                    "paddleocr_unavailable", "paddleocr_failed",
-                    "easyocr_failed", "ocr_unavailable", "ocr_failed",
-                )
-
-                if ocr_ok:
-                    if quality_report["needs_ocr"]:
-                        # Quality was bad — OCR replaces PyMuPDF text entirely
-                        text = ocr_text
-                        extraction_method = ocr_method
-                        logger.info(
-                            "OCR replaced PyMuPDF text for page %s (method=%s).",
-                            page_no, ocr_method,
+                    try:
+                        ocr_result = await asyncio.wait_for(
+                            asyncio.to_thread(
+                                ocr_service.ocr_page, page, page_no, document_id
+                            ),
+                            timeout=OCR_TIMEOUT_SECONDS,
                         )
+                    except asyncio.TimeoutError:
+                        logger.warning(
+                            "OCR timed out after %ss for page %s. Keeping PyMuPDF text.",
+                            OCR_TIMEOUT_SECONDS,
+                            page_no,
+                        )
+                        ocr_result = {
+                            "text": None,
+                            "confidence": None,
+                            "extraction_method": "paddleocr_failed",
+                        }
+
+                    if (
+                        ocr_result.get("text") is not None
+                        and ocr_result.get("extraction_method") not in (
+                            "paddleocr_unavailable", "paddleocr_failed",
+                            "easyocr_failed", "ocr_unavailable",
+                        )
+                    ):
+                        text = ocr_result["text"].strip()
+                        extraction_method = ocr_result.get("extraction_method", "ocr")
+
+                        ocr_page_record = {
+                            "text": text,
+                            "page_width": page_width,
+                            "page_height": page_height,
+                        }
+                        new_quality_report = quality_checker.check(ocr_page_record)
+                        quality_score = new_quality_report["quality_score"]
+                        logger.info("OCR completed for page %s after poor quality check. New quality score: %s", page_no, quality_score)
                     else:
-                        # Quality was acceptable but page has images — merge
-                        # Append OCR lines that aren't already in PyMuPDF text
-                        pymupdf_lines = set(
-                            ln.strip().lower() for ln in pymupdf_text.splitlines() if ln.strip()
+                        logger.warning(
+                            "OCR fallback failed or was unavailable for page %s (method: %s). Keeping PyMuPDF text.",
+                            page_no,
+                            ocr_result.get("extraction_method"),
                         )
-                        new_lines = [
-                            ln for ln in ocr_text.splitlines()
-                            if ln.strip() and ln.strip().lower() not in pymupdf_lines
-                        ]
-                        if new_lines:
-                            text = pymupdf_text + "\n\n[OCR extracted content]\n" + "\n".join(new_lines)
-                            extraction_method = f"pymupdf+{ocr_method}"
-                            logger.info(
-                                "Merged %d new OCR lines into page %s (method=%s).",
-                                len(new_lines), page_no, extraction_method,
-                            )
-                        else:
-                            logger.info(
-                                "OCR produced no new content for page %s. Keeping PyMuPDF text.",
-                                page_no,
-                            )
-
-                    # Recalculate quality with final text
-                    final_record = {
-                        "text": text,
-                        "page_width": page_width,
-                        "page_height": page_height,
-                    }
-                    quality_score = quality_checker.check(final_record)["quality_score"]
                 else:
-                    logger.warning(
-                        "OCR fallback failed/unavailable for page %s (method: %s). Keeping PyMuPDF text.",
-                        page_no, ocr_method,
+                    logger.info(
+                        "Page %s has poor quality (character count: %s, word count: %s, garble ratio: %s, quality score: %s), "
+                        "but no images were detected. Skipping OCR fallback and keeping PyMuPDF text.",
+                        page_no,
+                        quality_report["char_count"],
+                        quality_report["word_count"],
+                        quality_report["garble_ratio"],
+                        quality_score,
                     )
 
             pages.append({
