@@ -127,9 +127,8 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "https://medimei.vercel.app",
         "https://medimei-chatbot.vercel.app",
-        "*"
     ],
-    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:[0-9]+)?|https://medimei(-[a-zA-Z0-9-]+)?\.vercel\.app",
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:[0-9]+)?|https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

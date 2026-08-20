@@ -3,7 +3,7 @@ import logging
 import re
 from typing import Callable, List, Optional
 
-import fitz
+import pymupdf as fitz
 
 from app.core.task_manager import task_manager
 
